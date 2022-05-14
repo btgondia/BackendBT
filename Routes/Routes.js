@@ -26,6 +26,25 @@ router.post("/postRoute", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.put("/putRoute", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    value= Object.keys(value)
+    .filter((key) => key !== "_id")
+    .reduce((obj, key) => {
+      obj[key] = value[key];
+      return obj;
+    }, {})
+    console.log(value);
+    let response = await Routes.updateOne({route_uuid:value.route_uuid}, value );
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Routes Not updated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 router.get("/GetRouteList", async (req, res) => {
   try {

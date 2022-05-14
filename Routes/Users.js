@@ -4,18 +4,37 @@ const router = express.Router();
 const { v4: uuid } = require("uuid");
 const User = require("../Models/Users");
 
-
 router.post("/postUser", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    value = {...value,user_uuid:uuid()};
-   
+    value = { ...value, user_uuid: uuid() };
+
     console.log(value);
-    let response = await User.create( value );
+    let response = await User.create(value);
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "User Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.put("/putUser", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    value = Object.keys(value)
+      .filter((key) => key !== "_id")
+      .reduce((obj, key) => {
+        obj[key] = value[key];
+        return obj;
+      }, {});
+
+    console.log(value);
+    let response = await User.updateOne({ user_uuid: value.user_uuid }, value);
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "User Not updated" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }

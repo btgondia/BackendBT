@@ -38,4 +38,24 @@ router.get("/GetCounterList", async (req, res) => {
   }
 });
 
+router.put("/putCounter", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+ 
+    value= Object.keys(value)
+   .filter((key) => key !== "_id")
+   .reduce((obj, key) => {
+     obj[key] = value[key];
+     return obj;
+   }, {})
+    console.log(value);
+    let response = await Counter.updateOne({counter_uuid:value.counter_uuid}, value );
+    if (response.acknowledged) {
+      res.json({ success: true, result: value });
+    } else res.json({ success: false, message: "Counter Not updated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 module.exports = router;

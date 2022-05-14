@@ -26,6 +26,25 @@ router.post("/postItemCategories", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.put("/putItemCategories", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    value= Object.keys(value)
+    .filter((key) => key !== "_id")
+    .reduce((obj, key) => {
+      obj[key] = value[key];
+      return obj;
+    }, {})
+    console.log(value);
+    let response = await ItemCategories.updateOne({category_uuid:value.category_uuid}, value );
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Item Categories Not updated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 router.get("/GetItemCategoryList", async (req, res) => {
   try {
