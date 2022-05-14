@@ -1,0 +1,27 @@
+{
+  "name": "projectbt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "node server.js",
+    "start": "nodemon --ignore ./frontend/ server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/priyalramani/ProjectBT.git"
+  },
+  "author": "M Waseem",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/priyalramani/ProjectBT/issues"
+  },
+  "homepage": "https://github.com/priyalramani/ProjectBT#readme",
+  "dependencies": {
+    "express": "^4.18.1",
+    "mongoose": "^6.3.3",
+    "morgan": "^1.10.0",
+    "nodemon": "^2.0.16",
+    "uuid": "^8.3.2"
+  }
+}
