@@ -9,6 +9,7 @@ const ItemGroup = require("./Routes/ItemGroup");
 const Counter = require("./Routes/Counters");
 const Users = require("./Routes/Users");
 const Item = require("./Routes/Item");
+const AutoBill = require("./Routes/AutoBill");
 const cors = require("cors")
 app = express();
 app.use(express.json());
@@ -23,6 +24,7 @@ app.use("/itemGroup", ItemGroup);
 app.use("/counters", Counter);
 app.use("/users", Users);
 app.use("/items", Item);
+app.use("/autoBill", AutoBill);
 
 
 module.exports = app;
