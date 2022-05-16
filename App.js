@@ -9,12 +9,12 @@ const ItemGroup = require("./Routes/ItemGroup");
 const Counter = require("./Routes/Counters");
 const Users = require("./Routes/Users");
 const Item = require("./Routes/Item");
-
+const cors = require("cors")
 app = express();
 app.use(express.json());
 connectDB()
 app.use(morgan("dev"));
-
+app.use(cors({origin: '*'}));
 app.use("/routes", Routes);
 app.use("/itemCategories", ItemCategories);
 app.use("/companies", Companies);
