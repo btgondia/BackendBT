@@ -20,9 +20,9 @@ const CounterSchema = new mongoose.Schema({
         type: String,
 
     },
-    
-    
-
+    counter_group_uuid:[{
+        type:String,
+    }]
 })
 
 

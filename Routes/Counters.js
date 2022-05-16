@@ -40,7 +40,8 @@ router.get("/GetCounterList", async (req, res) => {
 
 router.put("/putCounter", async (req, res) => {
   try {
-    let value = req.body;
+    let result=[]
+    for (let value of req.body){
     if (!value) res.json({ success: false, message: "Invalid Data" });
  
     value= Object.keys(value)
@@ -52,8 +53,12 @@ router.put("/putCounter", async (req, res) => {
     console.log(value);
     let response = await Counter.updateOne({counter_uuid:value.counter_uuid}, value );
     if (response.acknowledged) {
-      res.json({ success: true, result: value });
-    } else res.json({ success: false, message: "Counter Not updated" });
+      console.log(response)
+      result.push({ success: true, result: value });
+    } else result.push({ success: false, message: "Counter Not created" });
+  }
+  res.json({success:true,result})
+
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
