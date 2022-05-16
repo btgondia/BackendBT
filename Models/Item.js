@@ -34,6 +34,9 @@ const itemSchema = new mongoose.Schema({
     barcode: [{
         type: String,
     }],
+    item_group_uuid: [{
+        type: String,
+    }],
 })
 
 
