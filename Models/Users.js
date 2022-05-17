@@ -22,7 +22,7 @@ const UserSchema = new mongoose.Schema({
     login_password: {
         type: String,
     },
-    user_roles: [{
+    user_role: [{
         type: String,
     }],
 })

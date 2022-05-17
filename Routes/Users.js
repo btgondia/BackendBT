@@ -22,6 +22,7 @@ router.post("/postUser", async (req, res) => {
 router.put("/putUser", async (req, res) => {
   try {
     let value = req.body;
+    console.log(value)
     if (!value) res.json({ success: false, message: "Invalid Data" });
     value = Object.keys(value)
       .filter((key) => key !== "_id")
@@ -30,8 +31,8 @@ router.put("/putUser", async (req, res) => {
         return obj;
       }, {});
 
-    console.log(value);
-    let response = await User.updateOne({ user_uuid: value.user_uuid }, value);
+      let response = await User.updateOne({ user_uuid: value.user_uuid }, value);
+      console.log(response);
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "User Not updated" });
@@ -51,4 +52,17 @@ router.get("/GetUserList", async (req, res) => {
   }
 });
 
+router.post("/login", async(req, res) => {
+  console.log(req.body)
+  const login_username = req.body.login_username;
+  const login_password = req.body.login_password;
+  try {
+    const result= await User.findOne({ login_username , login_password  },)
+console.log(result,login_password,login_username)
+    if (result) res.json({ success: true, result });
+    else res.json({ success: false, message: "Users Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 module.exports = router;
