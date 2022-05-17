@@ -30,6 +30,7 @@ const AutoBillSchema = new mongoose.Schema({
       type: String,
     },
   ],
+  min_range: { type: String },
   qty_details: [
     {
       base_qty: {
