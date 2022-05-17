@@ -42,6 +42,11 @@ const AutoBillSchema = new mongoose.Schema({
       unit: {
         type: String,
       },
+      add_items:[{
+        item_uuid:{type:String},
+        add_qty:{type:String},
+        unit:{type:String}
+      }]
     },
   ],
 });
