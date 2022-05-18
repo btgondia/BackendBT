@@ -39,7 +39,7 @@ router.get("/GetCounterList", async (req, res) => {
 });
 
 router.put("/putCounter", async (req, res) => {
-  try {
+  // try {
     let result=[]
     for (let value of req.body){
     if (!value) res.json({ success: false, message: "Invalid Data" });
@@ -59,8 +59,8 @@ router.put("/putCounter", async (req, res) => {
   }
   res.json({success:true,result})
 
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 module.exports = router;
