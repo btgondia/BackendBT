@@ -10,6 +10,9 @@ const itemSchema = new mongoose.Schema({
     item_uuid: {
         type: String,
     },
+    one_pack: {
+        type: String,
+    },
     company_uuid: {
         type: String,
     },
