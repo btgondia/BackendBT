@@ -66,7 +66,7 @@ router.post("/login", async (req, res) => {
   try {
     const result = await User.findOne({ login_username, login_password });
     console.log(result, login_password, login_username);
-    if (result) res.json({ success: true, result });
+    if (result && +result.status===1) res.json({ success: true, result });
     else res.json({ success: false, message: "Users Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
