@@ -10,6 +10,7 @@ const Counter = require("./Routes/Counters");
 const Users = require("./Routes/Users");
 const Item = require("./Routes/Item");
 const AutoBill = require("./Routes/AutoBill");
+const Orders = require("./Routes/Orders");
 const cors = require("cors")
 app = express();
 app.use(express.json());
@@ -25,6 +26,7 @@ app.use("/counters", Counter);
 app.use("/users", Users);
 app.use("/items", Item);
 app.use("/autoBill", AutoBill);
+app.use("/orders", Orders);
 
 
 module.exports = app;
