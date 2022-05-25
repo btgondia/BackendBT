@@ -8,6 +8,7 @@ const OrdersSchema = new mongoose.Schema({
       user_uuid: { type: String },
     },
   ],
+
   item_details: [
     {
       item_uuid: { type: String },
@@ -33,6 +34,12 @@ const OrdersSchema = new mongoose.Schema({
   ],
 
   order_uuid: {
+    type: String,
+  },
+  invoice_number: {
+    type: Number,
+  },
+  order_status: {
     type: String,
   },
   counter_uuid: {
