@@ -14,6 +14,7 @@ const OrdersSchema = new mongoose.Schema({
       item_uuid: { type: String },
       b: { type: Number },
       p: { type: Number },
+      status: { type: Number },
       unit_price: { type: Number },
       gst_percentage: { type: Number },
       item_total: { type: Number },
