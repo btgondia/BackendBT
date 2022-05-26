@@ -11,7 +11,7 @@ router.post("/postOrder", async (req, res) => {
     let invoice_number = await Details.findOne({});
 
     let response = await Orders.create({
-      value,
+      ...value,
       invoice_number: invoice_number.next_invoice_number || 0,
       order_status: "R",
     });
