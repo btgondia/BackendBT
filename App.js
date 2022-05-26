@@ -18,9 +18,13 @@ app.use(
   cors({
     origin: ["*", "http://api.btgondia.com/", "http://btgondia.com/"],
     credentials: true,
-    optionSuccessStatus:200
+    optionSuccessStatus: 200,
   })
 );
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  next();
+});
 app.use(express.json());
 app.use(morgan("dev"));
 app.use("/routes", Routes);
