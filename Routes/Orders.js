@@ -88,11 +88,13 @@ router.get("/GetOrderRunningList", async (req, res) => {
 router.post("/GetOrderProcessingList", async (req, res) => {
   try {
     let data = await Orders.find({ trip_uuid: req.body.trip_uuid });
+    data = JSON.parse(JSON.stringify(data));
     let counterData = await Counters.find({
       counter_uuid: {
         $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
       },
     });
+
     if (data.length)
       res.json({
         success: true,
