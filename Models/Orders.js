@@ -45,6 +45,9 @@ const OrdersSchema = new mongoose.Schema({
   counter_uuid: {
     type: String,
   },
+  trip_uuid: {
+    type: String,
+  },
 });
 
 module.exports = mongoose.model("orders", OrdersSchema);

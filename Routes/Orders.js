@@ -48,10 +48,35 @@ router.put("/putOrder", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.put("/putOrders", async (req, res) => {
+  try {
+    let response = [];
+    for (let value of req.body) {
+      if (!value) res.json({ success: false, message: "Invalid Data" });
+      value = Object.keys(value)
+        .filter((key) => key !== "_id")
+        .reduce((obj, key) => {
+          obj[key] = value[key];
+          return obj;
+        }, {});
+      console.log(value);
+      let data = await Orders.updateOne(
+        { order_uuid: value.order_uuid },
+        value
+      );
+      if (data.acknowledged) response.push(value);
+    }
+    if (response.length) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Order Not updated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 router.get("/GetOrderRunningList", async (req, res) => {
   try {
-    let data = await Orders.find({order_status:"R"});
+    let data = await Orders.find({ order_status: "R" });
 
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Orders Not found" });
