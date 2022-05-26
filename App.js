@@ -1,4 +1,4 @@
-const cors = require("cors")
+const cors = require("cors");
 const express = require("express");
 const connectDB = require("./config/mongoDb");
 const morgan = require("morgan");
@@ -12,7 +12,7 @@ const Users = require("./Routes/Users");
 const Item = require("./Routes/Item");
 const AutoBill = require("./Routes/AutoBill");
 const Orders = require("./Routes/Orders");
-connectDB()
+connectDB();
 app = express();
 app.use(cors({
     origin: '*'

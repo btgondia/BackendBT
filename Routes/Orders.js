@@ -49,9 +49,9 @@ router.put("/putOrder", async (req, res) => {
   }
 });
 
-router.get("/GetOrderList", async (req, res) => {
+router.get("/GetOrderRunningList", async (req, res) => {
   try {
-    let data = await Orders.find({});
+    let data = await Orders.find({order_status:"R"});
 
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Orders Not found" });
