@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Orders = require("../Models/Orders");
 const Details = require("../Models/Details");
+const Counters = require("../Models/Counters");
 
 router.post("/postOrder", async (req, res) => {
   try {
@@ -79,6 +80,30 @@ router.get("/GetOrderRunningList", async (req, res) => {
     let data = await Orders.find({ order_status: "R" });
 
     if (data.length) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Orders Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.post("/GetOrderProcessingList", async (req, res) => {
+  try {
+    let data = await Orders.find({ trip_uuid: req.body.trip_uuid });
+    let counterData = await Counters.find({
+      counter_uuid: {
+        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+      },
+    });
+    if (data.length)
+      res.json({
+        success: true,
+        result: data.map((a) => ({
+          ...a,
+          counter_title: a.counter_uuid
+            ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
+                ?.counter_title
+            : "",
+        })),
+      });
     else res.json({ success: false, message: "Orders Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
