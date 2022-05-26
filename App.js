@@ -12,12 +12,15 @@ const Users = require("./Routes/Users");
 const Item = require("./Routes/Item");
 const AutoBill = require("./Routes/AutoBill");
 const Orders = require("./Routes/Orders");
+const Trips = require("./Routes/Trips");
 connectDB();
 app = express();
-app.use(cors({
-    origin: '*',
-    credentials: true
-}));
+app.use(
+  cors({
+    origin: "*",
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(morgan("dev"));
 app.use("/routes", Routes);
@@ -30,5 +33,6 @@ app.use("/users", Users);
 app.use("/items", Item);
 app.use("/autoBill", AutoBill);
 app.use("/orders", Orders);
+app.use("/trips", Trips);
 
 module.exports = app;
