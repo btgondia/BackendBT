@@ -1,4 +1,4 @@
-const cors = require("cors")
+const cors = require("cors");
 const express = require("express");
 const connectDB = require("./config/mongoDb");
 const morgan = require("morgan");
@@ -12,9 +12,14 @@ const Users = require("./Routes/Users");
 const Item = require("./Routes/Item");
 const AutoBill = require("./Routes/AutoBill");
 const Orders = require("./Routes/Orders");
-connectDB()
+connectDB();
 app = express();
-app.use(cors({ origin: '*', credentials: true }));
+app.use(
+  cors({
+    origin: ["*", "http://api.btgondia.com/", "http://btgondia.com/"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(morgan("dev"));
 app.use("/routes", Routes);
@@ -27,6 +32,5 @@ app.use("/users", Users);
 app.use("/items", Item);
 app.use("/autoBill", AutoBill);
 app.use("/orders", Orders);
-
 
 module.exports = app;
