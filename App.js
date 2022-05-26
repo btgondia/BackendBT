@@ -18,6 +18,7 @@ app.use(
   cors({
     origin: ["*", "http://api.btgondia.com/", "http://btgondia.com/"],
     credentials: true,
+    optionSuccessStatus:200
   })
 );
 app.use(express.json());
