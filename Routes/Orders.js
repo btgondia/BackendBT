@@ -87,8 +87,13 @@ router.get("/GetOrderRunningList", async (req, res) => {
 });
 router.post("/GetOrderProcessingList", async (req, res) => {
   try {
-    let data = await Orders.find({ trip_uuid: req.body.trip_uuid });
+    let data = [];
+    let { trip_uuid } = req.body;
+
+    data = await Orders.find({});
     data = JSON.parse(JSON.stringify(data));
+    if (+trip_uuid === 0) data = data.filter((a) => !a.trip_uuid);
+    else data = data.filter((a) => a.trip_uuid === trip_uuid);
     let counterData = await Counters.find({
       counter_uuid: {
         $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
