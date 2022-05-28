@@ -39,7 +39,7 @@ app.use("/trips", Trips);
 app.get("/stream/:text", async (req, res) => {
   try {
     const { text } = req.params;
-    const gtts = new gTTS(text?.replaceAll('_', " ") || "No text to speak", 'en-us');
+    const gtts = new gTTS(text?.replaceAll('_', " ") || "No text to speak", 'en');
     res.set({ 'Content-Type': 'audio/mpeg' });
     gtts.stream().pipe(res);
   } catch (err) {
