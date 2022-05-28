@@ -78,35 +78,59 @@ router.put("/putOrders", async (req, res) => {
 router.get("/GetOrderRunningList", async (req, res) => {
   try {
     let data = await Orders.find({ order_status: "R" });
+    data = JSON.parse(JSON.stringify(data));
 
-    if (data.length) res.json({ success: true, result: data });
-    else res.json({ success: false, message: "Orders Not found" });
+    let counterData = await Counters.find({
+      counter_uuid: {
+        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+      },
+    });
+    res.json({
+      success: true,
+      result: data.map((a) => ({
+        ...a,
+        counter_title: a.counter_uuid
+          ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
+              ?.counter_title
+          : "",
+      })),
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 router.post("/GetOrderProcessingList", async (req, res) => {
   try {
-    let data = await Orders.find({ trip_uuid: req.body.trip_uuid });
+    let data = [];
+    let { trip_uuid } = req.body;
+
+    data = await Orders.find({});
     data = JSON.parse(JSON.stringify(data));
+    if (+trip_uuid === 0) data = data.filter((a) => !a.trip_uuid);
+    else data = data.filter((a) => a.trip_uuid === trip_uuid);
     let counterData = await Counters.find({
       counter_uuid: {
         $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
       },
     });
+    result = data
+      .map((a) => ({
+        ...a,
+        counter_title: a.counter_uuid
+          ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
+              ?.counter_title
+          : "",
+      }))
+      ?.filter((a) =>
+        a.status.length > 1
+          ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 1
+          : +a?.status[0]?.stage === 1
+      );
 
-    if (data.length)
-      res.json({
-        success: true,
-        result: data.map((a) => ({
-          ...a,
-          counter_title: a.counter_uuid
-            ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
-                ?.counter_title
-            : "",
-        })),
-      });
-    else res.json({ success: false, message: "Orders Not found" });
+    res.json({
+      success: true,
+      result,
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
