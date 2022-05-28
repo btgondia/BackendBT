@@ -79,20 +79,22 @@ router.get("/GetOrderRunningList", async (req, res) => {
   try {
     let data = await Orders.find({ order_status: "R" });
     data = JSON.parse(JSON.stringify(data));
-    
+
     let counterData = await Counters.find({
       counter_uuid: {
         $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
       },
     });
- res.json({ success: true, result: data.map((a) => ({
-      ...a,
-      counter_title: a.counter_uuid
-        ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
-            ?.counter_title
-        : "",
-    })), });
-
+    res.json({
+      success: true,
+      result: data.map((a) => ({
+        ...a,
+        counter_title: a.counter_uuid
+          ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
+              ?.counter_title
+          : "",
+      })),
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -111,19 +113,24 @@ router.post("/GetOrderProcessingList", async (req, res) => {
         $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
       },
     });
+    result = data
+      .map((a) => ({
+        ...a,
+        counter_title: a.counter_uuid
+          ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
+              ?.counter_title
+          : "",
+      }))
+      ?.filter((a) =>
+        a.status.length > 1
+          ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 1
+          : +a?.status[0]?.stage === 1
+      );
 
-  
-      res.json({
-        success: true,
-        result: data.map((a) => ({
-          ...a,
-          counter_title: a.counter_uuid
-            ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
-                ?.counter_title
-            : "",
-        })),
-      });
-
+    res.json({
+      success: true,
+      result,
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
