@@ -14,6 +14,7 @@ const Item = require("./Routes/Item");
 const AutoBill = require("./Routes/AutoBill");
 const Orders = require("./Routes/Orders");
 const Trips = require("./Routes/Trips");
+const UserActivity = require("./Routes/UserActivity");
 connectDB();
 app = express();
 app.use(
@@ -35,6 +36,7 @@ app.use("/items", Item);
 app.use("/autoBill", AutoBill);
 app.use("/orders", Orders);
 app.use("/trips", Trips);
+app.use("/userActivity", UserActivity);
 
 app.get("/stream/:text", async (req, res) => {
   try {
