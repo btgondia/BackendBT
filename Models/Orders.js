@@ -49,6 +49,9 @@ const OrdersSchema = new mongoose.Schema({
   trip_uuid: {
     type: String,
   },
+  order_grandtotal: {
+    type: Number,
+  },
 });
 
 module.exports = mongoose.model("orders", OrdersSchema);

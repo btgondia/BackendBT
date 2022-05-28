@@ -87,7 +87,7 @@ router.get("/GetProcessingTripList", async (req, res) => {
           orderLength: ordersData.filter((b) => !b.trip_uuid)?.filter((a) =>
           a.status.length > 1
             ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 1
-            : +a?.status[0]?.stage === "1"
+            : +a?.status[0]?.stage === 1
         ).length,
         },
         ...data.map((a) => ({
