@@ -2,6 +2,7 @@ const cors = require("cors");
 const express = require("express");
 const connectDB = require("./config/mongoDb");
 const morgan = require("morgan");
+const gTTS = require("gtts");
 const Routes = require("./Routes/Routes");
 const ItemCategories = require("./Routes/ItemCategories");
 const Companies = require("./Routes/Companies");
@@ -34,5 +35,16 @@ app.use("/items", Item);
 app.use("/autoBill", AutoBill);
 app.use("/orders", Orders);
 app.use("/trips", Trips);
+
+app.get("/stream/:text", async (req, res) => {
+  try {
+    const { text } = req.params;
+    const gtts = new gTTS(text?.replaceAll('_', " ") || "No text to speak", 'en-us');
+    res.set({ 'Content-Type': 'audio/mpeg' });
+    gtts.stream().pipe(res);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 module.exports = app;
