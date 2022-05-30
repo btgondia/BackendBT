@@ -40,8 +40,9 @@ app.use("/userActivity", UserActivity);
 
 app.get("/stream/:text", async (req, res) => {
   try {
-    const { text } = req.params;
-    const gtts = new gTTS(text?.replaceAll('_', " ") || "No text to speak", 'en');
+    let { text, } = await req.params;
+    let extra = ', extra audio text, extra audio text, extra audio text, extra audio text, extra'
+    const gtts = new gTTS(`${text?.replaceAll('_', " ")}` + extra, 'en');
     res.set({ 'Content-Type': 'audio/mpeg' });
     gtts.stream().pipe(res);
   } catch (err) {
