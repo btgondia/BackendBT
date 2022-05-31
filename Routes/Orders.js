@@ -135,5 +135,41 @@ router.post("/GetOrderProcessingList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/GetOrderCheckingList", async (req, res) => {
+  try {
+    let data = [];
+    let { trip_uuid } = req.body;
+
+    data = await Orders.find({});
+    data = JSON.parse(JSON.stringify(data));
+    if (+trip_uuid === 0) data = data.filter((a) => !a.trip_uuid);
+    else data = data.filter((a) => a.trip_uuid === trip_uuid);
+    let counterData = await Counters.find({
+      counter_uuid: {
+        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+      },
+    });
+    result = data
+      .map((a) => ({
+        ...a,
+        counter_title: a.counter_uuid
+          ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
+              ?.counter_title
+          : "",
+      }))
+      ?.filter((a) =>
+        a.status.length > 1
+          ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 2
+          : +a?.status[0]?.stage === 2
+      );
+
+    res.json({
+      success: true,
+      result,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 module.exports = router;

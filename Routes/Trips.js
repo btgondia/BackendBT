@@ -111,5 +111,43 @@ router.get("/GetProcessingTripList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.get("/GetCheckingTripList", async (req, res) => {
+  try {
+    let data = await Trips.find({});
+    data = JSON.parse(JSON.stringify(data));
+    let ordersData = await Orders.find({});
+    ordersData = JSON.parse(JSON.stringify(ordersData));
+    
+      let result = [
+        {
+          trip_uuid: 0,
+          trip_title: "Unknown",
+          orderLength: ordersData.filter((b) => !b.trip_uuid)?.filter((a) =>
+          a.status.length > 1
+            ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 2
+            : +a?.status[0]?.stage === 2
+        ).length,
+        },
+        ...data.map((a) => ({
+          ...a,
+          orderLength: ordersData
+            .filter((b) => a.trip_uuid === b.trip_uuid)
+            ?.filter((a) =>
+              a.status.length > 1
+                ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 2
+                : +a?.status[0]?.stage === 2
+            ).length,
+        })),
+      ].filter(a=>a.orderLength);
+      console.log(result);
+      res.json({
+        success: true,
+        result,
+      });
+
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 module.exports = router;
