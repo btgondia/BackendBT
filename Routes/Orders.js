@@ -195,7 +195,7 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
       }))
       ?.filter((a) =>
         a.status.length > 1
-          ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 3
+          ? +a.status.map(c=>+c.stage).reduce((c, d) => Math.max(c, d)) === 3
           : +a?.status[0]?.stage === 3
       );
 

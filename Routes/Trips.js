@@ -162,7 +162,7 @@ router.get("/GetDeliveryTripList", async (req, res) => {
           trip_title: "Unknown",
           orderLength: ordersData.filter((b) => !b.trip_uuid)?.filter((a) =>
           a.status.length > 1
-            ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 3
+            ? +a.status.map(c=>+c.stage).reduce((c, d) => Math.max(c, d)) === 3
             : +a?.status[0]?.stage === 3
         ).length,
         },
@@ -172,7 +172,7 @@ router.get("/GetDeliveryTripList", async (req, res) => {
             .filter((b) => a.trip_uuid === b.trip_uuid)
             ?.filter((a) =>
               a.status.length > 1
-                ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 3
+                ? +a.status.map(c=>+c.stage).reduce((c, d) => Math.max(c, d)) === 3
                 : +a?.status[0]?.stage === 3
             ).length,
         })),
