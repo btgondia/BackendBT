@@ -10,7 +10,7 @@ const userActivitySchema = new mongoose.Schema({
     narration: {
         type: String,
     },
-    timeStamp: {
+    timestamp: {
         type: Number,
     },
     activity: {

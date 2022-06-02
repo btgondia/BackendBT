@@ -7,6 +7,8 @@ router.post("/postUserActivity", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     console.log(value);
+    let time = new Date();
+    value = { ...value, timestamp: time.getTime() };
 
     let response = await UserActivity.create(value);
     if (response) {

@@ -8,7 +8,7 @@ const OrdersSchema = new mongoose.Schema({
       user_uuid: { type: String },
     },
   ],
-
+  replacement: { type: Number },
   item_details: [
     {
       item_uuid: { type: String },
