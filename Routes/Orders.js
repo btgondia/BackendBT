@@ -3,6 +3,7 @@ const router = express.Router();
 const Orders = require("../Models/Orders");
 const Details = require("../Models/Details");
 const Counters = require("../Models/Counters");
+const OrderCompleted = require("../Models/OrderCompleted");
 
 router.post("/postOrder", async (req, res) => {
   try {
@@ -37,11 +38,14 @@ router.put("/putOrder", async (req, res) => {
         obj[key] = value[key];
         return obj;
       }, {});
+   
     console.log(value);
-    let response = await Orders.updateOne(
-      { order_uuid: value.order_uuid },
-      value
-    );
+   
+      let response = await Orders.updateOne(
+        { order_uuid: value.order_uuid },
+        value
+      );
+    
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Order Not updated" });
@@ -60,12 +64,23 @@ router.put("/putOrders", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-      console.log(value);
+        let orderStage =
+        value.status.length > 1
+          ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
+          : +value?.status[0]?.stage;
+      console.log(value,orderStage);
+
+      if (+orderStage === 4) {
+        await Orders.deleteOne({ order_uuid: value.order_uuid }, value);
+        let data =await OrderCompleted.create(value);
+        if (data) response.push(data);
+      } else {
       let data = await Orders.updateOne(
         { order_uuid: value.order_uuid },
         value
       );
       if (data.acknowledged) response.push(value);
+    }
     }
     if (response.length) {
       res.json({ success: true, result: response });
@@ -195,7 +210,8 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
       }))
       ?.filter((a) =>
         a.status.length > 1
-          ? +a.status.map(c=>+c.stage).reduce((c, d) => Math.max(c, d)) === 3
+          ? +a.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d)) ===
+            3
           : +a?.status[0]?.stage === 3
       );
 
