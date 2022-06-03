@@ -18,5 +18,24 @@ router.post("/postUserActivity", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/getUserActivity", async (req, res) => {
+  try {
+  let value = req.body;
+  if (!value) res.json({ success: false, message: "Invalid Data" });
+  console.log(value);
+  let endDate = +value.endDate + 86400000;
+  console.log(endDate,value.startDate);
+  let response = await UserActivity.find({
+    user_uuid: value.user_uuid,
+    timestamp: { $gt: value.startDate, $lt: endDate },
+  });
+  console.log(response, endDate);
+  if (response.length) {
+    res.json({ success: true, result: response });
+  } else res.json({ success: false, message: "Activity Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 module.exports = router;
