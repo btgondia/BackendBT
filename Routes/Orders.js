@@ -38,14 +38,14 @@ router.put("/putOrder", async (req, res) => {
         obj[key] = value[key];
         return obj;
       }, {});
-   
+
     console.log(value);
-   
-      let response = await Orders.updateOne(
-        { order_uuid: value.order_uuid },
-        value
-      );
-    
+
+    let response = await Orders.updateOne(
+      { order_uuid: value.order_uuid },
+      value
+    );
+
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Order Not updated" });
@@ -64,23 +64,23 @@ router.put("/putOrders", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-        let orderStage =
+      let orderStage =
         value.status.length > 1
           ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
           : +value?.status[0]?.stage;
-      console.log(value,orderStage);
+      console.log(value, orderStage);
 
       if (+orderStage === 4) {
         await Orders.deleteOne({ order_uuid: value.order_uuid }, value);
-        let data =await OrderCompleted.create(value);
+        let data = await OrderCompleted.create(value);
         if (data) response.push(data);
       } else {
-      let data = await Orders.updateOne(
-        { order_uuid: value.order_uuid },
-        value
-      );
-      if (data.acknowledged) response.push(value);
-    }
+        let data = await Orders.updateOne(
+          { order_uuid: value.order_uuid },
+          value
+        );
+        if (data.acknowledged) response.push(value);
+      }
     }
     if (response.length) {
       res.json({ success: true, result: response });
@@ -219,6 +219,46 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
       success: true,
       result,
     });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.post("/getCompleteOrderList", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    console.log(value);
+    let endDate = +value.endDate + 86400000;
+    console.log(endDate, value.startDate);
+    let response = await OrderCompleted.find({});
+    response = response.filter(
+      (order) =>
+        order.status.filter(
+          (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
+        ).length
+    );
+    let counterData = await Counters.find({
+      counter_uuid: { $in: response.map((a) => a.counter_uuid) },
+    });
+
+    response = response.map((order) => ({
+      invoice_number: order.invoice_number,
+      order_date: order.status.find((a) => +a.stage === 1)?.time,
+      delivery_date: order.status.find((a) => +a.stage === 4)?.time,
+      qty:
+        (order?.item_details?.length > 1
+          ? order.item_details.map((a) => a.b).reduce((a, b) => +a + b)
+          :order?.item_details?.length? order?.item_details[0]?.b :
+            0 )+ ":" + (order?.item_details?.length > 1
+          ? order.item_details.map((a) => a.p).reduce((a, b) => +a + b)
+          :order?.item_details?.length? order?.item_details[0]?.p:0),
+      amt: order.order_grandtotal ||0,
+      counter_title:counterData.find(a=>a.counter_uuid===order.counter_uuid)?.counter_title
+    }));
+    console.log(response, endDate);
+    if (response.length) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Activity Not created" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
