@@ -51,6 +51,11 @@ const CounterSchema = new mongoose.Schema({
       type: String,
     },
   ],
+  payment_modes: [
+    {
+      type: String,
+    },
+  ],
 });
 
 module.exports = mongoose.model("counters", CounterSchema);
