@@ -334,63 +334,93 @@ router.post("/getOrderItemReport", async (req, res) => {
       let auto_addedData = auto_added.filter(
         (b) => b.item_uuid === a.item_uuid
       );
-      let obj={
+
+      let obj = {
+        conversion: a.conversion,
         item_uuid: a.item_uuid,
         item_title: a.item_title,
-        sales:
-          (salesData.length > 1
+        salesB:
+          salesData.length > 1
             ? salesData.map((b) => b.b || 0).reduce((a, b) => +a + b)
             : salesData.length
             ? salesData[0].b || 0
-            : 0) +
-          ":" +
-          (salesData.length > 1
+            : 0,
+        salesP:
+          salesData.length > 1
             ? salesData.map((b) => b.p || 0).reduce((a, b) => +a + b)
             : salesData.length
             ? salesData[0].p || 0
-            : 0),
-        deliver_return:
-          (deliver_returnData.length > 1
+            : 0,
+        deliver_returnB:
+          deliver_returnData.length > 1
             ? deliver_returnData.map((b) => b.b || 0).reduce((a, b) => +a + b)
             : deliver_returnData.length
             ? deliver_returnData[0].b || 0
-            : 0) +
-          ":" +
-          (deliver_returnData.length > 1
+            : 0,
+        deliver_returnP:
+          deliver_returnData.length > 1
             ? deliver_returnData.map((b) => b.p || 0).reduce((a, b) => +a + b)
             : deliver_returnData.length
             ? deliver_returnData[0].p || 0
-            : 0),
-        processing_canceled:
-          (processing_canceledData.length > 1
-            ? processing_canceledData.map((b) => b.b || 0).reduce((a, b) => +a + b)
+            : 0,
+        processing_canceledB:
+          processing_canceledData.length > 1
+            ? processing_canceledData
+                .map((b) => b.b || 0)
+                .reduce((a, b) => +a + b)
             : processing_canceledData.length
             ? processing_canceledData[0].b || 0
-            : 0) +
-          ":" +
-          (processing_canceledData.length > 1
-            ? processing_canceledData.map((b) => b.p || 0).reduce((a, b) => +a + b)
+            : 0,
+        processing_canceledP:
+          processing_canceledData.length > 1
+            ? processing_canceledData
+                .map((b) => b.p || 0)
+                .reduce((a, b) => +a + b)
             : processing_canceledData.length
             ? processing_canceledData[0].p || 0
-            : 0),
-        auto_added:
-          (auto_addedData.length > 1
+            : 0,
+        auto_addedB:
+          auto_addedData.length > 1
             ? auto_addedData.map((b) => b.b || 0).reduce((a, b) => +a + b)
             : auto_addedData.length
             ? auto_addedData[0].b || 0
-            : 0) +
-          ":" +
-          (auto_addedData.length > 1
+            : 0,
+        auto_addedP:
+          auto_addedData.length > 1
             ? auto_addedData.map((b) => b.p || 0).reduce((a, b) => +a + b)
             : auto_addedData.length
             ? auto_addedData[0].p || 0
-            : 0),
-      }
-      console.log(salesData,obj)
+            : 0,
+      };
+      console.log(salesData, obj);
       data.push(obj);
     }
-    if (data.length) {
-      res.json({ success: true, result: data });
+    let FinalData = data.map((a) => ({
+      ...a,
+      sales:
+        +a.salesB +
+        parseInt(+a.salesP / +a.conversion) +
+        ":" +
+        (+a.salesP % +a.conversion),
+      deliver_return:
+        +a.deliver_returnB +
+        parseInt(+a.deliver_returnP / +a.conversion) +
+        ":" +
+        (+a.deliver_returnP % +a.conversion),
+      processing_canceled:
+        +a.processing_canceledB +
+        parseInt(+a.processing_canceledP / +a.conversion) +
+        ":" +
+        (+a.processing_canceledP % +a.conversion),
+      auto_added:
+        +a.auto_addedB +
+        parseInt(+a.auto_addedP / +a.conversion) +
+        ":" +
+        (+a.auto_addedP % +a.conversion),
+        
+    }));
+    if (FinalData) {
+      res.json({ success: true, result: FinalData });
     } else res.json({ success: false, message: "Items Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
