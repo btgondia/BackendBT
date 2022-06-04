@@ -6,7 +6,7 @@ const Trips = require("../Models/Trips");
 const Orders = require("../Models/Orders");
 
 router.post("/postTrip", async (req, res) => {
-  //   try {
+    try {
   let value = req.body;
   if (!value) res.json({ success: false, message: "Invalid Data" });
   value = {
@@ -20,9 +20,9 @@ router.post("/postTrip", async (req, res) => {
   if (response) {
     res.json({ success: true, result: response });
   } else res.json({ success: false, message: "Trip Not created" });
-  //   } catch (err) {
-  //     res.status(500).json({ success: false, message: err });
-  //   }
+    } catch (err) {
+      res.status(500).json({ success: false, message: err });
+    }
 });
 router.put("/putTrip", async (req, res) => {
   try {
@@ -75,7 +75,7 @@ router.get("/GetTripList", async (req, res) => {
 });
 router.get("/GetProcessingTripList", async (req, res) => {
   try {
-    let data = await Trips.find({});
+    let data = await Trips.find({users:req.body.user_uuid});
     data = JSON.parse(JSON.stringify(data));
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
@@ -113,7 +113,7 @@ router.get("/GetProcessingTripList", async (req, res) => {
 });
 router.get("/GetCheckingTripList", async (req, res) => {
   try {
-    let data = await Trips.find({});
+    let data = await Trips.find({users:req.body.user_uuid});
     data = JSON.parse(JSON.stringify(data));
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
@@ -151,7 +151,7 @@ router.get("/GetCheckingTripList", async (req, res) => {
 });
 router.get("/GetDeliveryTripList", async (req, res) => {
   try {
-    let data = await Trips.find({});
+    let data = await Trips.find({users:req.body.user_uuid});
     data = JSON.parse(JSON.stringify(data));
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));

@@ -16,6 +16,7 @@ const TripsSchema = new mongoose.Schema({
   remarks: {
     type: String,
   },
+  users: [{ type: String }],
 });
 
 module.exports = mongoose.model("trips", TripsSchema);
