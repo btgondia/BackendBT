@@ -4,6 +4,7 @@ const router = express.Router();
 const { v4: uuid } = require("uuid");
 const Trips = require("../Models/Trips");
 const Orders = require("../Models/Orders");
+const Users = require("../Models/Users");
 
 router.post("/postTrip", async (req, res) => {
   try {
@@ -69,6 +70,38 @@ router.get("/GetTripList", async (req, res) => {
         result,
       });
     } else res.json({ success: false, message: "Trips Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.post("/GetCompletedTripList", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    console.log(value);
+    let ordersData = await Orders.find({});
+    ordersData = JSON.parse(JSON.stringify(ordersData));
+    let endDate = +value.endDate + 86400000;
+    console.log(endDate, value.startDate);
+    let response = await Trips.find({
+      user_uuid: value.user_uuid,
+      timestamp: { $gt: value.startDate, $lt: endDate },
+      status: 1,
+    });
+    response = JSON.parse(JSON.stringify(response));
+    let data = [];
+    for (let item of response) {
+      let orderLength = ordersData.filter(
+        (b) => item.trip_uuid === b.trip_uuid
+      ).length;
+      let users = [];
+      if (item.users.length)
+        users = await Users.find({ user_uuid: { $in: item.users } });
+      data.push({ ...item, orderLength, users });
+    }
+    if (data) {
+      res.json({ success: true, result: data });
+    } else res.json({ success: false, message: "Trip Not created" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
