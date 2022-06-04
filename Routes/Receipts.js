@@ -2,6 +2,7 @@ const express = require("express");
 const Counters = require("../Models/Counters");
 const OrderCompleted = require("../Models/OrderCompleted");
 const Orders = require("../Models/Orders");
+const Users = require("../Models/Users");
 
 const router = express.Router();
 const Receipts = require("../Models/Receipts");
@@ -48,6 +49,8 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
 router.get("/getReceipt", async (req, res) => {
   try {
     let response = await Receipts.find({});
+    response=JSON.parse(JSON.stringify(response))
+    let usersData= await Users.find({user_uuid:{$in:response.map(a=>a.user_uuid).filter(a=>a)}})
     response = response.filter(
       (a) =>
         a.modes.filter(
@@ -78,7 +81,9 @@ router.get("/getReceipt", async (req, res) => {
             invoice_number: orderData?.invoice_number || "",
             order_date: orderData?.status?.find((a) => +a?.stage === 1)?.time,
             payment_date: item?.time,
-            order_uuid:item.order_uuid
+            order_uuid:item.order_uuid,
+            user_title:usersData.find(a=>item.user_uuid===a.user_uuid)?.user_title,
+            amt:item.modes.find(a=>a.mode_uuid==="c67b5988-d2b6-11ec-9d64-0242ac120002")?.amt
           };
           data.push(obj);
         }
