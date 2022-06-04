@@ -4,6 +4,7 @@ const Orders = require("../Models/Orders");
 const Details = require("../Models/Details");
 const Counters = require("../Models/Counters");
 const OrderCompleted = require("../Models/OrderCompleted");
+const Item = require("../Models/Item");
 
 router.post("/postOrder", async (req, res) => {
   try {
@@ -248,17 +249,149 @@ router.post("/getCompleteOrderList", async (req, res) => {
       qty:
         (order?.item_details?.length > 1
           ? order.item_details.map((a) => a.b).reduce((a, b) => +a + b)
-          :order?.item_details?.length? order?.item_details[0]?.b :
-            0 )+ ":" + (order?.item_details?.length > 1
+          : order?.item_details?.length
+          ? order?.item_details[0]?.b
+          : 0) +
+        ":" +
+        (order?.item_details?.length > 1
           ? order.item_details.map((a) => a.p).reduce((a, b) => +a + b)
-          :order?.item_details?.length? order?.item_details[0]?.p:0),
-      amt: order.order_grandtotal ||0,
-      counter_title:counterData.find(a=>a.counter_uuid===order.counter_uuid)?.counter_title
+          : order?.item_details?.length
+          ? order?.item_details[0]?.p
+          : 0),
+      amt: order.order_grandtotal || 0,
+      counter_title: counterData.find(
+        (a) => a.counter_uuid === order.counter_uuid
+      )?.counter_title,
     }));
     console.log(response, endDate);
     if (response.length) {
       res.json({ success: true, result: response });
-    } else res.json({ success: false, message: "Activity Not created" });
+    } else res.json({ success: false, message: "Order Not Found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.post("/getOrderItemReport", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    console.log(value);
+    let endDate = +value.endDate + 86400000;
+    let response = await OrderCompleted.find({});
+    response = JSON.parse(JSON.stringify(response));
+    response = response.filter(
+      (order) =>
+        order.status.filter(
+          (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
+        ).length
+    );
+    let sales = [].concat
+      .apply(
+        [],
+        response.map((a) => a.item_details)
+      )
+      ?.filter((a) => a?.item_uuid);
+    let deliver_return = [].concat
+      .apply(
+        [],
+        response.map((a) => a.delivery_return)
+      )
+      ?.filter((a) => a?.item_uuid);
+    let processing_canceled = [].concat
+      .apply(
+        [],
+        response.map((a) => a.processing_canceled)
+      )
+      ?.filter((a) => a?.item_uuid);
+    let auto_added = [].concat
+      .apply(
+        [],
+        response.map((a) => a.auto_added)
+      )
+      ?.filter((a) => a?.item_uuid);
+    let items = [
+      ...sales,
+      ...deliver_return,
+      ...processing_canceled,
+      ...auto_added,
+    ];
+    let itemsData = await Item.find({
+      item_uuid: { $in: items.map((a) => a.item_uuid) },
+    });
+    itemsData = JSON.parse(JSON.stringify(itemsData));
+
+    let data = [];
+    for (let a of itemsData.filter(
+      (a) => +value.company_uuid === 0 || a.company_uuid === value.company_uuid
+    )) {
+      let salesData = sales.filter((b) => b.item_uuid === a.item_uuid);
+      let deliver_returnData = deliver_return.filter(
+        (b) => b.item_uuid === a.item_uuid
+      );
+      let processing_canceledData = processing_canceled.filter(
+        (b) => b.item_uuid === a.item_uuid
+      );
+      let auto_addedData = auto_added.filter(
+        (b) => b.item_uuid === a.item_uuid
+      );
+      let obj={
+        item_uuid: a.item_uuid,
+        item_title: a.item_title,
+        sales:
+          (salesData.length > 1
+            ? salesData.map((b) => b.b || 0).reduce((a, b) => +a + b)
+            : salesData.length
+            ? salesData[0].b || 0
+            : 0) +
+          ":" +
+          (salesData.length > 1
+            ? salesData.map((b) => b.p || 0).reduce((a, b) => +a + b)
+            : salesData.length
+            ? salesData[0].p || 0
+            : 0),
+        deliver_return:
+          (deliver_returnData.length > 1
+            ? deliver_returnData.map((b) => b.b || 0).reduce((a, b) => +a + b)
+            : deliver_returnData.length
+            ? deliver_returnData[0].b || 0
+            : 0) +
+          ":" +
+          (deliver_returnData.length > 1
+            ? deliver_returnData.map((b) => b.p || 0).reduce((a, b) => +a + b)
+            : deliver_returnData.length
+            ? deliver_returnData[0].p || 0
+            : 0),
+        processing_canceled:
+          (processing_canceledData.length > 1
+            ? processing_canceledData.map((b) => b.b || 0).reduce((a, b) => +a + b)
+            : processing_canceledData.length
+            ? processing_canceledData[0].b || 0
+            : 0) +
+          ":" +
+          (processing_canceledData.length > 1
+            ? processing_canceledData.map((b) => b.p || 0).reduce((a, b) => +a + b)
+            : processing_canceledData.length
+            ? processing_canceledData[0].p || 0
+            : 0),
+        auto_added:
+          (auto_addedData.length > 1
+            ? auto_addedData.map((b) => b.b || 0).reduce((a, b) => +a + b)
+            : auto_addedData.length
+            ? auto_addedData[0].b || 0
+            : 0) +
+          ":" +
+          (auto_addedData.length > 1
+            ? auto_addedData.map((b) => b.p || 0).reduce((a, b) => +a + b)
+            : auto_addedData.length
+            ? auto_addedData[0].p || 0
+            : 0),
+      }
+      console.log(salesData,obj)
+      data.push(obj);
+    }
+    if (data.length) {
+      res.json({ success: true, result: data });
+    } else res.json({ success: false, message: "Items Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
