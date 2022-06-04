@@ -272,7 +272,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
   }
 });
 router.post("/getOrderItemReport", async (req, res) => {
-  try {
+  // try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     console.log(value);
@@ -285,6 +285,15 @@ router.post("/getOrderItemReport", async (req, res) => {
           (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
         ).length
     );
+    response = response.map((a) => ({
+      ...a,
+      auto_added: a.auto_added.map((b) => {
+        let item = a?.deliver_return?.find((c) => c.item_uuid === b.item_uuid);
+        if (item) {
+          return { ...b, b: +b - item.b.b, p: +b.p - item.p };
+        } else return b;
+      }),
+    }));
     let sales = [].concat
       .apply(
         [],
@@ -337,6 +346,7 @@ router.post("/getOrderItemReport", async (req, res) => {
 
       let obj = {
         conversion: a.conversion,
+        item_price: a.item_price,
         item_uuid: a.item_uuid,
         item_title: a.item_title,
         salesB:
@@ -421,9 +431,11 @@ router.post("/getOrderItemReport", async (req, res) => {
         (((+a.deliver_returnB * (+a.conversion || 1) || 0) +
           a.deliver_returnP) *
           100) /
-          ((+a.salesB * (+a.conversion || 0) + a.salesP) +
-        (a.deliver_returnB * a.conversion + a.deliver_returnP) +
-        (a.processing_canceledB * a.conversion + a.processing_canceledP)||1),
+        (+a.salesB * (+a.conversion || 0) +
+          a.salesP +
+          (a.deliver_returnB * a.conversion + a.deliver_returnP) +
+          (a.processing_canceledB * a.conversion + a.processing_canceledP) ||
+          1),
       processing_canceled_percentage:
         ((a.processing_canceledB * a.conversion + a.processing_canceledP) *
           100) /
@@ -432,13 +444,26 @@ router.post("/getOrderItemReport", async (req, res) => {
           (a.deliver_returnB * a.conversion + a.deliver_returnP) +
           ((+a.processing_canceledB || 0) * (+a.conversion || 1) +
             (+a.processing_canceledP || 0)) || 1),
+
+      auto_added_percentage:
+        ((a.auto_addedB * a.conversion + a.auto_addedP) * 100) /
+        (a.salesB * a.conversion +
+          a.salesP +
+          (a.deliver_returnB * a.conversion + a.deliver_returnP) +
+          (a.processing_canceledB * a.conversion + a.processing_canceledP) ||
+          1),
+      deliver_return_amt:
+        a.item_price * (+a.conversion * +a.deliver_returnB + a.deliver_returnP),
+      processing_canceled_amt:
+        a.item_price *
+        (+a.conversion * +a.processing_canceledB + a.processing_canceledP),
     }));
     if (FinalData) {
       res.json({ success: true, result: FinalData });
     } else res.json({ success: false, message: "Items Not Found" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 
 module.exports = router;
