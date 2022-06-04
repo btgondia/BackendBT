@@ -30,7 +30,7 @@ router.post("/getUserActivity", async (req, res) => {
     timestamp: { $gt: value.startDate, $lt: endDate },
   });
   console.log(response, endDate);
-  if (response.length) {
+  if (response) {
     res.json({ success: true, result: response });
   } else res.json({ success: false, message: "Activity Not created" });
   } catch (err) {
