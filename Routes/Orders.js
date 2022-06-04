@@ -417,7 +417,21 @@ router.post("/getOrderItemReport", async (req, res) => {
         parseInt(+a.auto_addedP / +a.conversion) +
         ":" +
         (+a.auto_addedP % +a.conversion),
-        
+      deliver_return_percentage:
+        (((+a.deliver_returnB * (+a.conversion || 1) || 0) +
+          a.deliver_returnP) *
+          100) /
+          ((+a.salesB * (+a.conversion || 0) + a.salesP) +
+        (a.deliver_returnB * a.conversion + a.deliver_returnP) +
+        (a.processing_canceledB * a.conversion + a.processing_canceledP)||1),
+      processing_canceled_percentage:
+        ((a.processing_canceledB * a.conversion + a.processing_canceledP) *
+          100) /
+        (a.salesB * a.conversion +
+          a.salesP +
+          (a.deliver_returnB * a.conversion + a.deliver_returnP) +
+          ((+a.processing_canceledB || 0) * (+a.conversion || 1) +
+            (+a.processing_canceledP || 0)) || 1),
     }));
     if (FinalData) {
       res.json({ success: true, result: FinalData });
