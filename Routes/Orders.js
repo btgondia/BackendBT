@@ -232,6 +232,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
     let endDate = +value.endDate + 86400000;
     console.log(endDate, value.startDate);
     let response = await OrderCompleted.find({});
+    response=JSON.parse(JSON.stringify(response))
     response = response.filter(
       (order) =>
         order.status.filter(
@@ -243,6 +244,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
     });
 
     response = response.map((order) => ({
+      ...order,
       invoice_number: order.invoice_number,
       order_date: order.status.find((a) => +a.stage === 1)?.time,
       delivery_date: order.status.find((a) => +a.stage === 4)?.time,
