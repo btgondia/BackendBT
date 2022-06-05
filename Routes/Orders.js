@@ -232,7 +232,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
     let endDate = +value.endDate + 86400000;
     console.log(endDate, value.startDate);
     let response = await OrderCompleted.find({});
-    response=JSON.parse(JSON.stringify(response))
+    response = JSON.parse(JSON.stringify(response));
     response = response.filter(
       (order) =>
         order.status.filter(
@@ -280,13 +280,27 @@ router.post("/getOrderItemReport", async (req, res) => {
     console.log(value);
     let endDate = +value.endDate + 86400000;
     let response = await OrderCompleted.find({});
+    let counterData = await Counters.find({});
     response = JSON.parse(JSON.stringify(response));
-    response = response.filter(
-      (order) =>
-        order.status.filter(
-          (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
-        ).length
-    );
+    counterData = JSON.parse(JSON.stringify(counterData));
+    response = response
+      .filter(
+        (order) =>
+          order.status.filter(
+            (a) =>
+              +a.stage === 1 && a.time > value.startDate && a.time < endDate
+          ).length
+      )
+      .filter(
+        (a) =>
+          !value.counter_group_uuid ||
+          counterData.filter(
+            (b) =>
+              a.counter_uuid === b.counter_uuid &&
+              b.counter_group_uuid.filter((c) => c === value.counter_group_uuid)
+                .length
+          ).length
+      );
     response = response.map((a) => ({
       ...a,
       auto_added: a.auto_added.map((b) => {
@@ -333,7 +347,7 @@ router.post("/getOrderItemReport", async (req, res) => {
 
     let data = [];
     for (let a of itemsData.filter(
-      (a) => +value.company_uuid === 0 || a.company_uuid === value.company_uuid
+      (a) => !value.company_uuid || a.company_uuid === value.company_uuid
     )) {
       let salesData = sales.filter((b) => b.item_uuid === a.item_uuid);
       let deliver_returnData = deliver_return.filter(
@@ -351,11 +365,12 @@ router.post("/getOrderItemReport", async (req, res) => {
         item_price: a.item_price,
         item_uuid: a.item_uuid,
         item_title: a.item_title,
-        sales_amt:salesData.length > 1
-        ? salesData.map((b) => b.item_total || 0).reduce((a, b) => +a + b)
-        : salesData.length
-        ? salesData[0].item_total || 0
-        : 0,
+        sales_amt:
+          salesData.length > 1
+            ? salesData.map((b) => b.item_total || 0).reduce((a, b) => +a + b)
+            : salesData.length
+            ? salesData[0].item_total || 0
+            : 0,
         salesB:
           salesData.length > 1
             ? salesData.map((b) => b.b || 0).reduce((a, b) => +a + b)
@@ -368,18 +383,20 @@ router.post("/getOrderItemReport", async (req, res) => {
             : salesData.length
             ? salesData[0].p || 0
             : 0,
-        deliver_returnB:
-        Math.abs(deliver_returnData.length > 1
+        deliver_returnB: Math.abs(
+          deliver_returnData.length > 1
             ? deliver_returnData.map((b) => b.b || 0).reduce((a, b) => +a + b)
             : deliver_returnData.length
             ? deliver_returnData[0].b || 0
-            : 0),
-        deliver_returnP:
-        Math.abs(deliver_returnData.length > 1
+            : 0
+        ),
+        deliver_returnP: Math.abs(
+          deliver_returnData.length > 1
             ? deliver_returnData.map((b) => b.p || 0).reduce((a, b) => +a + b)
             : deliver_returnData.length
             ? deliver_returnData[0].p || 0
-            : 0),
+            : 0
+        ),
         processing_canceledB:
           processing_canceledData.length > 1
             ? processing_canceledData
@@ -435,9 +452,11 @@ router.post("/getOrderItemReport", async (req, res) => {
         ":" +
         (+a.auto_addedP % +a.conversion),
       deliver_return_percentage:
-      Math.abs(((+a.deliver_returnB * (+a.conversion || 1) || 0) +
-          a.deliver_returnP) *
-          100) /
+        Math.abs(
+          ((+a.deliver_returnB * (+a.conversion || 1) || 0) +
+            a.deliver_returnP) *
+            100
+        ) /
         (+a.salesB * (+a.conversion || 0) +
           a.salesP +
           (a.deliver_returnB * a.conversion + a.deliver_returnP) +
@@ -459,14 +478,14 @@ router.post("/getOrderItemReport", async (req, res) => {
           (a.deliver_returnB * a.conversion + a.deliver_returnP) +
           (a.processing_canceledB * a.conversion + a.processing_canceledP) ||
           1),
-      deliver_return_amt:
-      Math.abs(a.sales_amt * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)),
+      deliver_return_amt: Math.abs(
+        a.sales_amt * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)
+      ),
       processing_canceled_amt:
         a.sales_amt *
         (+a.conversion * +a.processing_canceledB + a.processing_canceledP),
       auto_added_amt:
-        a.sales_amt *
-        (+a.conversion * +a.auto_addedB + a.auto_addedP),
+        a.sales_amt * (+a.conversion * +a.auto_addedB + a.auto_addedP),
     }));
     if (FinalData) {
       res.json({ success: true, result: FinalData });
