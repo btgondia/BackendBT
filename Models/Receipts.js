@@ -7,15 +7,23 @@ const ReceiptsSchema = new mongoose.Schema({
   order_uuid: {
     type: String,
   },
+  trip_uuid: {
+    type: String,
+  },
+  counter_uuid: {
+    type: String,
+  },
   time: {
     type: Number,
   },
-  modes: [{
-    mode_uuid:{type: String},
-    amt:{type: Number},
-    coin:{type: Number},
-    status:{type: Number},
-  }],
+  modes: [
+    {
+      mode_uuid: { type: String },
+      amt: { type: Number },
+      coin: { type: Number },
+      status: { type: Number },
+    },
+  ],
 });
 
 module.exports = mongoose.model("receipts", ReceiptsSchema);
