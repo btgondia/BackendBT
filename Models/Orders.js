@@ -13,6 +13,7 @@ const OrdersSchema = new mongoose.Schema({
     {
       item_uuid: { type: String },
       b: { type: Number },
+      price: { type: Number },
       p: { type: Number },
       status: { type: Number },
       unit_price: { type: Number },
