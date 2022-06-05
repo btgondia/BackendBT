@@ -57,11 +57,41 @@ router.get("/GetTripList", async (req, res) => {
           trip_uuid: 0,
           trip_title: "Unknown",
           orderLength: ordersData.filter((b) => !b.trip_uuid).length,
+          processingLength: ordersData.filter((b) =>
+            !b.trip_uuid && b.status.length > 1
+              ? +b.status.map(x=>+x.stage).reduce((c, d) => Math.max(c, d)) === 1
+              : +b?.status[0]?.stage === 1
+          ).length,
+          checkingLength: ordersData.filter((b) =>
+            !b.trip_uuid && b.status.length > 1
+              ? +b.status.map(x=>+x.stage).reduce((c, d) => Math.max(c, d)) === 2
+              : +b?.status[0]?.stage === 2
+          ).length,
+          deliveryLength: ordersData.filter((b) =>
+            !b.trip_uuid && b.status.length > 1
+              ? +b.status.map(x=>+x.stage).reduce((c, d) => Math.max(c, d)) === 3
+              : +b?.status[0]?.stage === 3
+          ).length,
         },
         ...data.map((a) => ({
           ...a,
           orderLength: ordersData.filter((b) => a.trip_uuid === b.trip_uuid)
             .length,
+            processingLength: ordersData.filter((b) =>
+            a.trip_uuid === b.trip_uuid && b.status.length > 1
+              ? +b.status.map(x=>+x.stage).reduce((c, d) => Math.max(c, d)) === 1
+              : +b?.status[0]?.stage === 1
+          ).length,
+          checkingLength: ordersData.filter((b) =>
+            a.trip_uuid === b.trip_uuid && b.status.length > 1
+              ? +b.status.map(x=>+x.stage).reduce((c, d) => Math.max(c, d)) === 2
+              : +b?.status[0]?.stage === 2
+          ).length,
+          deliveryLength: ordersData.filter((b) =>
+            a.trip_uuid === b.trip_uuid && b.status.length > 1
+              ? +b.status.map(x=>+x.stage).reduce((c, d) => Math.max(c, d)) === 3
+              : +b?.status[0]?.stage === 3
+          ).length,
         })),
       ];
       console.log(result);
