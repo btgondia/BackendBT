@@ -460,10 +460,13 @@ router.post("/getOrderItemReport", async (req, res) => {
           (a.processing_canceledB * a.conversion + a.processing_canceledP) ||
           1),
       deliver_return_amt:
-      Math.abs(a.item_price * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)),
+      Math.abs(a.sales_amt * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)),
       processing_canceled_amt:
-        a.item_price *
+        a.sales_amt *
         (+a.conversion * +a.processing_canceledB + a.processing_canceledP),
+      auto_added_amt:
+        a.sales_amt *
+        (+a.conversion * +a.auto_addedB + a.auto_addedP),
     }));
     if (FinalData) {
       res.json({ success: true, result: FinalData });
