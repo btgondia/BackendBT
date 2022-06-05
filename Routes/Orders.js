@@ -304,9 +304,10 @@ router.post("/getOrderItemReport", async (req, res) => {
     response = response.map((a) => ({
       ...a,
       auto_added: a.auto_added.map((b) => {
-        let item = a?.deliver_return?.find((c) => c.item_uuid === b.item_uuid);
+        let item = a.delivery_return?.find((c) => c.item_uuid === b.item_uuid);
+        
         if (item) {
-          return { ...b, b: +b - item.b.b, p: +b.p - item.p };
+          return { ...b, b: +b + item.b, p: +b.p + item.p };
         } else return b;
       }),
     }));
@@ -426,7 +427,7 @@ router.post("/getOrderItemReport", async (req, res) => {
             ? auto_addedData[0].p || 0
             : 0,
       };
-      console.log(salesData, obj);
+    
       data.push(obj);
     }
     let FinalData = data.map((a) => ({
@@ -473,10 +474,9 @@ router.post("/getOrderItemReport", async (req, res) => {
 
       auto_added_percentage:
         ((a.auto_addedB * a.conversion + a.auto_addedP) * 100) /
-        (a.salesB * a.conversion +
-          a.salesP +
-          (a.deliver_returnB * a.conversion + a.deliver_returnP) +
-          (a.processing_canceledB * a.conversion + a.processing_canceledP) ||
+        ((a.salesB * a.conversion +
+          a.salesP) 
+           ||
           1),
       deliver_return_amt: Math.abs(
         a.sales_amt * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)

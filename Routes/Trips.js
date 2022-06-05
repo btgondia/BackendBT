@@ -5,6 +5,7 @@ const { v4: uuid } = require("uuid");
 const Trips = require("../Models/Trips");
 const Orders = require("../Models/Orders");
 const Users = require("../Models/Users");
+const Receipts = require("../Models/Receipts");
 
 router.post("/postTrip", async (req, res) => {
   try {
@@ -59,17 +60,23 @@ router.get("/GetTripList", async (req, res) => {
           orderLength: ordersData.filter((b) => !b.trip_uuid).length,
           processingLength: ordersData.filter((b) =>
             !b.trip_uuid && b.status.length > 1
-              ? +b.status.map(x=>+x.stage).reduce((c, d) => Math.max(c, d)) === 1
+              ? +b.status
+                  .map((x) => +x.stage)
+                  .reduce((c, d) => Math.max(c, d)) === 1
               : +b?.status[0]?.stage === 1
           ).length,
           checkingLength: ordersData.filter((b) =>
             !b.trip_uuid && b.status.length > 1
-              ? +b.status.map(x=>+x.stage).reduce((c, d) => Math.max(c, d)) === 2
+              ? +b.status
+                  .map((x) => +x.stage)
+                  .reduce((c, d) => Math.max(c, d)) === 2
               : +b?.status[0]?.stage === 2
           ).length,
           deliveryLength: ordersData.filter((b) =>
             !b.trip_uuid && b.status.length > 1
-              ? +b.status.map(x=>+x.stage).reduce((c, d) => Math.max(c, d)) === 3
+              ? +b.status
+                  .map((x) => +x.stage)
+                  .reduce((c, d) => Math.max(c, d)) === 3
               : +b?.status[0]?.stage === 3
           ).length,
         },
@@ -77,23 +84,82 @@ router.get("/GetTripList", async (req, res) => {
           ...a,
           orderLength: ordersData.filter((b) => a.trip_uuid === b.trip_uuid)
             .length,
-            processingLength: ordersData.filter((b) =>
+          processingLength: ordersData.filter((b) =>
             a.trip_uuid === b.trip_uuid && b.status.length > 1
-              ? +b.status.map(x=>+x.stage).reduce((c, d) => Math.max(c, d)) === 1
+              ? +b.status
+                  .map((x) => +x.stage)
+                  .reduce((c, d) => Math.max(c, d)) === 1
               : +b?.status[0]?.stage === 1
           ).length,
           checkingLength: ordersData.filter((b) =>
             a.trip_uuid === b.trip_uuid && b.status.length > 1
-              ? +b.status.map(x=>+x.stage).reduce((c, d) => Math.max(c, d)) === 2
+              ? +b.status
+                  .map((x) => +x.stage)
+                  .reduce((c, d) => Math.max(c, d)) === 2
               : +b?.status[0]?.stage === 2
           ).length,
           deliveryLength: ordersData.filter((b) =>
             a.trip_uuid === b.trip_uuid && b.status.length > 1
-              ? +b.status.map(x=>+x.stage).reduce((c, d) => Math.max(c, d)) === 3
+              ? +b.status
+                  .map((x) => +x.stage)
+                  .reduce((c, d) => Math.max(c, d)) === 3
               : +b?.status[0]?.stage === 3
           ).length,
         })),
       ];
+      console.log(result);
+      res.json({
+        success: true,
+        result,
+      });
+    } else res.json({ success: false, message: "Trips Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.get("/GetTripListSummary", async (req, res) => {
+  try {
+    let data = await Trips.find({});
+    data = JSON.parse(JSON.stringify(data));
+    let receiptsData = await Receipts.find({
+      trip_uuid: { $in: data.map((a) => a.trip_uuid) },
+    });
+    data = JSON.parse(JSON.stringify(data));
+    let ordersData = await Orders.find({});
+    ordersData = JSON.parse(JSON.stringify(ordersData));
+    if (ordersData.length) {
+      let result = data.map((a) => {
+        let receiptItems = receiptsData.filter(
+          (b) => b.trip_uuid === a.trip_uuid
+        );
+        return {
+          ...a,
+          orderLength: ordersData.filter((b) => a.trip_uuid === b.trip_uuid)
+            .length,
+            receiptItems,
+          amt:
+            receiptItems?.length > 1
+              ? receiptItems.reduce(
+                  (c, d) =>
+                    c?.modes?.map((x) => +x.amt || 0)?.reduce((x, y) => x + y) +
+                    d?.modes?.map((x) => +x.amt || 0)?.reduce((x, y) => x + y)
+                )
+              : receiptsData[0]?.modes
+                  ?.map((x) => +x.amt || 0)
+                  ?.reduce((x, y) => x + y)||0,
+          coin:
+            receiptItems.length > 1
+              ? receiptItems.reduce(
+                  (c, d) =>
+                    c.modes?.map((x) => +x.coin || 0)?.reduce((x, y) => x + y) +
+                    d.modes?.map((x) => +x.amt || 0)?.reduce((x, y) => x + y)
+                )
+              : receiptsData[0]?.modes
+                  ?.map((x) => +x.coin || 0)
+                  ?.reduce((x, y) => x + y)||0,
+        };
+      });
+
       console.log(result);
       res.json({
         success: true,
