@@ -364,17 +364,17 @@ router.post("/getOrderItemReport", async (req, res) => {
             ? salesData[0].p || 0
             : 0,
         deliver_returnB:
-          deliver_returnData.length > 1
+        Math.abs(deliver_returnData.length > 1
             ? deliver_returnData.map((b) => b.b || 0).reduce((a, b) => +a + b)
             : deliver_returnData.length
             ? deliver_returnData[0].b || 0
-            : 0,
+            : 0),
         deliver_returnP:
-          deliver_returnData.length > 1
+        Math.abs(deliver_returnData.length > 1
             ? deliver_returnData.map((b) => b.p || 0).reduce((a, b) => +a + b)
             : deliver_returnData.length
             ? deliver_returnData[0].p || 0
-            : 0,
+            : 0),
         processing_canceledB:
           processing_canceledData.length > 1
             ? processing_canceledData
@@ -430,7 +430,7 @@ router.post("/getOrderItemReport", async (req, res) => {
         ":" +
         (+a.auto_addedP % +a.conversion),
       deliver_return_percentage:
-        (((+a.deliver_returnB * (+a.conversion || 1) || 0) +
+      Math.abs(((+a.deliver_returnB * (+a.conversion || 1) || 0) +
           a.deliver_returnP) *
           100) /
         (+a.salesB * (+a.conversion || 0) +
@@ -455,7 +455,7 @@ router.post("/getOrderItemReport", async (req, res) => {
           (a.processing_canceledB * a.conversion + a.processing_canceledP) ||
           1),
       deliver_return_amt:
-        a.item_price * (+a.conversion * +a.deliver_returnB + a.deliver_returnP),
+      Math.abs(a.item_price * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)),
       processing_canceled_amt:
         a.item_price *
         (+a.conversion * +a.processing_canceledB + a.processing_canceledP),
