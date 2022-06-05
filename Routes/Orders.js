@@ -274,7 +274,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
   }
 });
 router.post("/getOrderItemReport", async (req, res) => {
-  // try {
+  try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     console.log(value);
@@ -351,6 +351,11 @@ router.post("/getOrderItemReport", async (req, res) => {
         item_price: a.item_price,
         item_uuid: a.item_uuid,
         item_title: a.item_title,
+        sales_amt:salesData.length > 1
+        ? salesData.map((b) => b.item_total || 0).reduce((a, b) => +a + b)
+        : salesData.length
+        ? salesData[0].item_total || 0
+        : 0,
         salesB:
           salesData.length > 1
             ? salesData.map((b) => b.b || 0).reduce((a, b) => +a + b)
@@ -463,9 +468,9 @@ router.post("/getOrderItemReport", async (req, res) => {
     if (FinalData) {
       res.json({ success: true, result: FinalData });
     } else res.json({ success: false, message: "Items Not Found" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 
 module.exports = router;
