@@ -40,21 +40,21 @@ router.put("/putOrder", async (req, res) => {
         return obj;
       }, {});
 
-    console.log(value);
+    console.log(value,value.orderStatus === "edit");
     let response = {};
-    if (value.orderStatus === "edit")
+    if (value.orderStatus === "edit") {
       response = await OrderCompleted.updateOne(
         { order_uuid: value.order_uuid },
-        value
+        {...value}
       );
-    else
+    } else {
       response = await Orders.updateOne(
         { order_uuid: value.order_uuid },
-        value
+        {...value}
       );
-
-    if (response) {
-      res.json({ success: true, result: response });
+    }
+    if (response.acknowledged) {
+      res.json({ success: true, result: value });
     } else res.json({ success: false, message: "Order Not updated" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
