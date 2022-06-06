@@ -10,6 +10,7 @@ const Item = require("../Models/Item");
 const ItemCategories = require("../Models/ItemCategories");
 const Routes = require("../Models/Routes");
 const User = require("../Models/Users");
+const PaymentModes = require("../Models/PaymentModes");
 
 router.post("/postUser", async (req, res) => {
   try {
@@ -81,6 +82,7 @@ router.get("/getDetails", async (req, res) => {
     const item_category = await ItemCategories.find({});
     const items = await Item.find({});
     const routes = await Routes.find({});
+    const payment_modes = await PaymentModes.find({});
     // const payment_modes= await Item.find({  })
 
 
@@ -94,6 +96,7 @@ router.get("/getDetails", async (req, res) => {
           item_category,
           items,
           routes,
+          payment_modes
         },
       });
   
