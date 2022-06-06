@@ -6,6 +6,10 @@ const Trips = require("../Models/Trips");
 const Orders = require("../Models/Orders");
 const Users = require("../Models/Users");
 const Receipts = require("../Models/Receipts");
+const CompleteOrder = require("../Models/OrderCompleted");
+const Counters = require("../Models/Counters");
+
+const Item = require("../Models/Item");
 
 router.post("/postTrip", async (req, res) => {
   try {
@@ -121,22 +125,57 @@ router.get("/GetTripListSummary", async (req, res) => {
   try {
     let data = await Trips.find({});
     data = JSON.parse(JSON.stringify(data));
-    let receiptsData = await Receipts.find({
-      trip_uuid: { $in: data.map((a) => a.trip_uuid) },
-    });
-    data = JSON.parse(JSON.stringify(data));
+    let CounterData = await Counters.find({});
+    CounterData = JSON.parse(JSON.stringify(CounterData));
+
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
+    let CompleteOrdersData = await CompleteOrder.find({});
+    CompleteOrdersData = JSON.parse(JSON.stringify(CompleteOrdersData));
+    let receiptsData = await Receipts.find({
+      order_uuid: { $in: CompleteOrdersData.map((a) => a.order_uuid) },
+    });
+    receiptsData = JSON.parse(JSON.stringify(receiptsData));
+    CompleteOrdersData = CompleteOrdersData.map((a) => ({
+      ...a,
+      ...(receiptsData.find((b) => b.order_uuid === a.order_uuid) || {}),
+    }));
+    console.log(CompleteOrdersData);
     if (ordersData.length) {
-      let result = data.map((a) => {
-        let receiptItems = receiptsData.filter(
+      let result=[]
+
+      for(let a of data){
+        let receiptItems = CompleteOrdersData.filter(
           (b) => b.trip_uuid === a.trip_uuid
         );
-        return {
+        let sales_return = [].concat.apply(
+          [],
+          receiptItems.map((b) => b?.delivery_return || [])
+        );
+        sales_return =
+          sales_return.length > 1
+            ? sales_return.reduce((acc, curr) => {
+                let item = acc.find(
+                  (item) => item.item_uuid === curr.item_uuid
+                );
+
+                if (item) {
+                  item.p = +item.p + curr.p;
+                  item.p = +item.b + curr.b;
+                } else {
+                  acc.push(curr);
+                }
+
+                return acc;
+              }, [])
+            : sales_return;
+            let itemData= await Item.find({item_uuid:sales_return.map(a=>a.item_uuid)})
+            sales_return= sales_return.map(b=>({...b,item_title:itemData.find(c=>c.item_uuid===b.item_uuid)?.item_title}))
+        result.push ({
           ...a,
           orderLength: ordersData.filter((b) => a.trip_uuid === b.trip_uuid)
             .length,
-            receiptItems,
+          receiptItems,
           amt:
             receiptItems?.length > 1
               ? receiptItems.reduce(
@@ -146,7 +185,7 @@ router.get("/GetTripListSummary", async (req, res) => {
                 )
               : receiptsData[0]?.modes
                   ?.map((x) => +x.amt || 0)
-                  ?.reduce((x, y) => x + y)||0,
+                  ?.reduce((x, y) => x + y) || 0,
           coin:
             receiptItems.length > 1
               ? receiptItems.reduce(
@@ -156,11 +195,39 @@ router.get("/GetTripListSummary", async (req, res) => {
                 )
               : receiptsData[0]?.modes
                   ?.map((x) => +x.coin || 0)
-                  ?.reduce((x, y) => x + y)||0,
-        };
-      });
+                  ?.reduce((x, y) => x + y) || 0,
+          cheque: receiptItems
+            ?.filter(
+              (b) =>
+                b?.modes?.filter(
+                  (c) =>
+                    c.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002" &&
+                    c.amt
+                ).length
+            )
+            .map((b) => ({
+              counter: CounterData.find(
+                (c) => c.counter_uuid === b.counter_uuid
+              )?.counter_title,
+              amt: b?.modes?.find(
+                (c) => c.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002"
+              )?.amt,
+              invoice_number: b.invoice_number,
+            })),
+          replacement: receiptItems
+            .filter((b) => b.replacement || b.replacement_mrp)
+            .map((b) => ({
+              replacement: b.replacement,
+              replacement_mrp: b.replacement_mrp,
+              counter: CounterData.find(
+                (c) => c.counter_uuid === b.counter_uuid
+              )?.counter_title,
+              invoice_number: b.invoice_number,
+            })),
+          sales_return,
+        });
+      };
 
-      console.log(result);
       res.json({
         success: true,
         result,
@@ -202,7 +269,7 @@ router.post("/GetCompletedTripList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-router.get("/GetProcessingTripList", async (req, res) => {
+router.post("/GetProcessingTripList", async (req, res) => {
   try {
     let data = await Trips.find({ users: req.body.user_uuid });
     data = JSON.parse(JSON.stringify(data));
@@ -241,13 +308,14 @@ router.get("/GetProcessingTripList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-router.get("/GetCheckingTripList", async (req, res) => {
+router.post("/GetCheckingTripList", async (req, res) => {
   try {
+    console.log(req.body);
     let data = await Trips.find({ users: req.body.user_uuid });
     data = JSON.parse(JSON.stringify(data));
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
-
+    console.log(data);
     let result = [
       {
         trip_uuid: 0,
@@ -256,7 +324,9 @@ router.get("/GetCheckingTripList", async (req, res) => {
           .filter((b) => !b.trip_uuid)
           ?.filter((a) =>
             a.status.length > 1
-              ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 2
+              ? +a.status
+                  .map((b) => +b.stage || 0)
+                  .reduce((c, d) => Math.max(c, d)) === 2
               : +a?.status[0]?.stage === 2
           ).length,
       },
@@ -266,7 +336,9 @@ router.get("/GetCheckingTripList", async (req, res) => {
           .filter((b) => a.trip_uuid === b.trip_uuid)
           ?.filter((a) =>
             a.status.length > 1
-              ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 2
+              ? +a.status
+                  .map((b) => +b.stage || 0)
+                  .reduce((c, d) => Math.max(c, d)) === 2
               : +a?.status[0]?.stage === 2
           ).length,
       })),
@@ -280,7 +352,7 @@ router.get("/GetCheckingTripList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-router.get("/GetDeliveryTripList", async (req, res) => {
+router.post("/GetDeliveryTripList", async (req, res) => {
   try {
     let data = await Trips.find({ users: req.body.user_uuid });
     data = JSON.parse(JSON.stringify(data));
