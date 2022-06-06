@@ -41,11 +41,17 @@ router.put("/putOrder", async (req, res) => {
       }, {});
 
     console.log(value);
-
-    let response = await Orders.updateOne(
-      { order_uuid: value.order_uuid },
-      value
-    );
+    let response = {};
+    if (value.orderStatus === "edit")
+      response = await OrderCompleted.updateOne(
+        { order_uuid: value.order_uuid },
+        value
+      );
+    else
+      response = await Orders.updateOne(
+        { order_uuid: value.order_uuid },
+        value
+      );
 
     if (response) {
       res.json({ success: true, result: response });
@@ -305,7 +311,7 @@ router.post("/getOrderItemReport", async (req, res) => {
       ...a,
       auto_added: a.auto_added.map((b) => {
         let item = a.delivery_return?.find((c) => c.item_uuid === b.item_uuid);
-        
+
         if (item) {
           return { ...b, b: +b + item.b, p: +b.p + item.p };
         } else return b;
@@ -427,7 +433,7 @@ router.post("/getOrderItemReport", async (req, res) => {
             ? auto_addedData[0].p || 0
             : 0,
       };
-    
+
       data.push(obj);
     }
     let FinalData = data.map((a) => ({
@@ -474,10 +480,7 @@ router.post("/getOrderItemReport", async (req, res) => {
 
       auto_added_percentage:
         ((a.auto_addedB * a.conversion + a.auto_addedP) * 100) /
-        ((a.salesB * a.conversion +
-          a.salesP) 
-           ||
-          1),
+        (a.salesB * a.conversion + a.salesP || 1),
       deliver_return_amt: Math.abs(
         a.sales_amt * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)
       ),
