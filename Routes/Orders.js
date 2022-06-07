@@ -71,10 +71,10 @@ router.put("/putOrders", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-      let orderStage =
-        value.status.length > 1
+      let orderStage =value.status?
+        value?.status?.length > 1
           ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
-          : +value?.status[0]?.stage;
+          : +value?.status[0]?.stage:"";
       console.log(value, orderStage);
 
       if (+orderStage === 4) {
@@ -116,6 +116,20 @@ router.get("/GetOrderRunningList", async (req, res) => {
               ?.counter_title
           : "",
       })),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.get("/GetOrder/:order_uuid", async (req, res) => {
+  try {
+    let data = await Orders.findOne({ order_uuid: req.params.order_uuid });
+    data = JSON.parse(JSON.stringify(data));
+
+  
+    res.json({
+      success: true,
+      result: data,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
