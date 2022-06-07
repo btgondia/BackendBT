@@ -17,6 +17,7 @@ const Trips = require("./Routes/Trips");
 const UserActivity = require("./Routes/UserActivity");
 const PaymentModes = require("./Routes/PaymentModes");
 const Receipts = require("./Routes/Receipts");
+const Details = require("./Routes/Details");
 connectDB();
 app = express();
 app.use(
@@ -41,6 +42,7 @@ app.use("/trips", Trips);
 app.use("/userActivity", UserActivity);
 app.use("/paymentModes", PaymentModes);
 app.use("/receipts", Receipts);
+app.use("/details", Details);
 
 app.get("/stream/:text", async (req, res) => {
   try {
