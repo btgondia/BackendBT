@@ -67,7 +67,7 @@ router.post("/login", async (req, res) => {
   try {
     const result = await User.findOne({ login_username, login_password });
     console.log(result, login_password, login_username);
-    if (result && +result.status===1) res.json({ success: true, result });
+    if (result && +result.status === 1) res.json({ success: true, result });
     else res.json({ success: false, message: "Users Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
@@ -75,31 +75,37 @@ router.post("/login", async (req, res) => {
 });
 router.get("/getDetails", async (req, res) => {
   try {
-    const autobill = await AutoBill.find({});
-    const companies = await Companies.find({});
-    const counter_groups = await CounterGroup.find({});
-    const counter = await Counters.find({});
-    const item_category = await ItemCategories.find({});
-    const items = await Item.find({});
-    const routes = await Routes.find({});
-    const payment_modes = await PaymentModes.find({});
+    let autobill = await AutoBill.find({});
+    autobill = autobill.filter((a) => a.auto_uuid);
+    let companies = await Companies.find({});
+    companies = companies.filter((a) => a.company_uuid);
+    let counter_groups = await CounterGroup.find({});
+    counter_groups = counter_groups.filter((a) => a.counter_group_uuid);
+    let counter = await Counters.find({});
+    counter = counter.filter((a) => a.counter_uuid);
+    let item_category = await ItemCategories.find({});
+    item_category = item_category.filter((a) => a.category_uuid);
+    let items = await Item.find({});
+    items = items.filter((a) => a.item_uuid);
+    let routes = await Routes.find({});
+    routes = routes.filter((a) => a.route_uuid);
+    let payment_modes = await PaymentModes.find({});
+    payment_modes = payment_modes.filter((a) => a.mode_uuid);
     // const payment_modes= await Item.find({  })
 
-
-      res.json({
-        success: true,
-        result: {
-          autobill,
-          companies,
-          counter_groups,
-          counter,
-          item_category,
-          items,
-          routes,
-          payment_modes
-        },
-      });
-  
+    res.json({
+      success: true,
+      result: {
+        autobill,
+        companies,
+        counter_groups,
+        counter,
+        item_category,
+        items,
+        routes,
+        payment_modes,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
