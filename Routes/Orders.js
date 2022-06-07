@@ -40,17 +40,17 @@ router.put("/putOrder", async (req, res) => {
         return obj;
       }, {});
 
-    console.log(value,value.orderStatus === "edit");
+    console.log(value, value.orderStatus === "edit");
     let response = {};
     if (value.orderStatus === "edit") {
       response = await OrderCompleted.updateOne(
         { order_uuid: value.order_uuid },
-        {...value}
+        { ...value }
       );
     } else {
       response = await Orders.updateOne(
         { order_uuid: value.order_uuid },
-        {...value}
+        { ...value }
       );
     }
     if (response.acknowledged) {
@@ -178,11 +178,13 @@ router.post("/GetOrderCheckingList", async (req, res) => {
           ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
               ?.counter_title
           : "",
+        item_details: a.item_details.filter((b) => +b.status === 1),
       }))
-      ?.filter((a) =>
-        a.status.length > 1
-          ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 2
-          : +a?.status[0]?.stage === 2
+      ?.filter(
+        (a) =>
+          (a.status.length > 1
+            ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 2
+            : +a?.status[0]?.stage === 2) && a.item_details.length
       );
 
     res.json({
@@ -214,12 +216,15 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
           ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
               ?.counter_title
           : "",
+        item_details: a.item_details.filter((b) => +b.status === 1),
       }))
-      ?.filter((a) =>
-        a.status.length > 1
-          ? +a.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d)) ===
-            3
-          : +a?.status[0]?.stage === 3
+      ?.filter(
+        (a) =>
+          (a.status.length > 1
+            ? +a.status
+                .map((c) => +c.stage)
+                .reduce((c, d) => Math.max(c, d)) === 3
+            : +a?.status[0]?.stage === 3) && a.item_details.length
       );
 
     res.json({

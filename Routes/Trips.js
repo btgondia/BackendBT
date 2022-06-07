@@ -62,52 +62,64 @@ router.get("/GetTripList", async (req, res) => {
           trip_uuid: 0,
           trip_title: "Unknown",
           orderLength: ordersData.filter((b) => !b.trip_uuid).length,
-          processingLength: ordersData.filter((b) =>
-            !b.trip_uuid && (b.status.length > 1
-              ? +b.status
-                  .map((x) => +x.stage)
-                  .reduce((c, d) => Math.max(c, d)) === 1
-              : +b?.status[0]?.stage === 1)
+          processingLength: ordersData.filter(
+            (b) =>
+              !b.trip_uuid &&
+              (b.status.length > 1
+                ? +b.status
+                    .map((x) => +x.stage)
+                    .reduce((c, d) => Math.max(c, d)) === 1
+                : +b?.status[0]?.stage === 1)
           ).length,
-          checkingLength: ordersData.filter((b) =>
-            !b.trip_uuid && (b.status.length > 1
-              ? +b.status
-                  .map((x) => +x.stage)
-                  .reduce((c, d) => Math.max(c, d)) === 2
-              : +b?.status[0]?.stage === 2)
+          checkingLength: ordersData.filter(
+            (b) =>
+              !b.trip_uuid &&
+              (b.status.length > 1
+                ? +b.status
+                    .map((x) => +x.stage)
+                    .reduce((c, d) => Math.max(c, d)) === 2
+                : +b?.status[0]?.stage === 2)
           ).length,
-          deliveryLength: ordersData.filter((b) =>
-            !b.trip_uuid && (b.status.length > 1
-              ? +b.status
-                  .map((x) => +x.stage)
-                  .reduce((c, d) => Math.max(c, d)) === 3
-              : +b?.status[0]?.stage === 3)
+          deliveryLength: ordersData.filter(
+            (b) =>
+              !b.trip_uuid &&
+              (b.status.length > 1
+                ? +b.status
+                    .map((x) => +x.stage)
+                    .reduce((c, d) => Math.max(c, d)) === 3
+                : +b?.status[0]?.stage === 3)
           ).length,
         },
         ...data.map((a) => ({
           ...a,
           orderLength: ordersData.filter((b) => a.trip_uuid === b.trip_uuid)
             .length,
-          processingLength: ordersData.filter((b) =>
-            a.trip_uuid === b.trip_uuid && (b.status.length > 1
-              ? +b.status
-                  .map((x) => +x.stage)
-                  .reduce((c, d) => Math.max(c, d)) === 1
-              : +b?.status[0]?.stage === 1)
+          processingLength: ordersData.filter(
+            (b) =>
+              a.trip_uuid === b.trip_uuid &&
+              (b.status.length > 1
+                ? +b.status
+                    .map((x) => +x.stage)
+                    .reduce((c, d) => Math.max(c, d)) === 1
+                : +b?.status[0]?.stage === 1)
           ).length,
-          checkingLength: ordersData.filter((b) =>
-            a.trip_uuid === b.trip_uuid && (b.status.length > 1
-              ? +b.status
-                  .map((x) => +x.stage)
-                  .reduce((c, d) => Math.max(c, d)) === 2
-              : +b?.status[0]?.stage === 2)
+          checkingLength: ordersData.filter(
+            (b) =>
+              a.trip_uuid === b.trip_uuid &&
+              (b.status.length > 1
+                ? +b.status
+                    .map((x) => +x.stage)
+                    .reduce((c, d) => Math.max(c, d)) === 2
+                : +b?.status[0]?.stage === 2)
           ).length,
-          deliveryLength: ordersData.filter((b) =>
-            a.trip_uuid === b.trip_uuid && (b.status.length > 1
-              ? +b.status
-                  .map((x) => +x.stage)
-                  .reduce((c, d) => Math.max(c, d)) === 3
-              : +b?.status[0]?.stage === 3)
+          deliveryLength: ordersData.filter(
+            (b) =>
+              a.trip_uuid === b.trip_uuid &&
+              (b.status.length > 1
+                ? +b.status
+                    .map((x) => +x.stage)
+                    .reduce((c, d) => Math.max(c, d)) === 3
+                : +b?.status[0]?.stage === 3)
           ).length,
         })),
       ];
@@ -142,9 +154,9 @@ router.get("/GetTripListSummary", async (req, res) => {
     }));
     console.log(CompleteOrdersData);
     if (ordersData.length) {
-      let result=[]
+      let result = [];
 
-      for(let a of data){
+      for (let a of data) {
         let receiptItems = CompleteOrdersData.filter(
           (b) => b.trip_uuid === a.trip_uuid
         );
@@ -169,9 +181,15 @@ router.get("/GetTripListSummary", async (req, res) => {
                 return acc;
               }, [])
             : sales_return;
-            let itemData= await Item.find({item_uuid:sales_return.map(a=>a.item_uuid)})
-            sales_return= sales_return.map(b=>({...b,item_title:itemData.find(c=>c.item_uuid===b.item_uuid)?.item_title}))
-        result.push ({
+        let itemData = await Item.find({
+          item_uuid: sales_return.map((a) => a.item_uuid),
+        });
+        sales_return = sales_return.map((b) => ({
+          ...b,
+          item_title: itemData.find((c) => c.item_uuid === b.item_uuid)
+            ?.item_title,
+        }));
+        result.push({
           ...a,
           orderLength: ordersData.filter((b) => a.trip_uuid === b.trip_uuid)
             .length,
@@ -226,7 +244,7 @@ router.get("/GetTripListSummary", async (req, res) => {
             })),
           sales_return,
         });
-      };
+      }
 
       res.json({
         success: true,
@@ -321,13 +339,18 @@ router.post("/GetCheckingTripList", async (req, res) => {
         trip_uuid: 0,
         trip_title: "Unknown",
         orderLength: ordersData
+          .map((a) => ({
+            ...a,
+          
+          }))
           .filter((b) => !b.trip_uuid)
-          ?.filter((a) =>
-            a.status.length > 1
-              ? +a.status
-                  .map((b) => +b.stage || 0)
-                  .reduce((c, d) => Math.max(c, d)) === 2
-              : +a?.status[0]?.stage === 2
+          ?.filter(
+            (a) =>
+              (a.status.length > 1
+                ? +a.status
+                    .map((b) => +b.stage || 0)
+                    .reduce((c, d) => Math.max(c, d)) === 2
+                : +a?.status[0]?.stage === 2) &&  a.item_details.filter((b) => +b.status === 1).length
           ).length,
       },
       ...data.map((a) => ({
@@ -335,11 +358,11 @@ router.post("/GetCheckingTripList", async (req, res) => {
         orderLength: ordersData
           .filter((b) => a.trip_uuid === b.trip_uuid)
           ?.filter((a) =>
-            a.status.length > 1
+            (a.status.length > 1
               ? +a.status
                   .map((b) => +b.stage || 0)
                   .reduce((c, d) => Math.max(c, d)) === 2
-              : +a?.status[0]?.stage === 2
+              : +a?.status[0]?.stage === 2)&& a.item_details.filter((b) => +b.status === 1).length
           ).length,
       })),
     ].filter((a) => a.orderLength);
@@ -366,23 +389,24 @@ router.post("/GetDeliveryTripList", async (req, res) => {
         orderLength: ordersData
           .filter((b) => !b.trip_uuid)
           ?.filter((a) =>
-            a.status.length > 1
+            (a.status.length > 1
               ? +a.status
                   .map((c) => +c.stage)
                   .reduce((c, d) => Math.max(c, d)) === 3
-              : +a?.status[0]?.stage === 3
+              : +a?.status[0]?.stage === 3)&& a.item_details.filter((b) => +b.status === 1).length
           ).length,
       },
       ...data.map((a) => ({
         ...a,
         orderLength: ordersData
           .filter((b) => a.trip_uuid === b.trip_uuid)
-          ?.filter((a) =>
-            a.status.length > 1
-              ? +a.status
-                  .map((c) => +c.stage)
-                  .reduce((c, d) => Math.max(c, d)) === 3
-              : +a?.status[0]?.stage === 3
+          ?.filter(
+            (a) =>
+              (a.status.length > 1
+                ? +a.status
+                    .map((c) => +c.stage)
+                    .reduce((c, d) => Math.max(c, d)) === 3
+                : +a?.status[0]?.stage === 3) && a.item_details.filter((b) => +b.status === 1).length
           ).length,
       })),
     ].filter((a) => a.orderLength);
