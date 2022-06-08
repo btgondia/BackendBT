@@ -390,21 +390,7 @@ router.post("/GetDeliveryTripList", async (req, res) => {
     ordersData = JSON.parse(JSON.stringify(ordersData));
 
     let result = [
-      {
-        trip_uuid: 0,
-        trip_title: "Unknown",
-        orderLength: ordersData
-          .filter((b) => !b.trip_uuid)
-          ?.filter(
-            (a) =>
-              (a.status.length > 1
-                ? +a.status
-                    .map((c) => +c.stage)
-                    .reduce((c, d) => Math.max(c, d)) === 3
-                : +a?.status[0]?.stage === 3) &&
-              a.item_details.filter((b) => +b.status === 1).length
-          ).length,
-      },
+      
       ...data.map((a) => ({
         ...a,
         orderLength: ordersData
