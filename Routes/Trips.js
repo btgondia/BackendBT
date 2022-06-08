@@ -10,6 +10,7 @@ const CompleteOrder = require("../Models/OrderCompleted");
 const Counters = require("../Models/Counters");
 
 const Item = require("../Models/Item");
+const OutStanding = require("../Models/OutStanding");
 
 router.post("/postTrip", async (req, res) => {
   try {
@@ -139,7 +140,8 @@ router.get("/GetTripListSummary", async (req, res) => {
     data = JSON.parse(JSON.stringify(data));
     let CounterData = await Counters.find({});
     CounterData = JSON.parse(JSON.stringify(CounterData));
-
+    let OutstandingData = await OutStanding.find({});
+    OutstandingData = JSON.parse(JSON.stringify(OutstandingData));
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
     let CompleteOrdersData = await CompleteOrder.find({});
@@ -193,6 +195,9 @@ router.get("/GetTripListSummary", async (req, res) => {
           ...a,
           orderLength: ordersData.filter((b) => a.trip_uuid === b.trip_uuid)
             .length,
+          unpaid_invoice: OutstandingData.filter(
+            (b) => b.trip_uuid === a.trip_uuid
+          ),
           receiptItems,
           amt:
             receiptItems?.length > 1
@@ -341,7 +346,6 @@ router.post("/GetCheckingTripList", async (req, res) => {
         orderLength: ordersData
           .map((a) => ({
             ...a,
-          
           }))
           .filter((b) => !b.trip_uuid)
           ?.filter(
@@ -350,19 +354,22 @@ router.post("/GetCheckingTripList", async (req, res) => {
                 ? +a.status
                     .map((b) => +b.stage || 0)
                     .reduce((c, d) => Math.max(c, d)) === 2
-                : +a?.status[0]?.stage === 2) &&  a.item_details.filter((b) => +b.status === 1).length
+                : +a?.status[0]?.stage === 2) &&
+              a.item_details.filter((b) => +b.status === 1).length
           ).length,
       },
       ...data.map((a) => ({
         ...a,
         orderLength: ordersData
           .filter((b) => a.trip_uuid === b.trip_uuid)
-          ?.filter((a) =>
-            (a.status.length > 1
-              ? +a.status
-                  .map((b) => +b.stage || 0)
-                  .reduce((c, d) => Math.max(c, d)) === 2
-              : +a?.status[0]?.stage === 2)&& a.item_details.filter((b) => +b.status === 1).length
+          ?.filter(
+            (a) =>
+              (a.status.length > 1
+                ? +a.status
+                    .map((b) => +b.stage || 0)
+                    .reduce((c, d) => Math.max(c, d)) === 2
+                : +a?.status[0]?.stage === 2) &&
+              a.item_details.filter((b) => +b.status === 1).length
           ).length,
       })),
     ].filter((a) => a.orderLength);
@@ -388,12 +395,14 @@ router.post("/GetDeliveryTripList", async (req, res) => {
         trip_title: "Unknown",
         orderLength: ordersData
           .filter((b) => !b.trip_uuid)
-          ?.filter((a) =>
-            (a.status.length > 1
-              ? +a.status
-                  .map((c) => +c.stage)
-                  .reduce((c, d) => Math.max(c, d)) === 3
-              : +a?.status[0]?.stage === 3)&& a.item_details.filter((b) => +b.status === 1).length
+          ?.filter(
+            (a) =>
+              (a.status.length > 1
+                ? +a.status
+                    .map((c) => +c.stage)
+                    .reduce((c, d) => Math.max(c, d)) === 3
+                : +a?.status[0]?.stage === 3) &&
+              a.item_details.filter((b) => +b.status === 1).length
           ).length,
       },
       ...data.map((a) => ({
@@ -406,7 +415,8 @@ router.post("/GetDeliveryTripList", async (req, res) => {
                 ? +a.status
                     .map((c) => +c.stage)
                     .reduce((c, d) => Math.max(c, d)) === 3
-                : +a?.status[0]?.stage === 3) && a.item_details.filter((b) => +b.status === 1).length
+                : +a?.status[0]?.stage === 3) &&
+              a.item_details.filter((b) => +b.status === 1).length
           ).length,
       })),
     ].filter((a) => a.orderLength);
