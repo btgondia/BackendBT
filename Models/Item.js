@@ -7,6 +7,9 @@ const itemSchema = new mongoose.Schema({
    sort_order:{
        type:String
    },
+   free_issue:{
+       type:String
+   },
     item_uuid: {
         type: String,
     },
