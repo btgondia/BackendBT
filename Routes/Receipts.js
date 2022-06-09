@@ -15,7 +15,7 @@ router.post("/postReceipt", async (req, res) => {
     let next_receipt_number = await Details.find({});
     console.log(next_receipt_number[0].next_receipt_number);
     next_receipt_number = next_receipt_number[0].next_receipt_number;
-    let response = await Receipts.create({ ...value, next_receipt_number });
+    let response = await Receipts.create({ ...value,receipt_number: next_receipt_number });
     next_receipt_number = "R" + (+next_receipt_number.match(/\d+/)[0] + 1);
     await Details.updateMany({}, { next_receipt_number });
     if (response) {

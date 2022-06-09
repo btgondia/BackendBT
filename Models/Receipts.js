@@ -7,6 +7,9 @@ const ReceiptsSchema = new mongoose.Schema({
   order_uuid: {
     type: String,
   },
+  receipt_number: {
+    type: String,
+  },
   trip_uuid: {
     type: String,
   },

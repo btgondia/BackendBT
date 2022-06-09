@@ -5,6 +5,7 @@ const Details = require("../Models/Details");
 const Counters = require("../Models/Counters");
 const OrderCompleted = require("../Models/OrderCompleted");
 const Item = require("../Models/Item");
+const Receipts = require("../Models/Receipts");
 
 router.post("/postOrder", async (req, res) => {
   try {
@@ -71,13 +72,14 @@ router.put("/putOrders", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-      let orderStage =value.status?
-        value?.status?.length > 1
+      let orderStage = value.status
+        ? value?.status?.length > 1
           ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
-          : +value?.status[0]?.stage:"";
+          : +value?.status[0]?.stage
+        : "";
       console.log(value, orderStage);
 
-      if (+orderStage === 4||+orderStage===5) {
+      if (+orderStage === 4 || +orderStage === 5) {
         await Orders.deleteOne({ order_uuid: value.order_uuid }, value);
         let data = await OrderCompleted.create(value);
         if (data) response.push(data);
@@ -126,7 +128,6 @@ router.get("/GetOrder/:order_uuid", async (req, res) => {
     let data = await Orders.findOne({ order_uuid: req.params.order_uuid });
     data = JSON.parse(JSON.stringify(data));
 
-  
     res.json({
       success: true,
       result: data,
@@ -256,7 +257,9 @@ router.post("/getCompleteOrderList", async (req, res) => {
     console.log(value);
     let endDate = +value.endDate + 86400000;
     console.log(endDate, value.startDate);
-    let response = await OrderCompleted.find({counter_uuid:req.body.counter_uuid});
+    let response = await OrderCompleted.find({
+      counter_uuid: req.body.counter_uuid,
+    });
     response = JSON.parse(JSON.stringify(response));
     response = response.filter(
       (order) =>
@@ -264,7 +267,6 @@ router.post("/getCompleteOrderList", async (req, res) => {
           (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
         ).length
     );
-  
 
     response = response.map((order) => ({
       ...order,
@@ -284,7 +286,6 @@ router.post("/getCompleteOrderList", async (req, res) => {
           ? order?.item_details[0]?.p
           : 0),
       amt: order.order_grandtotal || 0,
-      
     }));
     console.log(response, endDate);
     if (response.length) {
@@ -293,6 +294,50 @@ router.post("/getCompleteOrderList", async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
+});
+router.post("/getCounterLedger", async (req, res) => {
+  // try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    console.log(value);
+    let endDate = +value.endDate + 86400000;
+    console.log(endDate, value.startDate);
+    let receiptsData = await Receipts.find({
+      counter_uuid: req.body.counter_uuid,
+    });
+    receiptsData = JSON.parse(JSON.stringify(receiptsData));
+    receiptsData = receiptsData.filter(
+      (a) => a.time > value.startDate && a.time < endDate
+    );
+    let response = await Orders.find({
+      counter_uuid: req.body.counter_uuid,
+    });
+    response = JSON.parse(JSON.stringify(response));
+    response = response.filter(
+      (order) =>
+        order.status.filter(
+          (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
+        ).length
+    );
+    response = [...receiptsData, ...response];
+    response = response.map((order) => ({
+      ...order,
+      reference_number: order?.invoice_number || order.receipt_number || "-",
+      order_date:
+        order?.status?.find((a) => +a.stage === 1)?.time || order?.time || "",
+
+      amt1: order?.order_grandtotal || "",
+      amt2: order?.modes?.length
+        ? order?.modes?.map((a) => a.amt || 0).reduce((a, b) => a + b)
+        : "",
+    }));
+    console.log(response, endDate);
+    if (response.length) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Order Not Found" });
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 router.post("/getOrderItemReport", async (req, res) => {
   try {
@@ -323,9 +368,7 @@ router.post("/getOrderItemReport", async (req, res) => {
           ).length
       )
       .filter(
-        (a) =>
-          !value.counter_uuid ||
-          a.counter_uuid===value.counter_uuid
+        (a) => !value.counter_uuid || a.counter_uuid === value.counter_uuid
       );
     response = response.map((a) => ({
       ...a,
