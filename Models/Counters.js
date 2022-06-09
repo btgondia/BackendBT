@@ -7,6 +7,9 @@ const CounterSchema = new mongoose.Schema({
   sort_order: {
     type: Number,
   },
+  credit_allowed: {
+    type: String,
+  },
   counter_uuid: {
     type: String,
   },
