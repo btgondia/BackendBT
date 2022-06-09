@@ -6,14 +6,18 @@ const Users = require("../Models/Users");
 
 const router = express.Router();
 const Receipts = require("../Models/Receipts");
+const Details = require("../Models/Details");
 
 router.post("/postReceipt", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-
-    console.log(value);
-    let response = await Receipts.create(value);
+    let next_receipt_number = await Details.find({});
+    console.log(next_receipt_number[0].next_receipt_number);
+    next_receipt_number = next_receipt_number[0].next_receipt_number;
+    let response = await Receipts.create({ ...value, next_receipt_number });
+    next_receipt_number = "R" + (+next_receipt_number.match(/\d+/)[0] + 1);
+    await Details.updateMany({}, { next_receipt_number });
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Receipts Not created" });
@@ -30,9 +34,7 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
     let response = await Receipts.findOne({ order_uuid: value.order_uuid });
     response = JSON.parse(JSON.stringify(response));
     response = response.modes.map((a) =>
-      a.mode_uuid === value.mode_uuid
-        ? { ...a, status: value.status }
-        : a
+      a.mode_uuid === value.mode_uuid ? { ...a, status: value.status } : a
     );
     console.log(response);
     let data = await Receipts.updateMany(

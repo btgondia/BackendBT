@@ -256,7 +256,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
     console.log(value);
     let endDate = +value.endDate + 86400000;
     console.log(endDate, value.startDate);
-    let response = await OrderCompleted.find({});
+    let response = await OrderCompleted.find({counter_uuid:req.body.counter_uuid});
     response = JSON.parse(JSON.stringify(response));
     response = response.filter(
       (order) =>
@@ -264,9 +264,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
           (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
         ).length
     );
-    let counterData = await Counters.find({
-      counter_uuid: { $in: response.map((a) => a.counter_uuid) },
-    });
+  
 
     response = response.map((order) => ({
       ...order,
@@ -286,9 +284,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
           ? order?.item_details[0]?.p
           : 0),
       amt: order.order_grandtotal || 0,
-      counter_title: counterData.find(
-        (a) => a.counter_uuid === order.counter_uuid
-      )?.counter_title,
+      
     }));
     console.log(response, endDate);
     if (response.length) {
