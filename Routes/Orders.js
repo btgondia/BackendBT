@@ -321,6 +321,11 @@ router.post("/getOrderItemReport", async (req, res) => {
               b.counter_group_uuid.filter((c) => c === value.counter_group_uuid)
                 .length
           ).length
+      )
+      .filter(
+        (a) =>
+          !value.counter_uuid ||
+          a.counter_uuid===value.counter_uuid
       );
     response = response.map((a) => ({
       ...a,
