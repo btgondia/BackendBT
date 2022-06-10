@@ -89,9 +89,10 @@ router.put("/putOrders", async (req, res) => {
           ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
           : +value?.status[0]?.stage
         : "";
+        
       console.log(value, orderStage);
 
-      if (+orderStage === 4 || +orderStage === 5) {
+     if (+orderStage === 4 || +orderStage === 5) {
         await Orders.deleteOne({ order_uuid: value.order_uuid }, value);
         let data = await OrderCompleted.create(value);
         if (data) response.push(data);
@@ -123,7 +124,7 @@ router.get("/GetOrderRunningList", async (req, res) => {
     });
     res.json({
       success: true,
-      result: data.map((a) => ({
+      result: data.filter(a=>a.item_details.length).map((a) => ({
         ...a,
         counter_title: a.counter_uuid
           ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
