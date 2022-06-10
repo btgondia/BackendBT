@@ -13,12 +13,24 @@ router.post("/postOrder", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
     console.log(value);
     let invoice_number = await Details.findOne({});
-
-    let response = await Orders.create({
-      ...value,
-      invoice_number: invoice_number.next_invoice_number || 0,
-      order_status: "R",
-    });
+    let orderStage = value.status
+      ? value?.status?.length > 1
+        ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
+        : +value?.status[0]?.stage
+      : "";
+    let response;
+    if (+orderStage === 4 || +orderStage === 5) {
+      response = await OrderCompleted.create({
+        ...value,
+        invoice_number: invoice_number.next_invoice_number || 0,
+        order_status: "R",
+      });
+    } else
+      response = await Orders.create({
+        ...value,
+        invoice_number: invoice_number.next_invoice_number || 0,
+        order_status: "R",
+      });
     if (response) {
       await Details.updateMany(
         {},
@@ -296,7 +308,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
   }
 });
 router.post("/getCounterLedger", async (req, res) => {
-  // try {
+  try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     console.log(value);
@@ -335,9 +347,9 @@ router.post("/getCounterLedger", async (req, res) => {
     if (response.length) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Order Not Found" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 router.post("/getOrderItemReport", async (req, res) => {
   try {
