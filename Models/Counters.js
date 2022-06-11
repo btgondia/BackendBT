@@ -16,9 +16,12 @@ const CounterSchema = new mongoose.Schema({
   route_uuid: {
     type: String,
   },
-  mobile: {
+  address: {
     type: String,
   },
+  mobile:[ {
+    type: String,
+  }],
   company_discount: [
     {
       company_uuid: {
