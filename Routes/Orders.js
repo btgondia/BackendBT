@@ -92,7 +92,7 @@ router.put("/putOrders", async (req, res) => {
         
       console.log(value, orderStage);
 
-     if (+orderStage === 4 || +orderStage === 5) {
+     if (+orderStage === 4 || +orderStage === 5||value?.item_details?.length) {
         await Orders.deleteOne({ order_uuid: value.order_uuid }, value);
         let data = await OrderCompleted.create(value);
         if (data) response.push(data);
