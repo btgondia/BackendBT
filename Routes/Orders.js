@@ -125,7 +125,7 @@ router.get("/GetOrderRunningList", async (req, res) => {
     });
     res.json({
       success: true,
-      result: data.map((a) => ({
+      result: data.filter(a=>a.item_details.length).map((a) => ({
         ...a,
         counter_title: a.counter_uuid
           ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
