@@ -53,6 +53,17 @@ router.put("/putRoute", async (req, res) => {
 router.get("/GetRouteList", async (req, res) => {
   try {
     let data = await Routes.find({});
+
+    if (data) {
+      res.json({ success: true, result:data });
+    } else res.json({ success: false, message: "Routes Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.get("/GetOrderRouteList", async (req, res) => {
+  try {
+    let data = await Routes.find({});
     data = JSON.parse(JSON.stringify(data));
     let counter = await Counters.find({});
     counter = JSON.parse(JSON.stringify(counter));
@@ -74,21 +85,27 @@ router.get("/GetRouteList", async (req, res) => {
             (b) =>
               !b.route_uuid &&
               (b.status.length > 1
-                ? +b.status.map(x=>+x.stage||0).reduce((c, d) => Math.max(c, d)) === 2
+                ? +b.status
+                    .map((x) => +x.stage || 0)
+                    .reduce((c, d) => Math.max(c, d)) === 2
                 : +b?.status[0]?.stage === 2)
           ).length,
           processingLength: ordersData.filter(
             (b) =>
               !b.route_uuid &&
               (b.status.length > 1
-                ? +b.status.map(x=>+x.stage||0).reduce((c, d) => Math.max(c, d)) === 1
+                ? +b.status
+                    .map((x) => +x.stage || 0)
+                    .reduce((c, d) => Math.max(c, d)) === 1
                 : +b?.status[0]?.stage === 1)
           ).length,
           deliveryLength: ordersData.filter(
             (b) =>
               !b.route_uuid &&
               (b.status.length > 1
-                ? +b.status.map(x=>+x.stage||0).reduce((c, d) => Math.max(c, d)) === 3
+                ? +b.status
+                    .map((x) => +x.stage || 0)
+                    .reduce((c, d) => Math.max(c, d)) === 3
                 : +b?.status[0]?.stage === 3)
           ).length,
         },
@@ -97,40 +114,45 @@ router.get("/GetRouteList", async (req, res) => {
           orderLength: ordersData.filter(
             (b) =>
               b.counter_uuid ===
-              counter.find((c) => c.route_uuid === a.route_uuid)
-                ?.counter_uuid
+              counter.find((c) => c.route_uuid === a.route_uuid)?.counter_uuid
           ).length,
-   
+
           processingLength: ordersData.filter(
             (b) =>
-              (b.counter_uuid ===
+              b.counter_uuid ===
                 counter.find((c) => c.route_uuid === a.route_uuid)
-                  ?.counter_uuid) &&
+                  ?.counter_uuid &&
               (b.status.length > 1
-                ? +b.status.map(x=>+x.stage||0).reduce((c, d) => Math.max(c, d)) === 1
+                ? +b.status
+                    .map((x) => +x.stage || 0)
+                    .reduce((c, d) => Math.max(c, d)) === 1
                 : +b?.status[0]?.stage === 1)
           ).length,
           checkingLength: ordersData.filter(
             (b) =>
-              (b.counter_uuid ===
+              b.counter_uuid ===
                 counter.find((c) => c.route_uuid === a.route_uuid)
-                  ?.counter_uuid) &&
+                  ?.counter_uuid &&
               (b.status.length > 1
-                ? +b.status.map(x=>+x.stage||0).reduce((c, d) => Math.max(c, d)) === 2
+                ? +b.status
+                    .map((x) => +x.stage || 0)
+                    .reduce((c, d) => Math.max(c, d)) === 2
                 : +b?.status[0]?.stage === 2)
           ).length,
           deliveryLength: ordersData.filter(
             (b) =>
-              (b.counter_uuid ===
+              b.counter_uuid ===
                 counter.find((c) => c.route_uuid === a.route_uuid)
-                  ?.counter_uuid) &&
+                  ?.counter_uuid &&
               (b.status.length > 1
-                ? +b.status.map(x=>+x.stage||0).reduce((c, d) => Math.max(c, d)) === 3
+                ? +b.status
+                    .map((x) => +x.stage || 0)
+                    .reduce((c, d) => Math.max(c, d)) === 3
                 : +b?.status[0]?.stage === 3)
           ).length,
         })),
-      ].filter(a=>a.orderLength);
-     
+      ].filter((a) => a.orderLength);
+
       res.json({ success: true, result });
     } else res.json({ success: false, message: "Routes Not found" });
   } catch (err) {
