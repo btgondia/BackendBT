@@ -315,10 +315,10 @@ router.post("/GetProcessingTripList", async (req, res) => {
         ...a,
         orderLength: ordersData
           .filter((b) => a.trip_uuid === b.trip_uuid)
-          ?.filter((a) =>
-            a.status.length > 1
-              ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 1
-              : +a?.status[0]?.stage === 1
+          ?.filter((b) =>
+            b.status.length > 1
+              ? +b.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 1
+              : +b?.status[0]?.stage === 1
           ).length,
       })),
     ].filter((a) => a.orderLength);
@@ -363,13 +363,13 @@ router.post("/GetCheckingTripList", async (req, res) => {
         orderLength: ordersData
           .filter((b) => a.trip_uuid === b.trip_uuid)
           ?.filter(
-            (a) =>
-              (a.status.length > 1
-                ? +a.status
-                    .map((b) => +b.stage || 0)
+            (b) =>
+              (b.status.length > 1
+                ? +b.status
+                    .map((c) => +c.stage || 0)
                     .reduce((c, d) => Math.max(c, d)) === 2
-                : +a?.status[0]?.stage === 2) &&
-              a.item_details.filter((b) => +b.status === 1).length
+                : +b?.status[0]?.stage === 2) &&
+              b.item_details.filter((c) => +c.status === 1).length
           ).length,
       })),
     ].filter((a) => a.orderLength);
@@ -390,26 +390,25 @@ router.post("/GetDeliveryTripList", async (req, res) => {
     ordersData = JSON.parse(JSON.stringify(ordersData));
 
     let result = [
-      
       ...data.map((a) => ({
         ...a,
         orderLength: ordersData
           .filter((b) => a.trip_uuid === b.trip_uuid)
           ?.filter(
-            (a) =>
-              (a.status.length > 1
-                ? +a.status
+            (b) =>
+              (b.status.length > 1
+                ? +b.status
                     .map((c) => +c.stage)
                     .reduce((c, d) => Math.max(c, d)) === 3
-                : +a?.status[0]?.stage === 3) &&
-              a.item_details.filter((b) => +b.status === 1).length
+                : +b?.status[0]?.stage === 3) &&
+              b.item_details.filter((c) => +c.status === 1).length
           ).length,
       })),
     ].filter((a) => a.orderLength);
     console.log(result);
     res.json({
       success: true,
-      result,
+      result: result,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
