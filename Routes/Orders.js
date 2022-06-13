@@ -11,6 +11,10 @@ router.post("/postOrder", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
+    value = {
+      ...value,
+      order_grandtotal: value.order_grandtotal.toFixed(2),
+    };
     console.log(value);
     let invoice_number = await Details.findOne({});
     let orderStage = value.status
@@ -46,13 +50,17 @@ router.put("/putOrder", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
+
     value = Object.keys(value)
       .filter((key) => key !== "_id")
       .reduce((obj, key) => {
         obj[key] = value[key];
         return obj;
       }, {});
-
+    value = {
+      ...value,
+      order_grandtotal: value.order_grandtotal.toFixed(2),
+    };
     console.log(value, value.orderStatus === "edit");
     let response = {};
     if (value.orderStatus === "edit") {
@@ -84,16 +92,24 @@ router.put("/putOrders", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
+      value = {
+        ...value,
+        order_grandtotal: value.order_grandtotal.toFixed(2),
+      };
       let orderStage = value.status
         ? value?.status?.length > 1
           ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
           : +value?.status[0]?.stage
         : "";
-        
+
       console.log(value, orderStage);
 
-     if (+orderStage === 4 || +orderStage === 5||value?.item_details?.length===0) {
-       console.log("length", value?.item_details?.length)
+      if (
+        +orderStage === 4 ||
+        +orderStage === 5 ||
+        value?.item_details?.length === 0
+      ) {
+        console.log("length", value?.item_details?.length);
         await Orders.deleteOne({ order_uuid: value.order_uuid }, value);
         let data = await OrderCompleted.create(value);
         if (data) response.push(data);
@@ -125,13 +141,15 @@ router.get("/GetOrderRunningList", async (req, res) => {
     });
     res.json({
       success: true,
-      result: data.filter(a=>a.item_details.length).map((a) => ({
-        ...a,
-        counter_title: a.counter_uuid
-          ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
-              ?.counter_title
-          : "",
-      })),
+      result: data
+        .filter((a) => a.item_details.length)
+        .map((a) => ({
+          ...a,
+          counter_title: a.counter_uuid
+            ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
+                ?.counter_title
+            : "",
+        })),
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
@@ -271,13 +289,12 @@ router.post("/getCompleteOrderList", async (req, res) => {
     console.log(value);
     let endDate = +value.endDate + 86400000;
     console.log(endDate, value.startDate);
-    let response = await OrderCompleted.find({
-    });
+    let response = await OrderCompleted.find({});
 
-    
     response = JSON.parse(JSON.stringify(response));
     response = response.filter(
-      (order) =>(!req.body.company_uuid||a.counter_uuid===req.body.counter_uuid)&&
+      (order) =>
+        (!req.body.company_uuid || a.counter_uuid === req.body.counter_uuid) &&
         order.status.filter(
           (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
         ).length
