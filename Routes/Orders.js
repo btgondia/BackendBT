@@ -225,7 +225,7 @@ router.post("/GetOrderCheckingList", async (req, res) => {
           ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
               ?.counter_title
           : "",
-        item_details: a.item_details.filter((b) => +b.status === 1),
+        // item_details: a.item_details.filter((b) => +b.status === 1),
       }))
       ?.filter(
         (a) =>
@@ -263,7 +263,7 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
           ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
               ?.counter_title
           : "",
-        item_details: a.item_details.filter((b) => +b.status === 1),
+        // item_details: a.item_details.filter((b) => +b.status === 1),
       }))
       ?.filter(
         (a) =>

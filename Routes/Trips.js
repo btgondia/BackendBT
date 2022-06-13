@@ -338,27 +338,9 @@ router.post("/GetCheckingTripList", async (req, res) => {
     data = JSON.parse(JSON.stringify(data));
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
-    console.log(data);
-    let result = [
-      {
-        trip_uuid: 0,
-        trip_title: "Unknown",
-        orderLength: ordersData
-          .map((a) => ({
-            ...a,
-          }))
-          .filter((b) => !b.trip_uuid)
-          ?.filter(
-            (a) =>
-              (a.status.length > 1
-                ? +a.status
-                    .map((b) => +b.stage || 0)
-                    .reduce((c, d) => Math.max(c, d)) === 2
-                : +a?.status[0]?.stage === 2) &&
-              a.item_details.filter((b) => +b.status === 1).length
-          ).length,
-      },
-      ...data.map((a) => ({
+    console.log(ordersData);
+    let result = 
+      data.map((a) => ({
         ...a,
         orderLength: ordersData
           .filter((b) => a.trip_uuid === b.trip_uuid)
@@ -368,11 +350,10 @@ router.post("/GetCheckingTripList", async (req, res) => {
                 ? +b.status
                     .map((c) => +c.stage || 0)
                     .reduce((c, d) => Math.max(c, d)) === 2
-                : +b?.status[0]?.stage === 2) &&
-              b.item_details.filter((c) => +c.status === 1).length
+                : +b?.status[0]?.stage === 2) 
           ).length,
-      })),
-    ].filter((a) => a.orderLength);
+      })).filter(a=>a.orderLength)
+    
     console.log(result);
     res.json({
       success: true,
@@ -400,8 +381,7 @@ router.post("/GetDeliveryTripList", async (req, res) => {
                 ? +b.status
                     .map((c) => +c.stage)
                     .reduce((c, d) => Math.max(c, d)) === 3
-                : +b?.status[0]?.stage === 3) &&
-              b.item_details.filter((c) => +c.status === 1).length
+                : +b?.status[0]?.stage === 3) 
           ).length,
       })),
     ].filter((a) => a.orderLength);
