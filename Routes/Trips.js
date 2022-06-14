@@ -307,7 +307,7 @@ router.post("/GetProcessingTripList", async (req, res) => {
           .filter((b) => !b.trip_uuid)
           ?.filter((a) =>
             a.status.length > 1
-              ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 1
+              ? +a.status.map(d=>+d.stage||0).reduce((c, d) => Math.max(c, d)) === 1
               : +a?.status[0]?.stage === 1
           ).length,
       },
@@ -317,7 +317,7 @@ router.post("/GetProcessingTripList", async (req, res) => {
           .filter((b) => a.trip_uuid === b.trip_uuid)
           ?.filter((b) =>
             b.status.length > 1
-              ? +b.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 1
+              ? +a.status.map(d=>+d.stage||0).reduce((c, d) => Math.max(c, d)) === 1
               : +b?.status[0]?.stage === 1
           ).length,
       })),
