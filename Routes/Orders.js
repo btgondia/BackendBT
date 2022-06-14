@@ -13,7 +13,7 @@ router.post("/postOrder", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
     value = {
       ...value,
-      order_grandtotal: value.order_grandtotal.toFixed(2),
+      order_grandtotal: value.order_grandtotal.toFixed(0),
     };
     console.log(value);
     let invoice_number = await Details.findOne({});
@@ -59,7 +59,7 @@ router.put("/putOrder", async (req, res) => {
       }, {});
     value = {
       ...value,
-      order_grandtotal: value.order_grandtotal.toFixed(2),
+      order_grandtotal: value.order_grandtotal.toFixed(0),
     };
     console.log(value, value.orderStatus === "edit");
     let response = {};
@@ -94,7 +94,7 @@ router.put("/putOrders", async (req, res) => {
         }, {});
       value = {
         ...value,
-        order_grandtotal: value.order_grandtotal.toFixed(2),
+        order_grandtotal: value.order_grandtotal.toFixed(0),
       };
       let orderStage = value.status
         ? value?.status?.length > 1
