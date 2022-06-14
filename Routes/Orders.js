@@ -11,10 +11,8 @@ router.post("/postOrder", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    value = {
-      ...value,
-      order_grandtotal: value.order_grandtotal.toFixed(0),
-    };
+  
+  
     console.log(value);
     let invoice_number = await Details.findOne({});
     let orderStage = value.status
@@ -57,10 +55,8 @@ router.put("/putOrder", async (req, res) => {
         obj[key] = value[key];
         return obj;
       }, {});
-    value = {
-      ...value,
-      order_grandtotal: value.order_grandtotal.toFixed(0),
-    };
+  
+  
     console.log(value, value.orderStatus === "edit");
     let response = {};
     if (value.orderStatus === "edit") {
@@ -92,11 +88,7 @@ router.put("/putOrders", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-      value = {
-        ...value,
-        order_grandtotal: value.order_grandtotal.toFixed(0),
-      };
-      let orderStage = value.status
+         let orderStage = value.status
         ? value?.status?.length > 1
           ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
           : +value?.status[0]?.stage
