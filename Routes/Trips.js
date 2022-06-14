@@ -305,8 +305,12 @@ router.post("/GetProcessingTripList", async (req, res) => {
         trip_title: "Unknown",
         orderLength: ordersData
           .filter((b) => !b.trip_uuid)
-          ?.filter((a) =>
-            +a?.status[a.status.length-1]?.stage === 1
+          ?.filter((b) =>
+            (b.status.length > 1
+                ? +b.status
+                    .map((c) => +c.stage)
+                    .reduce((c, d) => Math.max(c, d)) === 1
+                : +b?.status[0]?.stage === 1) 
           ).length,
       },
       ...data.map((a) => ({
@@ -314,7 +318,11 @@ router.post("/GetProcessingTripList", async (req, res) => {
         orderLength: ordersData
           .filter((b) => a.trip_uuid === b.trip_uuid)
           ?.filter((b) =>
-          +a?.status[a.status.length-1]?.stage === 1
+          (b.status.length > 1
+                ? +b.status
+                    .map((c) => +c.stage)
+                    .reduce((c, d) => Math.max(c, d)) === 1
+                : +b?.status[0]?.stage === 1) 
           ).length,
       })),
     ].filter((a) => a.orderLength);
@@ -335,20 +343,33 @@ router.post("/GetCheckingTripList", async (req, res) => {
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
     console.log(ordersData);
-    let result = 
-      data.map((a) => ({
+    let result = [
+      {
+        trip_uuid: 0,
+        trip_title: "Unknown",
+        orderLength: ordersData
+          .filter((b) => !b.trip_uuid)
+          ?.filter((b) =>
+          (b.status.length > 1
+            ? +b.status
+                .map((c) => +c.stage)
+                .reduce((c, d) => Math.max(c, d)) === 2
+            : +b?.status[0]?.stage === 2) 
+          ).length,
+      },
+      ...data.map((a) => ({
         ...a,
         orderLength: ordersData
           .filter((b) => a.trip_uuid === b.trip_uuid)
-          ?.filter(
-            (b) =>
-              (b.status.length > 1
-                ? +b.status
-                    .map((c) => +c.stage || 0)
-                    .reduce((c, d) => Math.max(c, d)) === 2
-                : +b?.status[0]?.stage === 2) 
+          ?.filter((b) =>
+          (b.status.length > 1
+            ? +b.status
+                .map((c) => +c.stage)
+                .reduce((c, d) => Math.max(c, d)) === 2
+            : +b?.status[0]?.stage === 2) 
           ).length,
-      })).filter(a=>a.orderLength)
+      })),
+    ].filter((a) => a.orderLength);
     
     console.log(result);
     res.json({
