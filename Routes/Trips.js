@@ -294,7 +294,7 @@ router.post("/GetCompletedTripList", async (req, res) => {
 });
 router.post("/GetProcessingTripList", async (req, res) => {
   try {
-    let data = await Trips.find({ users: req.body.user_uuid });
+    let data = await Trips.find({ });
     data = JSON.parse(JSON.stringify(data));
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
@@ -338,7 +338,7 @@ router.post("/GetProcessingTripList", async (req, res) => {
 router.post("/GetCheckingTripList", async (req, res) => {
   try {
     console.log(req.body);
-    let data = await Trips.find({ users: req.body.user_uuid });
+    let data = await Trips.find({ });
     data = JSON.parse(JSON.stringify(data));
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
