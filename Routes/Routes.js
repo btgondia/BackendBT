@@ -78,12 +78,14 @@ router.get("/GetOrderRouteList", async (req, res) => {
           orderLength: ordersData.filter(
             (a) =>
               counter.filter(
-                (b) => a.counter_uuid === b.counter_uuid && !b.route_uuid
+                (c) => c.counter_uuid === a.counter_uuid && !c.route_uuid
               ).length
           ).length,
           checkingLength: ordersData.filter(
             (b) =>
-              !b.route_uuid &&
+              counter.filter(
+                (c) => c.counter_uuid === b.counter_uuid && !c.route_uuid
+              ).length &&
               (b.status.length > 1
                 ? +b.status
                     .map((x) => +x.stage || 0)
@@ -92,7 +94,9 @@ router.get("/GetOrderRouteList", async (req, res) => {
           ).length,
           processingLength: ordersData.filter(
             (b) =>
-              !b.route_uuid &&
+              counter.filter(
+                (c) => c.counter_uuid === b.counter_uuid && !c.route_uuid
+              ).length &&
               (b.status.length > 1
                 ? +b.status
                     .map((x) => +x.stage || 0)
@@ -101,7 +105,9 @@ router.get("/GetOrderRouteList", async (req, res) => {
           ).length,
           deliveryLength: ordersData.filter(
             (b) =>
-              !b.route_uuid &&
+              counter.filter(
+                (c) => c.counter_uuid === b.counter_uuid && !c.route_uuid
+              ).length &&
               (b.status.length > 1
                 ? +b.status
                     .map((x) => +x.stage || 0)
@@ -110,23 +116,24 @@ router.get("/GetOrderRouteList", async (req, res) => {
           ).length,
         },
         ...data.map((a) => {
-
           return {
             ...a,
             orderLength: ordersData.filter(
               (b) =>
-                counter.filter(
-                  (c) =>
-                    c.counter_uuid === b.counter_uuid &&
-                    a.route_uuid === c.route_uuid
-                ).length
+              counter.filter(
+                (c) =>
+                  c.counter_uuid === b.counter_uuid &&
+                  (a.route_uuid === c.route_uuid )
+              ).length
             ).length,
 
             processingLength: ordersData.filter(
               (b) =>
-                b.counter_uuid ===
-                  counter.find((c) => c.route_uuid === a.route_uuid)
-                    ?.counter_uuid &&
+              counter.filter(
+                (c) =>
+                  c.counter_uuid === b.counter_uuid &&
+                  (a.route_uuid === c.route_uuid )
+              ).length &&
                 (b.status.length > 1
                   ? +b.status
                       .map((x) => +x.stage || 0)
@@ -135,9 +142,11 @@ router.get("/GetOrderRouteList", async (req, res) => {
             ).length,
             checkingLength: ordersData.filter(
               (b) =>
-                b.counter_uuid ===
-                  counter.find((c) => c.route_uuid === a.route_uuid)
-                    ?.counter_uuid &&
+              counter.filter(
+                (c) =>
+                  c.counter_uuid === b.counter_uuid &&
+                  (a.route_uuid === c.route_uuid )
+              ).length &&
                 (b.status.length > 1
                   ? +b.status
                       .map((x) => +x.stage || 0)
@@ -146,9 +155,11 @@ router.get("/GetOrderRouteList", async (req, res) => {
             ).length,
             deliveryLength: ordersData.filter(
               (b) =>
-                b.counter_uuid ===
-                  counter.find((c) => c.route_uuid === a.route_uuid)
-                    ?.counter_uuid &&
+              counter.filter(
+                (c) =>
+                  c.counter_uuid === b.counter_uuid &&
+                  (a.route_uuid === c.route_uuid )
+              ).length &&
                 (b.status.length > 1
                   ? +b.status
                       .map((x) => +x.stage || 0)
