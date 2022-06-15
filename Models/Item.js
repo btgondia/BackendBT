@@ -4,6 +4,9 @@ const itemSchema = new mongoose.Schema({
     item_title: {
         type: String,
     },
+    item_discount: {
+        type: String,
+    },
    sort_order:{
        type:String
    },
