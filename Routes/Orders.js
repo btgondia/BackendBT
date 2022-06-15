@@ -120,6 +120,41 @@ router.put("/putOrders", async (req, res) => {
   }
 });
 
+router.get("/getPendingEntry", async (req, res) => {
+  try {
+    let data = await OrderCompleted.find({ entry: 0 });
+    data = JSON.parse(JSON.stringify(data));
+
+    res.json({
+      success: true,
+      result: data,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.put("/putCompleteOrder", async (req, res) => {
+  try {
+    let value = req.body;
+    console.log(value)
+    let data = await OrderCompleted.updateOne(
+      { order_uuid: value.order_uuid },
+      value
+    );
+    if (data.acknowledged) {
+      res.json({
+        success: true,
+        result: data,
+      });
+    } else
+      res.status(404).json({
+        success: false,
+        result: data,
+      });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.get("/GetOrderRunningList", async (req, res) => {
   try {
     let data = await Orders.find({ order_status: "R" });
