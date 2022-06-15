@@ -11,8 +11,7 @@ router.post("/postOrder", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-  
-  
+
     console.log(value);
     let invoice_number = await Details.findOne({});
     let orderStage = value.status
@@ -26,6 +25,7 @@ router.post("/postOrder", async (req, res) => {
         ...value,
         invoice_number: invoice_number.next_invoice_number || 0,
         order_status: "R",
+        entry: 0,
       });
     } else
       response = await Orders.create({
@@ -55,8 +55,7 @@ router.put("/putOrder", async (req, res) => {
         obj[key] = value[key];
         return obj;
       }, {});
-  
-  
+
     console.log(value, value.orderStatus === "edit");
     let response = {};
     if (value.orderStatus === "edit") {
@@ -88,7 +87,7 @@ router.put("/putOrders", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-         let orderStage = value.status
+      let orderStage = value.status
         ? value?.status?.length > 1
           ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
           : +value?.status[0]?.stage
@@ -103,7 +102,7 @@ router.put("/putOrders", async (req, res) => {
       ) {
         console.log("length", value?.item_details?.length);
         await Orders.deleteOne({ order_uuid: value.order_uuid }, value);
-        let data = await OrderCompleted.create(value);
+        let data = await OrderCompleted.create({ ...value, entry: 0 });
         if (data) response.push(data);
       } else {
         let data = await Orders.updateOne(

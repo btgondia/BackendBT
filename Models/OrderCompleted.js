@@ -9,6 +9,7 @@ const OrdersSchema = new mongoose.Schema({
     },
   ],
   replacement: { type: Number },
+  entry: { type: Number },
   replacement_mrp: { type: Number },
   item_details: [
     {
