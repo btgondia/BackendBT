@@ -191,6 +191,20 @@ router.get("/GetTripListSummary", async (req, res) => {
           item_title: itemData.find((c) => c.item_uuid === b.item_uuid)
             ?.item_title,
         }));
+        let receiptData=await Receipts.find(
+          {trip_uuid: a.trip_uuid}
+        );
+        let amt =
+          (receiptData?.length > 1
+            ? receiptData.reduce(
+                (c, d) =>
+                  c?.modes?.map((x) => +x.amt || 0)?.reduce((x, y) => x + y) +
+                  d?.modes?.map((x) => +x.amt || 0)?.reduce((x, y) => x + y)
+              )
+            : receiptData[0]?.modes
+                ?.map((x) => +x.amt || 0)
+                ?.reduce((x, y) => x + y)) || 0;
+                console.log(amt)
         result.push({
           ...a,
           orderLength: ordersData.filter((b) => a.trip_uuid === b.trip_uuid)
@@ -199,16 +213,7 @@ router.get("/GetTripListSummary", async (req, res) => {
             (b) => b.trip_uuid === a.trip_uuid
           ),
           receiptItems,
-          amt:
-            receiptItems?.length > 1
-              ? receiptItems.reduce(
-                  (c, d) =>
-                    c?.modes?.map((x) => +x.amt || 0)?.reduce((x, y) => x + y) +
-                    d?.modes?.map((x) => +x.amt || 0)?.reduce((x, y) => x + y)
-                )
-              : receiptsData[0]?.modes
-                  ?.map((x) => +x.amt || 0)
-                  ?.reduce((x, y) => x + y) || 0,
+          amt,
           coin:
             receiptItems.length > 1
               ? receiptItems.reduce(
@@ -294,7 +299,7 @@ router.post("/GetCompletedTripList", async (req, res) => {
 });
 router.post("/GetProcessingTripList", async (req, res) => {
   try {
-    let data = await Trips.find({ });
+    let data = await Trips.find({});
     data = JSON.parse(JSON.stringify(data));
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
@@ -306,11 +311,11 @@ router.post("/GetProcessingTripList", async (req, res) => {
         orderLength: ordersData
           .filter((b) => !b.trip_uuid)
           ?.filter((b) =>
-            (b.status.length > 1
-                ? +b.status
-                    .map((c) => +c.stage)
-                    .reduce((c, d) => Math.max(c, d)) === 1
-                : +b?.status[0]?.stage === 1) 
+            b.status.length > 1
+              ? +b.status
+                  .map((c) => +c.stage)
+                  .reduce((c, d) => Math.max(c, d)) === 1
+              : +b?.status[0]?.stage === 1
           ).length,
       },
       ...data.map((a) => ({
@@ -318,11 +323,11 @@ router.post("/GetProcessingTripList", async (req, res) => {
         orderLength: ordersData
           .filter((b) => a.trip_uuid === b.trip_uuid)
           ?.filter((b) =>
-          (b.status.length > 1
-                ? +b.status
-                    .map((c) => +c.stage)
-                    .reduce((c, d) => Math.max(c, d)) === 1
-                : +b?.status[0]?.stage === 1) 
+            b.status.length > 1
+              ? +b.status
+                  .map((c) => +c.stage)
+                  .reduce((c, d) => Math.max(c, d)) === 1
+              : +b?.status[0]?.stage === 1
           ).length,
       })),
     ].filter((a) => a.orderLength);
@@ -338,7 +343,7 @@ router.post("/GetProcessingTripList", async (req, res) => {
 router.post("/GetCheckingTripList", async (req, res) => {
   try {
     console.log(req.body);
-    let data = await Trips.find({ });
+    let data = await Trips.find({});
     data = JSON.parse(JSON.stringify(data));
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
@@ -350,11 +355,11 @@ router.post("/GetCheckingTripList", async (req, res) => {
         orderLength: ordersData
           .filter((b) => !b.trip_uuid)
           ?.filter((b) =>
-          (b.status.length > 1
-            ? +b.status
-                .map((c) => +c.stage)
-                .reduce((c, d) => Math.max(c, d)) === 2
-            : +b?.status[0]?.stage === 2) 
+            b.status.length > 1
+              ? +b.status
+                  .map((c) => +c.stage)
+                  .reduce((c, d) => Math.max(c, d)) === 2
+              : +b?.status[0]?.stage === 2
           ).length,
       },
       ...data.map((a) => ({
@@ -362,15 +367,15 @@ router.post("/GetCheckingTripList", async (req, res) => {
         orderLength: ordersData
           .filter((b) => a.trip_uuid === b.trip_uuid)
           ?.filter((b) =>
-          (b.status.length > 1
-            ? +b.status
-                .map((c) => +c.stage)
-                .reduce((c, d) => Math.max(c, d)) === 2
-            : +b?.status[0]?.stage === 2) 
+            b.status.length > 1
+              ? +b.status
+                  .map((c) => +c.stage)
+                  .reduce((c, d) => Math.max(c, d)) === 2
+              : +b?.status[0]?.stage === 2
           ).length,
       })),
     ].filter((a) => a.orderLength);
-    
+
     console.log(result);
     res.json({
       success: true,
@@ -392,13 +397,12 @@ router.post("/GetDeliveryTripList", async (req, res) => {
         ...a,
         orderLength: ordersData
           .filter((b) => a.trip_uuid === b.trip_uuid)
-          ?.filter(
-            (b) =>
-              (b.status.length > 1
-                ? +b.status
-                    .map((c) => +c.stage)
-                    .reduce((c, d) => Math.max(c, d)) === 3
-                : +b?.status[0]?.stage === 3) 
+          ?.filter((b) =>
+            b.status.length > 1
+              ? +b.status
+                  .map((c) => +c.stage)
+                  .reduce((c, d) => Math.max(c, d)) === 3
+              : +b?.status[0]?.stage === 3
           ).length,
       })),
     ].filter((a) => a.orderLength);
