@@ -154,7 +154,6 @@ router.get("/GetTripListSummary", async (req, res) => {
       ...a,
       ...(receiptsData.find((b) => b.order_uuid === a.order_uuid) || {}),
     }));
-    console.log(CompleteOrdersData);
     if (ordersData.length) {
       let result = [];
 
@@ -191,20 +190,21 @@ router.get("/GetTripListSummary", async (req, res) => {
           item_title: itemData.find((c) => c.item_uuid === b.item_uuid)
             ?.item_title,
         }));
-        let receiptData=await Receipts.find(
-          {trip_uuid: a.trip_uuid}
+        let receiptData = await Receipts.find({ trip_uuid: a.trip_uuid });
+        receiptData = [].concat.apply(
+          [],
+          receiptData.map((b) => b?.modes || [])
         );
+        console.log(a.trip_title, receiptData);
         let amt =
-          (receiptData?.length > 1
-            ? receiptData.reduce(
-                (c, d) =>
-                  c?.modes?.map((x) => +x.amt || 0)?.reduce((x, y) => x + y) +
-                  d?.modes?.map((x) => +x.amt || 0)?.reduce((x, y) => x + y)
-              )
-            : receiptData[0]?.modes
-                ?.map((x) => +x.amt || 0)
-                ?.reduce((x, y) => x + y)) || 0;
-                console.log(amt)
+          receiptData?.length > 1
+            ? receiptData.map((a) => +a.amt || 0).reduce((c, d) => c + d)
+            : receiptData[0]?.amt;
+        let coin =
+          receiptData?.length > 1
+            ? receiptData.map((a) => +a.coin || 0).reduce((c, d) => c + d)
+            : receiptData[0]?.coin || 0;
+
         result.push({
           ...a,
           orderLength: ordersData.filter((b) => a.trip_uuid === b.trip_uuid)
@@ -214,16 +214,7 @@ router.get("/GetTripListSummary", async (req, res) => {
           ),
           receiptItems,
           amt,
-          coin:
-            receiptItems.length > 1
-              ? receiptItems.reduce(
-                  (c, d) =>
-                    c.modes?.map((x) => +x.coin || 0)?.reduce((x, y) => x + y) +
-                    d.modes?.map((x) => +x.amt || 0)?.reduce((x, y) => x + y)
-                )
-              : receiptsData[0]?.modes
-                  ?.map((x) => +x.coin || 0)
-                  ?.reduce((x, y) => x + y) || 0,
+          coin,
           cheque: receiptItems
             ?.filter(
               (b) =>
