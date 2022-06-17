@@ -6,6 +6,7 @@ const Counters = require("../Models/Counters");
 const OrderCompleted = require("../Models/OrderCompleted");
 const Item = require("../Models/Item");
 const Receipts = require("../Models/Receipts");
+const OutStanding = require("../Models/OutStanding");
 
 router.post("/postOrder", async (req, res) => {
   try {
@@ -324,7 +325,8 @@ router.post("/getCompleteOrderList", async (req, res) => {
     response = JSON.parse(JSON.stringify(response));
     response = response.filter(
       (order) =>
-        (!req.body.company_uuid || a.counter_uuid === req.body.counter_uuid) &&
+        (!req.body.company_uuid ||
+          order.counter_uuid === req.body.counter_uuid) &&
         order.status.filter(
           (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
         ).length
@@ -350,6 +352,55 @@ router.post("/getCompleteOrderList", async (req, res) => {
       amt: order.order_grandtotal || 0,
     }));
     console.log(response, endDate);
+    if (response.length) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Order Not Found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.post("/getTripOrderList", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    console.log(value);
+
+    let response = await OrderCompleted.find({ trip_uuid: value.trip_uuid });
+
+    response = JSON.parse(JSON.stringify(response));
+    let receiptData = await Receipts.find({
+      order_uuid: response.map((a) => a.order_uuid),
+    });
+
+    receiptData = JSON.parse(JSON.stringify(receiptData));
+    let outstandindData = await OutStanding.find({
+      order_uuid: response.map((a) => a.order_uuid),
+    });
+
+    outstandindData = JSON.parse(JSON.stringify(outstandindData));
+    response = response.map((order) => ({
+      ...order,
+      invoice_number: order.invoice_number,
+      order_date: order.status.find((a) => +a.stage === 1)?.time,
+      delivery_date: order.status.find((a) => +a.stage === 4)?.time,
+      qty:
+        (order?.item_details?.length > 1
+          ? order.item_details.map((a) => a.b).reduce((a, b) => +a + b)
+          : order?.item_details?.length
+          ? order?.item_details[0]?.b
+          : 0) +
+        ":" +
+        (order?.item_details?.length > 1
+          ? order.item_details.map((a) => a.p).reduce((a, b) => +a + b)
+          : order?.item_details?.length
+          ? order?.item_details[0]?.p
+          : 0),
+      amt: order.order_grandtotal || 0,
+      modes: receiptData.find((b) => b.order_uuid === order.order_uuid)?.modes||[],
+      unpaid: outstandindData.find((b) => b.order_uuid === order.order_uuid)
+        ?.amount||0,
+    }));
+
     if (response.length) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Order Not Found" });
