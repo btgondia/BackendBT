@@ -136,7 +136,7 @@ router.get("/getPendingEntry", async (req, res) => {
 router.put("/putCompleteOrder", async (req, res) => {
   try {
     let value = req.body;
-    console.log(value)
+    console.log(value);
     let data = await OrderCompleted.updateOne(
       { order_uuid: value.order_uuid },
       value
@@ -209,13 +209,15 @@ router.post("/GetOrderProcessingList", async (req, res) => {
       },
     });
     result = data
-      .map((a) => ({
-        ...a,
-        counter_title: a.counter_uuid
-          ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
-              ?.counter_title
-          : "",
-      }))
+      .map((a) => {
+        let counter =
+          counterData?.find((b) => b?.counter_uuid === a?.counter_uuid) || {};
+        return {
+          ...a,
+          counter_title: a.counter_uuid ? counter?.counter_title : "",
+          sort_order: a.counter_uuid ? counter?.sort_order : "",
+        };
+      })
       ?.filter((a) =>
         a.status.length > 1
           ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 1
@@ -245,14 +247,15 @@ router.post("/GetOrderCheckingList", async (req, res) => {
       },
     });
     result = data
-      .map((a) => ({
-        ...a,
-        counter_title: a.counter_uuid
-          ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
-              ?.counter_title
-          : "",
-        // item_details: a.item_details.filter((b) => +b.status === 1),
-      }))
+      .map((a) => {
+        let counter =
+          counterData?.find((b) => b?.counter_uuid === a?.counter_uuid) || {};
+        return {
+          ...a,
+          counter_title: a.counter_uuid ? counter?.counter_title : "",
+          sort_order: a.counter_uuid ? counter?.sort_order : "",
+        };
+      })
       ?.filter(
         (a) =>
           (a.status.length > 1
@@ -283,14 +286,15 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
       },
     });
     result = data
-      .map((a) => ({
-        ...a,
-        counter_title: a.counter_uuid
-          ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
-              ?.counter_title
-          : "",
-        // item_details: a.item_details.filter((b) => +b.status === 1),
-      }))
+      .map((a) => {
+        let counter =
+          counterData?.find((b) => b?.counter_uuid === a?.counter_uuid) || {};
+        return {
+          ...a,
+          counter_title: a.counter_uuid ? counter?.counter_title : "",
+          sort_order: a.counter_uuid ? counter?.sort_order : "",
+        };
+      })
       ?.filter(
         (a) =>
           (a.status.length > 1
