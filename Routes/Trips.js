@@ -194,8 +194,7 @@ router.get("/GetTripListSummary", async (req, res) => {
         receiptData = [].concat.apply(
           [],
           receiptData.map((b) => b?.modes || [])
-        );
-        console.log(a.trip_title, receiptData);
+        ).filter(b=>b.mode_uuid==="c67b54ba-d2b6-11ec-9d64-0242ac120002")
         let amt =
           receiptData?.length > 1
             ? receiptData.map((a) => +a.amt || 0).reduce((c, d) => c + d)
@@ -308,11 +307,11 @@ router.post("/GetTripItemSummary", async (req, res) => {
           ?.item_title,
       }));
       let receiptData = await Receipts.find({ trip_uuid: data.trip_uuid });
+      receiptData = JSON.parse(JSON.stringify(receiptData));
       receiptData = [].concat.apply(
         [],
         receiptData.map((b) => b?.modes || [])
-      );
-      console.log(data.trip_title, receiptData.length, receiptData);
+      ).filter(b=>b.mode_uuid==="c67b54ba-d2b6-11ec-9d64-0242ac120002");
       let amt =
         receiptData?.length > 1
           ? receiptData.map((a) => +a.amt || 0).reduce((c, d) => c + d)
