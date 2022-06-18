@@ -257,7 +257,7 @@ router.get("/GetTripListSummary", async (req, res) => {
   }
 });
 router.post("/GetTripItemSummary", async (req, res) => {
-  // try {
+  try {
   let value = req.body;
   let data = await Trips.findOne({ trip_uuid: value.trip_uuid });
   data = JSON.parse(JSON.stringify(data));
@@ -265,8 +265,7 @@ router.post("/GetTripItemSummary", async (req, res) => {
   CounterData = JSON.parse(JSON.stringify(CounterData));
   let OutstandingData = await OutStanding.find({});
   OutstandingData = JSON.parse(JSON.stringify(OutstandingData));
-  let ordersData = await Orders.find({});
-  ordersData = JSON.parse(JSON.stringify(ordersData));
+
   let CompleteOrdersData = await CompleteOrder.find({});
   CompleteOrdersData = JSON.parse(JSON.stringify(CompleteOrdersData));
   let receiptsData = await Receipts.find({
@@ -277,7 +276,7 @@ router.post("/GetTripItemSummary", async (req, res) => {
     ...data,
     ...(receiptsData.find((b) => b.order_uuid === a.order_uuid) || {}),
   }));
-  if (ordersData.length) {
+  if (CompleteOrdersData.length) {
 
 
     let receiptItems = CompleteOrdersData.filter(
@@ -325,7 +324,7 @@ router.post("/GetTripItemSummary", async (req, res) => {
 
     data = {
       ...data,
-      orderLength: ordersData.filter((b) => data.trip_uuid === b.trip_uuid).length,
+      orderLength: CompleteOrdersData.filter((b) => data.trip_uuid === b.trip_uuid).length,
       unpaid_invoice: OutstandingData.filter(
         (b) => b.trip_uuid === data.trip_uuid
       ),
@@ -365,16 +364,16 @@ router.post("/GetTripItemSummary", async (req, res) => {
       result: data,
     });
   } else res.json({ success: false, message: "Trips Not found" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 router.post("/GetCompletedTripList", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     console.log(value);
-    let ordersData = await Orders.find({});
+    let ordersData = await CompleteOrder.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
     let endDate = +value.endDate + 86400000;
     console.log(endDate, value.startDate);
