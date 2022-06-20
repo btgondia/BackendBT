@@ -352,7 +352,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
       amt: order.order_grandtotal || 0,
     }));
     console.log(response, endDate);
-    if (response.length) {
+    if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Order Not Found" });
   } catch (err) {
