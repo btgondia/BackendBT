@@ -396,9 +396,11 @@ router.post("/getTripOrderList", async (req, res) => {
           ? order?.item_details[0]?.p
           : 0),
       amt: order.order_grandtotal || 0,
-      modes: receiptData.find((b) => b.order_uuid === order.order_uuid)?.modes||[],
-      unpaid: outstandindData.find((b) => b.order_uuid === order.order_uuid)
-        ?.amount||0,
+      modes:
+        receiptData.find((b) => b.order_uuid === order.order_uuid)?.modes || [],
+      unpaid:
+        outstandindData.find((b) => b.order_uuid === order.order_uuid)
+          ?.amount || 0,
     }));
 
     if (response.length) {
@@ -422,7 +424,7 @@ router.post("/getCounterLedger", async (req, res) => {
     receiptsData = receiptsData.filter(
       (a) => a.time > value.startDate && a.time < endDate
     );
-    let response = await Orders.find({
+    let response = await OrderCompleted.find({
       counter_uuid: req.body.counter_uuid,
     });
     response = JSON.parse(JSON.stringify(response));
@@ -444,7 +446,6 @@ router.post("/getCounterLedger", async (req, res) => {
         ? order?.modes?.map((a) => a.amt || 0).reduce((a, b) => a + b)
         : "",
     }));
-    console.log(response, endDate);
     if (response.length) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Order Not Found" });
