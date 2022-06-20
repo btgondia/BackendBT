@@ -325,7 +325,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
     response = JSON.parse(JSON.stringify(response));
     response = response.filter(
       (order) =>
-        (!req.body.company_uuid ||
+        (!req.body.counter_uuid ||
           order.counter_uuid === req.body.counter_uuid) &&
         order.status.filter(
           (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
