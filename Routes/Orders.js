@@ -125,10 +125,26 @@ router.get("/getPendingEntry", async (req, res) => {
   try {
     let data = await OrderCompleted.find({ entry: 0 });
     data = JSON.parse(JSON.stringify(data));
+    let receiptData = await Receipts.find({
+      order_uuid: { $in: data.map((a) => a.order_uuid) },
+    });
+    receiptData = JSON.parse(JSON.stringify(receiptData));
+    let outstandindData = await OutStanding.find({
+      order_uuid: { $in: data.map((a) => a.order_uuid) },
+    });
+    outstandindData = JSON.parse(JSON.stringify(outstandindData));
 
     res.json({
       success: true,
-      result: data,
+      result: data.map((order) => ({
+        ...order,
+        modes:
+          receiptData?.find((b) => b.order_uuid === order.order_uuid)?.modes ||
+          [],
+        unpaid:
+          outstandindData?.find((b) => b.order_uuid === order.order_uuid)
+            ?.amount || 0,
+      })),
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
