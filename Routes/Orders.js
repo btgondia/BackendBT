@@ -309,6 +309,7 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
         return {
           ...a,
           counter_title: a.counter_uuid ? counter?.counter_title : "",
+          credit_allowed: a.counter_uuid ? counter?.credit_allowed : "",
           sort_order: a.counter_uuid ? counter?.sort_order : "",
         };
       })
