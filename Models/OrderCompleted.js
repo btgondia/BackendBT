@@ -35,6 +35,13 @@ const OrdersSchema = new mongoose.Schema({
       p: { type: Number },
     },
   ],
+  processing_canceled: [
+    {
+      item_uuid: { type: String },
+      b: { type: Number },
+      p: { type: Number },
+    },
+  ],
   delivery_return: [
     {
       item_uuid: { type: String },
@@ -42,7 +49,6 @@ const OrdersSchema = new mongoose.Schema({
       p: { type: Number },
     },
   ],
-
   order_uuid: {
     type: String,
   },

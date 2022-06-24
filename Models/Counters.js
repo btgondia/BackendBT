@@ -10,6 +10,9 @@ const CounterSchema = new mongoose.Schema({
   credit_allowed: {
     type: String,
   },
+  gst: {
+    type: String,
+  },
   counter_uuid: {
     type: String,
   },
