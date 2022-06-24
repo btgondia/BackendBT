@@ -191,10 +191,14 @@ router.get("/GetTripListSummary", async (req, res) => {
             ?.item_title,
         }));
         let receiptData = await Receipts.find({ trip_uuid: a.trip_uuid });
-        receiptData = [].concat.apply(
-          [],
-          receiptData.map((b) => b?.modes || [])
-        ).filter(b=>b.mode_uuid==="c67b54ba-d2b6-11ec-9d64-0242ac120002")
+        receiptData = [].concat
+          .apply(
+            [],
+            receiptData.map((b) => b?.modes || [])
+          )
+          .filter(
+            (b) => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002"
+          );
         let amt =
           receiptData?.length > 1
             ? receiptData.map((a) => +a.amt || 0).reduce((c, d) => c + d)
@@ -210,7 +214,12 @@ router.get("/GetTripListSummary", async (req, res) => {
             .length,
           unpaid_invoice: OutstandingData.filter(
             (b) => b.trip_uuid === a.trip_uuid
-          ),
+          ).map((b) => ({
+            ...b,
+            counter_title: CounterData.find(
+              (c) => c.counter_uuid === b.counter_uuid
+            )?.counter_title,
+          })),
           receiptItems,
           amt,
           coin,
@@ -224,7 +233,7 @@ router.get("/GetTripListSummary", async (req, res) => {
                 ).length
             )
             .map((b) => ({
-              counter: CounterData.find(
+              counter_title: CounterData.find(
                 (c) => c.counter_uuid === b.counter_uuid
               )?.counter_title,
               amt: b?.modes?.find(
@@ -237,7 +246,7 @@ router.get("/GetTripListSummary", async (req, res) => {
             .map((b) => ({
               replacement: b.replacement,
               replacement_mrp: b.replacement_mrp,
-              counter: CounterData.find(
+              counter_title: CounterData.find(
                 (c) => c.counter_uuid === b.counter_uuid
               )?.counter_title,
               invoice_number: b.invoice_number,
@@ -308,10 +317,12 @@ router.post("/GetTripItemSummary", async (req, res) => {
       }));
       let receiptData = await Receipts.find({ trip_uuid: data.trip_uuid });
       receiptData = JSON.parse(JSON.stringify(receiptData));
-      receiptData = [].concat.apply(
-        [],
-        receiptData.map((b) => b?.modes || [])
-      ).filter(b=>b.mode_uuid==="c67b54ba-d2b6-11ec-9d64-0242ac120002");
+      receiptData = [].concat
+        .apply(
+          [],
+          receiptData.map((b) => b?.modes || [])
+        )
+        .filter((b) => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002");
       let amt =
         receiptData?.length > 1
           ? receiptData.map((a) => +a.amt || 0).reduce((c, d) => c + d)
@@ -328,7 +339,12 @@ router.post("/GetTripItemSummary", async (req, res) => {
         ).length,
         unpaid_invoice: OutstandingData.filter(
           (b) => b.trip_uuid === data.trip_uuid
-        ),
+        ).map((b) => ({
+          ...b,
+          counter_title: CounterData.find(
+            (c) => c.counter_uuid === b.counter_uuid
+          )?.counter_title,
+        })),
         receiptItems,
         amt,
         coin,
@@ -342,7 +358,7 @@ router.post("/GetTripItemSummary", async (req, res) => {
               ).length
           )
           .map((b) => ({
-            counter: CounterData.find((c) => c.counter_uuid === b.counter_uuid)
+            counter_title: CounterData.find((c) => c.counter_uuid === b.counter_uuid)
               ?.counter_title,
             amt: b?.modes?.find(
               (c) => c.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002"
@@ -354,8 +370,9 @@ router.post("/GetTripItemSummary", async (req, res) => {
           .map((b) => ({
             replacement: b.replacement,
             replacement_mrp: b.replacement_mrp,
-            counter: CounterData.find((c) => c.counter_uuid === b.counter_uuid)
-              ?.counter_title,
+            counter_title: CounterData.find(
+              (c) => c.counter_uuid === b.counter_uuid
+            )?.counter_title,
             invoice_number: b.invoice_number,
           })),
         sales_return,
