@@ -13,6 +13,9 @@ const CounterSchema = new mongoose.Schema({
   gst: {
     type: String,
   },
+  food_license: {
+    type: String,
+  },
   counter_uuid: {
     type: String,
   },
