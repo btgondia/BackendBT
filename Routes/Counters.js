@@ -4,7 +4,6 @@ const router = express.Router();
 const { v4: uuid } = require("uuid");
 const Counter = require("../Models/Counters");
 
-
 router.post("/postCounter", async (req, res) => {
   try {
     let value = req.body;
@@ -37,28 +36,40 @@ router.get("/GetCounterList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/GetCounter", async (req, res) => {
+  try {
+    let data = await Counter.findOne({ counter_uuid: req.body.counter_uuid });
+
+    if (data) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Counter Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 router.put("/putCounter", async (req, res) => {
   try {
-  let result = []
-  for (let value of req.body) {
-    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let result = [];
+    for (let value of req.body) {
+      if (!value) res.json({ success: false, message: "Invalid Data" });
 
-    value = Object.keys(value)
-      .filter((key) => key !== "_id")
-      .reduce((obj, key) => {
-        obj[key] = value[key];
-        return obj;
-      }, {})
-    console.log(value);
-    let response = await Counter.updateOne({ counter_uuid: value.counter_uuid }, value);
-    if (response.acknowledged) {
-      console.log(response)
-      result.push({ success: true, result: value });
-    } else result.push({ success: false, message: "Counter Not created" });
-  }
-  res.json({ success: true, result })
-
+      value = Object.keys(value)
+        .filter((key) => key !== "_id")
+        .reduce((obj, key) => {
+          obj[key] = value[key];
+          return obj;
+        }, {});
+      console.log(value);
+      let response = await Counter.updateOne(
+        { counter_uuid: value.counter_uuid },
+        value
+      );
+      if (response.acknowledged) {
+        console.log(response);
+        result.push({ success: true, result: value });
+      } else result.push({ success: false, message: "Counter Not created" });
+    }
+    res.json({ success: true, result });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -67,22 +78,30 @@ router.put("/putCounter", async (req, res) => {
 router.put("/putCounter/sortOrder", async (req, res) => {
   try {
     const counters = await req.body;
-    if (!counters?.[0]) return res.status(204).json({ message: 'Empty Payload' })
-    const result = { succeed: [], failed: [] }
+    if (!counters?.[0])
+      return res.status(204).json({ message: "Empty Payload" });
+    const result = { succeed: [], failed: [] };
     let count = 0;
-    const respond = () => ++count === counters?.length ? res.json(result) : ''
+    const respond = () =>
+      ++count === counters?.length ? res.json(result) : "";
 
-    counters?.forEach(async counter => {
+    counters?.forEach(async (counter) => {
       try {
-        const res = await Counter.findOneAndUpdate({ counter_uuid: counter.counter_uuid }, counter)
-        if (res) result.succeed.push(counter.counter_uuid)
-        else result.failed.push({ failed: counter.counter_uuid })
-        respond()
+        const res = await Counter.findOneAndUpdate(
+          { counter_uuid: counter.counter_uuid },
+          counter
+        );
+        if (res) result.succeed.push(counter.counter_uuid);
+        else result.failed.push({ failed: counter.counter_uuid });
+        respond();
       } catch (error) {
-        result.failed.push({ failed: counter.counter_uuid, error: error.message })
-        respond()
+        result.failed.push({
+          failed: counter.counter_uuid,
+          error: error.message,
+        });
+        respond();
       }
-    })
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
