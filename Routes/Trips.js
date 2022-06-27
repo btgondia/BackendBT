@@ -398,7 +398,7 @@ router.post("/GetCompletedTripList", async (req, res) => {
     console.log(endDate, value.startDate);
     let response = await Trips.find({
       timestamp: { $gt: value.startDate, $lt: endDate },
-      status: 1,
+      status: 0,
     });
     response = JSON.parse(JSON.stringify(response));
     response = response.filter(
