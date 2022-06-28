@@ -19,6 +19,9 @@ const CounterSchema = new mongoose.Schema({
   counter_uuid: {
     type: String,
   },
+  status: {
+    type: Number,
+  },
   route_uuid: {
     type: String,
   },
