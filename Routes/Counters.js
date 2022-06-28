@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const { v4: uuid } = require("uuid");
 const Counter = require("../Models/Counters");
+const Routes = require("../Models/Routes");
 
 router.post("/postCounter", async (req, res) => {
   try {
@@ -29,7 +30,15 @@ router.post("/postCounter", async (req, res) => {
 router.get("/GetCounterList", async (req, res) => {
   try {
     let data = await Counter.find({});
-
+    data = JSON.parse(JSON.stringify(data));
+    let RoutesData = await Routes.find({
+      route_uuid: { $in: data.map((a) => a.route_uuid) },
+    });
+    data = data.map((a) => ({
+      ...a,
+      route_title: RoutesData.find((b) => b.route_uuid === a.route_uuid)
+        ?.route_title||"",
+    }));
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
