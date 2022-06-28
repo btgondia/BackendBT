@@ -376,7 +376,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-router.post("/getTripOrderList", async (req, res) => {
+router.post("/getTripCompletedOrderList", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
@@ -427,6 +427,7 @@ router.post("/getTripOrderList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+
 router.post("/getCounterLedger", async (req, res) => {
   try {
     let value = req.body;
