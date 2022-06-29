@@ -564,6 +564,7 @@ router.post("/getOrderItemReport", async (req, res) => {
 
       let obj = {
         conversion: a.conversion,
+        mrp: a.mrp,
         item_price: a.item_price,
         item_uuid: a.item_uuid,
         item_title: a.item_title,
