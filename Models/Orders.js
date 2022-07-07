@@ -19,6 +19,7 @@ const OrdersSchema = new mongoose.Schema({
       p: { type: Number },
       status: { type: Number },
       unit_price: { type: Number },
+      old_price: { type: Number },
       gst_percentage: { type: Number },
       item_total: { type: Number },
       free: { type: Number },

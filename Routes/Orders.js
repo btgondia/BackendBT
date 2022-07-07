@@ -32,7 +32,6 @@ router.post("/postOrder", async (req, res) => {
       response = await Orders.create({
         ...value,
         invoice_number: invoice_number.next_invoice_number || 0,
-        order_status: "R",
       });
     if (response) {
       await Details.updateMany(
@@ -177,6 +176,32 @@ router.get("/GetOrderRunningList", async (req, res) => {
     let data = await Orders.find({ order_status: "R" });
     data = JSON.parse(JSON.stringify(data));
 
+    let counterData = await Counters.find({
+      counter_uuid: {
+        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+      },
+    });
+    res.json({
+      success: true,
+      result: data
+        .filter((a) => a.item_details.length)
+        .map((a) => ({
+          ...a,
+          counter_title: a.counter_uuid
+            ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
+                ?.counter_title
+            : "",
+        })),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.get("/GetOrderAllRunningList", async (req, res) => {
+  try {
+    let data = await Orders.find({});
+    data = JSON.parse(JSON.stringify(data));
+    data = data.filter((a) => a.order_uuid);
     let counterData = await Counters.find({
       counter_uuid: {
         $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
