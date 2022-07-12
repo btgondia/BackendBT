@@ -15,6 +15,9 @@ const itemSchema = new mongoose.Schema({
   sort_order: {
     type: String,
   },
+  item_code: {
+    type: String,
+  },
   free_issue: {
     type: String,
   },
