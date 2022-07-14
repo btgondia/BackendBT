@@ -18,6 +18,7 @@ const OrdersSchema = new mongoose.Schema({
       p: { type: Number },
       status: { type: Number },
       unit_price: { type: Number },
+      price: { type: Number },
       gst_percentage: { type: Number },
       item_total: { type: Number },
       charges_discount: [
