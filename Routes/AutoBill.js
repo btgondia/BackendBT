@@ -20,6 +20,21 @@ router.post("/CreateAutoQty", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.delete("/DeleteAutoQty", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value.auto_uuid) res.json({ success: false, message: "Invalid Data" });
+
+    
+    console.log(value);
+    let response = await AutoBill.deleteMany( {auto_uuid:value.auto_uuid} );
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "AutoBill Not Deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.put("/UpdateAutoQty", async (req, res) => {
   try {
     let value = req.body;
