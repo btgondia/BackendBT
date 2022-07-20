@@ -244,7 +244,33 @@ router.get("/GetOrderAllRunningList", async (req, res) => {
   try {
     let data = await Orders.find({});
     data = JSON.parse(JSON.stringify(data));
-    data = data.filter((a) => a.order_uuid);
+    data = data.filter((a) => a.order_uuid&&a.hold!=="Y");
+    let counterData = await Counters.find({
+      counter_uuid: {
+        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+      },
+    });
+    res.json({
+      success: true,
+      result: data
+        .filter((a) => a.item_details.length)
+        .map((a) => ({
+          ...a,
+          counter_title: a.counter_uuid
+            ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
+                ?.counter_title
+            : "",
+        })),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.get("/GetOrderHoldRunningList", async (req, res) => {
+  try {
+    let data = await Orders.find({});
+    data = JSON.parse(JSON.stringify(data));
+    data = data.filter((a) => a.order_uuid&&a.hold==="Y");
     let counterData = await Counters.find({
       counter_uuid: {
         $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),

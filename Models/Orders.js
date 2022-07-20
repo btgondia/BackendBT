@@ -66,6 +66,9 @@ const OrdersSchema = new mongoose.Schema({
   counter_uuid: {
     type: String,
   },
+  hold: {
+    type: String,
+  },
   trip_uuid: {
     type: String,
   },
