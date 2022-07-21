@@ -15,12 +15,15 @@ const OrdersSchema = new mongoose.Schema({
     {
       item_uuid: { type: String },
       b: { type: Number },
+      price: { type: Number },
       p: { type: Number },
       status: { type: Number },
       unit_price: { type: Number },
-      price: { type: Number },
+      old_price: { type: Number },
+      price_approval: { type: String },
       gst_percentage: { type: Number },
       item_total: { type: Number },
+      free: { type: Number },
       charges_discount: [
         {
           title: { type: String },
