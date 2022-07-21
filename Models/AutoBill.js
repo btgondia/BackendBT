@@ -4,6 +4,9 @@ const AutoBillSchema = new mongoose.Schema({
   type: {
     type: String,
   },
+  status: {
+    type: Number,
+  },
   auto_title: {
     type: String,
   },
