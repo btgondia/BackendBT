@@ -20,6 +20,7 @@ const Receipts = require("./Routes/Receipts");
 const Outstanding = require("./Routes/Outstanding");
 const Details = require("./Routes/Details");
 var bodyParser = require('body-parser');
+const Incentive = require("./Routes/Incentives");
 connectDB();
 app = express();
 app.use(
@@ -43,6 +44,7 @@ app.use("/counters", Counter);
 app.use("/users", Users);
 app.use("/items", Item);
 app.use("/autoBill", AutoBill);
+app.use("/incentive", Incentive);
 app.use("/orders", Orders);
 app.use("/trips", Trips);
 app.use("/userActivity", UserActivity);
