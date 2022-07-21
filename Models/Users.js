@@ -7,6 +7,9 @@ const UserSchema = new mongoose.Schema({
     status: {
         type: Number,
     },
+    incentive_balance: {
+        type: Number,
+    },
     user_uuid: {
         type: String,
     },
