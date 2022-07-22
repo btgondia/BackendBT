@@ -9,7 +9,7 @@ router.post("/CreateIncentive", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    value = {...value,incentive_uuid:uuid()};
+    value = {...value,incentive_uuid:uuid(),status:1};
     
     console.log(value);
     let response = await Incentive.create( value );

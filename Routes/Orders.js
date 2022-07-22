@@ -24,6 +24,47 @@ router.post("/postOrder", async (req, res) => {
         : +value?.status[0]?.stage
       : "";
     let response;
+    let incentives = 0;
+    let counterGroupsData = await Counters.findOne({
+      counter_uuid: value.counter_uuid,
+    });
+    let itemsData = await Item.find({
+      $in: {
+        item_uuid: value.item_details.map((a) => a.item_uuid),
+      },
+    });
+    let incentiveData = await Incentive.find({ status: 1 });
+    incentiveData = JSON.parse(JSON.stringify(incentiveData));
+    let user_uuid = value.status.find((c) => +c.stage === 1)?.user_uuid;
+    incentiveData = incentiveData
+      .filter((a) => a.users.filter((b) => b === user_uuid).length)
+      .filter(
+        (a) =>
+          a.counters.filter((b) => b === value.counter_uuid).length ||
+          a.counter_groups.filter((b) =>
+            counterGroupsData?.counter_group_uuid?.find((c) => b === c)
+          ).length
+      );
+    for (let incentive_item of incentiveData) {
+      let eligibleItems = value.item_details.filter(
+        (a) =>
+          +a.status !== 3 &&
+          (a.b || a.p) &&
+          (incentive_item.items.find((b) => b === a.item_uuid) ||
+            incentive_item.item_groups.find(
+              (b) =>
+                itemsData
+                  .find((c) => c.item_uuid === a.item_uuid)
+                  ?.item_group_uuid.filter((d) => b === d).length
+            ))
+      );
+      if (+incentive_item.min_range <= eligibleItems.length) {
+        let amt = eligibleItems.length * incentive_item.amt;
+
+        incentives = +incentives + amt;
+      }
+    }
+
     if (+orderStage === 4 || +orderStage === 5) {
       response = await OrderCompleted.create({
         ...value,
@@ -41,7 +82,7 @@ router.post("/postOrder", async (req, res) => {
         {},
         { next_invoice_number: +invoice_number.next_invoice_number + 1 }
       );
-      res.json({ success: true, result: response });
+      res.json({ success: true, result: response,incentives });
     } else res.json({ success: false, message: "Order Not created" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
@@ -164,25 +205,25 @@ router.put("/putOrders", async (req, res) => {
         for (let incentive_item of incentiveData) {
           let eligibleItems = value.item_details.filter(
             (a) =>
-              incentive_item.items.find((b) => b === a.item_uuid) ||
-              incentive_item.item_groups.find(
-                (b) =>
-                  itemsData
-                    .find((c) => c.item_uuid === a.item_uuid)
-                    ?.item_group_uuid.filter((d) => b === d).length
-              )
+              +a.status !== 3 &&
+              (a.b || a.p) &&
+              (incentive_item.items.find((b) => b === a.item_uuid) ||
+                incentive_item.item_groups.find(
+                  (b) =>
+                    itemsData
+                      .find((c) => c.item_uuid === a.item_uuid)
+                      ?.item_group_uuid.filter((d) => b === d).length
+                ))
           );
           if (+incentive_item.min_range <= eligibleItems.length) {
             let userData = await Users.findOne({ user_uuid });
             userData = JSON.parse(JSON.stringify(userData));
-            let amt =eligibleItems.length * incentive_item.amt
-            let incentive_balance =
-              +(userData.incentive_balance || 0) +
-              amt;
+            let amt = eligibleItems.length * incentive_item.amt;
+            let incentive_balance = +(userData.incentive_balance || 0) + amt;
 
             await Users.updateMany({ user_uuid }, { incentive_balance });
             let time = new Date();
-            let statment=await IncentiveStatment.create({
+            let statment = await IncentiveStatment.create({
               user_uuid,
               order_uuid: value.order_uuid,
               counter_uuid: value.counter_uuid,
@@ -190,7 +231,7 @@ router.put("/putOrders", async (req, res) => {
               time: time.getTime(),
               amt,
             });
-            console.log(statment)
+            console.log(statment);
           }
         }
       }
