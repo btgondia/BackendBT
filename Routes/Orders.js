@@ -10,6 +10,7 @@ const OutStanding = require("../Models/OutStanding");
 const Incentive = require("../Models/Incentive");
 const Users = require("../Models/Users");
 const IncentiveStatment = require("../Models/IncentiveStatment");
+const SignedBills = require("../Models/SignedBills");
 
 router.post("/postOrder", async (req, res) => {
   try {
@@ -270,6 +271,50 @@ router.put("/putOrders", async (req, res) => {
   }
 });
 
+router.get("/getSignedBills", async (req, res) => {
+  try {
+    let data = await SignedBills.find({ status: 0 });
+    data = JSON.parse(JSON.stringify(data));
+    data = data.filter((a) => a.order_uuid);
+    let response = [];
+    for (let item of data) {
+      let orderData = await OrderCompleted.findOne({
+        order_uuid: item.order_uuid,
+      });
+      orderData = JSON.parse(JSON.stringify(orderData));
+
+      let userData = await Users.findOne({
+        user_uuid: item.user_uuid === "240522" ? 0 : a.user_uuid,
+      });
+      userData = JSON.parse(JSON.stringify(userData));
+
+      let counterData = await Counters.findOne({
+        counter_uuid: orderData?.counter_uuid || 0,
+      });
+      counterData = JSON.parse(JSON.stringify(counterData));
+
+      let user_title =
+        item.user_uuid === "240522" ? "Admin" : userData.user_title;
+      let order_grandtotal = orderData?.orderData_grandtotal || 0;
+      let invoice_number = orderData?.invoice_number || 0;
+      let counter_title = counterData?.counter_title || "";
+      response.push({
+        ...item,
+        user_title,
+        order_grandtotal,
+        counter_title,
+        invoice_number,
+      });
+    }
+
+    res.json({
+      success: true,
+      result: response,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.get("/getPendingEntry", async (req, res) => {
   try {
     let data = await OrderCompleted.find({ entry: 0 });
@@ -295,6 +340,29 @@ router.get("/getPendingEntry", async (req, res) => {
             ?.amount || 0,
       })),
     });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.put("/putCompleteSignedBills", async (req, res) => {
+  try {
+    let value = req.body;
+    console.log(value);
+    let time = new Date();
+    let data = await SignedBills.updateOne(
+      { order_uuid: value.order_uuid },
+      { status: value.status, received_time: time.getTime() }
+    );
+    if (data.acknowledged) {
+      res.json({
+        success: true,
+        result: data,
+      });
+    } else
+      res.status(404).json({
+        success: false,
+        result: data,
+      });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -887,12 +955,12 @@ router.post("/getOrderItemReport", async (req, res) => {
         ) || 0
       ).toFixed(2),
       processing_canceled_amt: (
-        (a.sales_amt *
+        a.sales_amt *
           (+a.conversion *
-            (+a.processing_canceledB + a.processing_canceledP))) || 0
+            (+a.processing_canceledB + a.processing_canceledP)) || 0
       ).toFixed(2),
       auto_added_amt: (
-        (a.sales_amt * (+a.conversion * +a.auto_addedB + a.auto_addedP)) || 0
+        a.sales_amt * (+a.conversion * +a.auto_addedB + a.auto_addedP) || 0
       ).toFixed(2),
     }));
     if (FinalData) {
