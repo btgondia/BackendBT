@@ -855,37 +855,45 @@ router.post("/getOrderItemReport", async (req, res) => {
         parseInt(+a.auto_addedP / +a.conversion) +
         ":" +
         (+a.auto_addedP % +a.conversion),
-      deliver_return_percentage:
+      deliver_return_percentage: (
         Math.abs(
           ((+a.deliver_returnB * (+a.conversion || 1) || 0) +
             a.deliver_returnP) *
             100
         ) /
-        (+a.salesB * (+a.conversion || 0) +
-          a.salesP +
-          (a.deliver_returnB * a.conversion + a.deliver_returnP) +
-          (a.processing_canceledB * a.conversion + a.processing_canceledP) ||
-          1),
-      processing_canceled_percentage:
+          (+a.salesB * (+a.conversion || 0) +
+            a.salesP +
+            (a.deliver_returnB * a.conversion + a.deliver_returnP) +
+            (a.processing_canceledB * a.conversion + a.processing_canceledP) ||
+            1) || 0
+      ).toFixed(2),
+      processing_canceled_percentage: (
         ((a.processing_canceledB * a.conversion + a.processing_canceledP) *
           100) /
-        (a.salesB * a.conversion +
-          a.salesP +
-          (a.deliver_returnB * a.conversion + a.deliver_returnP) +
-          ((+a.processing_canceledB || 0) * (+a.conversion || 1) +
-            (+a.processing_canceledP || 0)) || 1),
+          (a.salesB * a.conversion +
+            a.salesP +
+            (a.deliver_returnB * a.conversion + a.deliver_returnP) +
+            ((+a.processing_canceledB || 0) * (+a.conversion || 1) +
+              (+a.processing_canceledP || 0)) || 1) || 0
+      ).toFixed(2),
 
-      auto_added_percentage:
+      auto_added_percentage: (
         ((a.auto_addedB * a.conversion + a.auto_addedP) * 100) /
-        (a.salesB * a.conversion + a.salesP || 1),
-      deliver_return_amt: Math.abs(
-        a.sales_amt * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)
-      ),
-      processing_canceled_amt:
-        a.sales_amt *
-        (+a.conversion * +a.processing_canceledB + a.processing_canceledP),
-      auto_added_amt:
-        a.sales_amt * (+a.conversion * +a.auto_addedB + a.auto_addedP),
+          (a.salesB * a.conversion + a.salesP || 1) || 0
+      ).toFixed(2),
+      deliver_return_amt: (
+        Math.abs(
+          a.sales_amt * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)
+        ) || 0
+      ).toFixed(2),
+      processing_canceled_amt: (
+        (a.sales_amt *
+          (+a.conversion *
+            (+a.processing_canceledB + a.processing_canceledP))) || 0
+      ).toFixed(2),
+      auto_added_amt: (
+        (a.sales_amt * (+a.conversion * +a.auto_addedB + a.auto_addedP)) || 0
+      ).toFixed(2),
     }));
     if (FinalData) {
       res.json({ success: true, result: FinalData });
