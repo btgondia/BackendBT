@@ -82,7 +82,7 @@ router.post("/postOrder", async (req, res) => {
         {},
         { next_invoice_number: +invoice_number.next_invoice_number + 1 }
       );
-      res.json({ success: true, result: response,incentives });
+      res.json({ success: true, result: response, incentives });
     } else res.json({ success: false, message: "Order Not created" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
@@ -181,60 +181,7 @@ router.put("/putOrders", async (req, res) => {
         : "";
 
       console.log(value, orderStage);
-      if (+orderStage === 4) {
-        let counterGroupsData = await Counters.findOne({
-          counter_uuid: value.counter_uuid,
-        });
-        let itemsData = await Item.find({
-          $in: {
-            item_uuid: value.item_details.map((a) => a.item_uuid),
-          },
-        });
-        let incentiveData = await Incentive.find({ status: 1 });
-        incentiveData = JSON.parse(JSON.stringify(incentiveData));
-        let user_uuid = value.status.find((c) => +c.stage === 1)?.user_uuid;
-        incentiveData = incentiveData
-          .filter((a) => a.users.filter((b) => b === user_uuid).length)
-          .filter(
-            (a) =>
-              a.counters.filter((b) => b === value.counter_uuid).length ||
-              a.counter_groups.filter((b) =>
-                counterGroupsData?.counter_group_uuid?.find((c) => b === c)
-              ).length
-          );
-        for (let incentive_item of incentiveData) {
-          let eligibleItems = value.item_details.filter(
-            (a) =>
-              +a.status !== 3 &&
-              (a.b || a.p) &&
-              (incentive_item.items.find((b) => b === a.item_uuid) ||
-                incentive_item.item_groups.find(
-                  (b) =>
-                    itemsData
-                      .find((c) => c.item_uuid === a.item_uuid)
-                      ?.item_group_uuid.filter((d) => b === d).length
-                ))
-          );
-          if (+incentive_item.min_range <= eligibleItems.length) {
-            let userData = await Users.findOne({ user_uuid });
-            userData = JSON.parse(JSON.stringify(userData));
-            let amt = eligibleItems.length * incentive_item.amt;
-            let incentive_balance = +(userData.incentive_balance || 0) + amt;
 
-            await Users.updateMany({ user_uuid }, { incentive_balance });
-            let time = new Date();
-            let statment = await IncentiveStatment.create({
-              user_uuid,
-              order_uuid: value.order_uuid,
-              counter_uuid: value.counter_uuid,
-              incentive_uuid: incentive_item.incentive_uuid,
-              time: time.getTime(),
-              amt,
-            });
-            console.log(statment);
-          }
-        }
-      }
       if (
         +orderStage === 4 ||
         +orderStage === 5 ||
@@ -242,7 +189,70 @@ router.put("/putOrders", async (req, res) => {
       ) {
         console.log("length", value?.item_details?.length);
         await Orders.deleteOne({ order_uuid: value.order_uuid }, value);
-        let data = await OrderCompleted.create({ ...value, entry: 0 });
+        let data = await OrderCompleted.find({ order_uuid: value.order_uuid });
+        if (data) {
+          await OrderCompleted.updateMany({
+            order_uuid: value.order_uuid,
+            value,
+          });
+        } else {
+          data = await OrderCompleted.create({ ...value, entry: 0 });
+          if (+orderStage === 4) {
+            let counterGroupsData = await Counters.findOne({
+              counter_uuid: value.counter_uuid,
+            });
+            let itemsData = await Item.find({
+              $in: {
+                item_uuid: value.item_details.map((a) => a.item_uuid),
+              },
+            });
+            let incentiveData = await Incentive.find({ status: 1 });
+            incentiveData = JSON.parse(JSON.stringify(incentiveData));
+            let user_uuid = value.status.find((c) => +c.stage === 1)?.user_uuid;
+            incentiveData = incentiveData
+              .filter((a) => a.users.filter((b) => b === user_uuid).length)
+              .filter(
+                (a) =>
+                  a.counters.filter((b) => b === value.counter_uuid).length ||
+                  a.counter_groups.filter((b) =>
+                    counterGroupsData?.counter_group_uuid?.find((c) => b === c)
+                  ).length
+              );
+            for (let incentive_item of incentiveData) {
+              let eligibleItems = value.item_details.filter(
+                (a) =>
+                  +a.status !== 3 &&
+                  (a.b || a.p) &&
+                  (incentive_item.items.find((b) => b === a.item_uuid) ||
+                    incentive_item.item_groups.find(
+                      (b) =>
+                        itemsData
+                          .find((c) => c.item_uuid === a.item_uuid)
+                          ?.item_group_uuid.filter((d) => b === d).length
+                    ))
+              );
+              if (+incentive_item.min_range <= eligibleItems.length) {
+                let userData = await Users.findOne({ user_uuid });
+                userData = JSON.parse(JSON.stringify(userData));
+                let amt = eligibleItems.length * incentive_item.amt;
+                let incentive_balance =
+                  +(userData.incentive_balance || 0) + amt;
+
+                await Users.updateMany({ user_uuid }, { incentive_balance });
+                let time = new Date();
+                let statment = await IncentiveStatment.create({
+                  user_uuid,
+                  order_uuid: value.order_uuid,
+                  counter_uuid: value.counter_uuid,
+                  incentive_uuid: incentive_item.incentive_uuid,
+                  time: time.getTime(),
+                  amt,
+                });
+                console.log(statment);
+              }
+            }
+          }
+        }
         if (data) response.push(data);
       } else {
         let data = await Orders.updateOne(
