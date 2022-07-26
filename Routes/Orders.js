@@ -89,38 +89,38 @@ router.post("/postOrder", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-router.put("/putOrder", async (req, res) => {
-  try {
-    let value = req.body;
-    if (!value) res.json({ success: false, message: "Invalid Data" });
+// router.put("/putOrder", async (req, res) => {
+//   try {
+//     let value = req.body;
+//     if (!value) res.json({ success: false, message: "Invalid Data" });
 
-    value = Object.keys(value)
-      .filter((key) => key !== "_id")
-      .reduce((obj, key) => {
-        obj[key] = value[key];
-        return obj;
-      }, {});
+//     value = Object.keys(value)
+//       .filter((key) => key !== "_id")
+//       .reduce((obj, key) => {
+//         obj[key] = value[key];
+//         return obj;
+//       }, {});
 
-    console.log(value, value.orderStatus === "edit");
-    let response = {};
-    if (value.orderStatus === "edit") {
-      response = await OrderCompleted.updateOne(
-        { order_uuid: value.order_uuid },
-        { ...value }
-      );
-    } else {
-      response = await Orders.updateOne(
-        { order_uuid: value.order_uuid },
-        { ...value }
-      );
-    }
-    if (response.acknowledged) {
-      res.json({ success: true, result: value });
-    } else res.json({ success: false, message: "Order Not updated" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
-});
+//     console.log(value, value.orderStatus === "edit");
+//     let response = {};
+//     if (value.orderStatus === "edit") {
+//       response = await OrderCompleted.updateOne(
+//         { order_uuid: value.order_uuid },
+//         { ...value }
+//       );
+//     } else {
+//       response = await Orders.updateOne(
+//         { order_uuid: value.order_uuid },
+//         { ...value }
+//       );
+//     }
+//     if (response.acknowledged) {
+//       res.json({ success: true, result: value });
+//     } else res.json({ success: false, message: "Order Not updated" });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err });
+//   }
+// });
 // router.put("/reCalculation", async (req, res) => {
 //   try {
 //     let value = req.body;
@@ -188,72 +188,68 @@ router.put("/putOrders", async (req, res) => {
         +orderStage === 5 ||
         value?.item_details?.length === 0
       ) {
-        console.log("length", value?.item_details?.length);
-        await Orders.deleteOne({ order_uuid: value.order_uuid }, value);
-        let data = await OrderCompleted.find({ order_uuid: value.order_uuid });
-        if (data) {
-          await OrderCompleted.updateMany({
-            order_uuid: value.order_uuid,
-            value,
-          });
-        } else {
-          data = await OrderCompleted.create({ ...value, entry: 0 });
-          if (+orderStage === 4) {
-            let counterGroupsData = await Counters.findOne({
-              counter_uuid: value.counter_uuid,
-            });
-            let itemsData = await Item.find({
-              $in: {
-                item_uuid: value.item_details.map((a) => a.item_uuid),
-              },
-            });
-            let incentiveData = await Incentive.find({ status: 1 });
-            incentiveData = JSON.parse(JSON.stringify(incentiveData));
-            let user_uuid = value.status.find((c) => +c.stage === 1)?.user_uuid;
-            incentiveData = incentiveData
-              .filter((a) => a.users.filter((b) => b === user_uuid).length)
-              .filter(
-                (a) =>
-                  a.counters.filter((b) => b === value.counter_uuid).length ||
-                  a.counter_groups.filter((b) =>
-                    counterGroupsData?.counter_group_uuid?.find((c) => b === c)
-                  ).length
-              );
-            for (let incentive_item of incentiveData) {
-              let eligibleItems = value.item_details.filter(
-                (a) =>
-                  +a.status !== 3 &&
-                  (a.b || a.p) &&
-                  (incentive_item.items.find((b) => b === a.item_uuid) ||
-                    incentive_item.item_groups.find(
-                      (b) =>
-                        itemsData
-                          .find((c) => c.item_uuid === a.item_uuid)
-                          ?.item_group_uuid.filter((d) => b === d).length
-                    ))
-              );
-              if (+incentive_item.min_range <= eligibleItems.length) {
-                let userData = await Users.findOne({ user_uuid });
-                userData = JSON.parse(JSON.stringify(userData));
-                let amt = eligibleItems.length * incentive_item.amt;
-                let incentive_balance =
-                  +(userData.incentive_balance || 0) + amt;
+        // console.log("length", value?.item_details?.length);
+        //  data = await OrderCompleted.findOne({ order_uuid: value.order_uuid });
+        // console.log("Old Data",data)
 
-                await Users.updateMany({ user_uuid }, { incentive_balance });
-                let time = new Date();
-                let statment = await IncentiveStatment.create({
-                  user_uuid,
-                  order_uuid: value.order_uuid,
-                  counter_uuid: value.counter_uuid,
-                  incentive_uuid: incentive_item.incentive_uuid,
-                  time: time.getTime(),
-                  amt,
-                });
-                console.log(statment);
-              }
+        let data = await OrderCompleted.create({ ...value, entry: 0 });
+        await Orders.deleteOne({ order_uuid: value.order_uuid });
+        // console.log("New DAta", data);
+        if (+orderStage === 4) {
+          let counterGroupsData = await Counters.findOne({
+            counter_uuid: value.counter_uuid,
+          });
+          let itemsData = await Item.find({
+            $in: {
+              item_uuid: value.item_details.map((a) => a.item_uuid),
+            },
+          });
+          let incentiveData = await Incentive.find({ status: 1 });
+          incentiveData = JSON.parse(JSON.stringify(incentiveData));
+          let user_uuid = value.status.find((c) => +c.stage === 1)?.user_uuid;
+          incentiveData = incentiveData
+            .filter((a) => a.users.filter((b) => b === user_uuid).length)
+            .filter(
+              (a) =>
+                a.counters.filter((b) => b === value.counter_uuid).length ||
+                a.counter_groups.filter((b) =>
+                  counterGroupsData?.counter_group_uuid?.find((c) => b === c)
+                ).length
+            );
+          for (let incentive_item of incentiveData) {
+            let eligibleItems = value.item_details.filter(
+              (a) =>
+                +a.status !== 3 &&
+                (a.b || a.p) &&
+                (incentive_item.items.find((b) => b === a.item_uuid) ||
+                  incentive_item.item_groups.find(
+                    (b) =>
+                      itemsData
+                        .find((c) => c.item_uuid === a.item_uuid)
+                        ?.item_group_uuid.filter((d) => b === d).length
+                  ))
+            );
+            if (+incentive_item.min_range <= eligibleItems.length) {
+              let userData = await Users.findOne({ user_uuid });
+              userData = JSON.parse(JSON.stringify(userData));
+              let amt = eligibleItems.length * incentive_item.amt;
+              let incentive_balance = +(userData.incentive_balance || 0) + amt;
+
+              await Users.updateMany({ user_uuid }, { incentive_balance });
+              let time = new Date();
+              let statment = await IncentiveStatment.create({
+                user_uuid,
+                order_uuid: value.order_uuid,
+                counter_uuid: value.counter_uuid,
+                incentive_uuid: incentive_item.incentive_uuid,
+                time: time.getTime(),
+                amt,
+              });
+              console.log(statment);
             }
           }
         }
+
         if (data) response.push(data);
       } else {
         let data = await Orders.updateOne(
@@ -261,6 +257,13 @@ router.put("/putOrders", async (req, res) => {
           value
         );
         if (data.acknowledged) response.push(value);
+        else{
+          data = await OrderCompleted.updateOne(
+            { order_uuid: value.order_uuid },
+            value
+          );
+          if (data.acknowledged) response.push(value);
+        }
       }
     }
     if (response.length) {
@@ -284,7 +287,7 @@ router.get("/getSignedBills", async (req, res) => {
       orderData = JSON.parse(JSON.stringify(orderData));
 
       let userData = await Users.findOne({
-        user_uuid: item.user_uuid === "240522" ? 0 : a.user_uuid,
+        user_uuid: item.user_uuid === "240522" ? 0 : item.user_uuid,
       });
       userData = JSON.parse(JSON.stringify(userData));
 
@@ -652,7 +655,7 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
     console.log(value);
 
     let response = await OrderCompleted.find({ trip_uuid: value.trip_uuid });
-
+    console.log(response);
     response = JSON.parse(JSON.stringify(response));
     let receiptData = await Receipts.find({
       order_uuid: response.map((a) => a.order_uuid),

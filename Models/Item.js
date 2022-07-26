@@ -5,7 +5,7 @@ const itemSchema = new mongoose.Schema({
     type: String,
   },
   item_discount: {
-    type: String,
+    type: Number,
   },
 
   status: {
