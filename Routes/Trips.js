@@ -136,35 +136,40 @@ router.get("/GetTripList", async (req, res) => {
 });
 router.get("/GetTripListSummary", async (req, res) => {
   try {
-    let data = await Trips.find({});
+    let data = await Trips.find({status:1});
     data = JSON.parse(JSON.stringify(data));
+    
     let CounterData = await Counters.find({});
     CounterData = JSON.parse(JSON.stringify(CounterData));
-    let OutstandingData = await OutStanding.find({});
-    OutstandingData = JSON.parse(JSON.stringify(OutstandingData));
-    let ordersData = await Orders.find({});
-    ordersData = JSON.parse(JSON.stringify(ordersData));
-    let CompleteOrdersData = await CompleteOrder.find({});
-    CompleteOrdersData = JSON.parse(JSON.stringify(CompleteOrdersData));
-    let receiptsData = await Receipts.find({
-      order_uuid: { $in: CompleteOrdersData.map((a) => a.order_uuid) },
-    });
-    receiptsData = JSON.parse(JSON.stringify(receiptsData));
-    CompleteOrdersData = CompleteOrdersData.map((a) => ({
-      ...a,
-      ...(receiptsData.find((b) => b.order_uuid === a.order_uuid) || {}),
-    }));
-    if (ordersData.length) {
+
+    if (data.length) {
       let result = [];
 
       for (let a of data) {
-        let receiptItems = CompleteOrdersData.filter(
-          (b) => b.trip_uuid === a.trip_uuid
-        );
+        let receiptItems = await CompleteOrder.find({ trip_uuid: a.trip_uuid });
+        receiptItems = JSON.parse(JSON.stringify(receiptItems));
+        let receiptsData = await Receipts.find({
+          order_uuid: { $in: receiptItems.map((a) => a.order_uuid) },
+        });
+        receiptsData = JSON.parse(JSON.stringify(receiptsData));
+        receiptItems = receiptItems.map((a) => ({
+          ...a,
+          ...(receiptsData.find((b) => b.order_uuid === a.order_uuid) || {}),
+        }));
         let sales_return = [].concat.apply(
           [],
           receiptItems.map((b) => b?.delivery_return || [])
         );
+        let OutstandingData = await OutStanding.find({
+          trip_uuid: a.trip_uuid,
+        });
+        OutstandingData = JSON.parse(JSON.stringify(OutstandingData));
+        let unpaid_invoice = OutstandingData.map((b) => ({
+          ...b,
+          counter_title: CounterData.find(
+            (c) => c.counter_uuid === b.counter_uuid
+          )?.counter_title,
+        }));
         sales_return =
           sales_return.length > 1
             ? sales_return.reduce((acc, curr) => {
@@ -207,19 +212,14 @@ router.get("/GetTripListSummary", async (req, res) => {
           receiptData?.length > 1
             ? receiptData.map((a) => +a.coin || 0).reduce((c, d) => c + d)
             : receiptData[0]?.coin || 0;
+        let ordersData = await Orders.find({ trip_uuid: a.trip_uuid });
+        ordersData = JSON.parse(JSON.stringify(ordersData));
+        let orderLength = ordersData.length;
 
         result.push({
           ...a,
-          orderLength: ordersData.filter((b) => a.trip_uuid === b.trip_uuid)
-            .length,
-          unpaid_invoice: OutstandingData.filter(
-            (b) => b.trip_uuid === a.trip_uuid
-          ).map((b) => ({
-            ...b,
-            counter_title: CounterData.find(
-              (c) => c.counter_uuid === b.counter_uuid
-            )?.counter_title,
-          })),
+          orderLength,
+          unpaid_invoice,
           receiptItems,
           amt,
           coin,
@@ -358,8 +358,9 @@ router.post("/GetTripItemSummary", async (req, res) => {
               ).length
           )
           .map((b) => ({
-            counter_title: CounterData.find((c) => c.counter_uuid === b.counter_uuid)
-              ?.counter_title,
+            counter_title: CounterData.find(
+              (c) => c.counter_uuid === b.counter_uuid
+            )?.counter_title,
             amt: b?.modes?.find(
               (c) => c.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002"
             )?.amt,
