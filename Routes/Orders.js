@@ -203,13 +203,13 @@ router.put("/putOrders", async (req, res) => {
           let orderData = await Orders.findOne({
             order_uuid: value.order_uuid,
           });
-          orderData=JSON.parse(JSON.stringify(orderData))
-          console.log(orderData)
+          orderData = JSON.parse(JSON.stringify(orderData));
+          console.log(orderData);
 
           data = await OrderCompleted.create({
+            ...orderData,
             ...value,
             entry: 0,
-            ...orderData,
           });
           await Orders.deleteOne({ order_uuid: value.order_uuid });
         }
