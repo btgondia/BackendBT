@@ -36,7 +36,10 @@ router.post("/postOrder", async (req, res) => {
         item_uuid: value.item_details.map((a) => a.item_uuid),
       },
     });
-    let incentiveData = await Incentive.find({ status: 1 });
+    let incentiveData = await Incentive.find({
+      status: 1,
+      type: "range-order",
+    });
     incentiveData = JSON.parse(JSON.stringify(incentiveData));
     let user_uuid = value.status.find((c) => +c.stage === 1)?.user_uuid;
     incentiveData = incentiveData
@@ -182,11 +185,6 @@ router.put("/putOrders", async (req, res) => {
           ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
           : +value?.status[0]?.stage
         : "";
-      let orderData = await Orders.findOne({
-        order_uuid: value.order_uuid,
-      });
-      orderData = JSON.parse(JSON.stringify(orderData));
-      console.log(value, orderStage);
 
       if (
         +orderStage === 4 ||
@@ -204,10 +202,7 @@ router.put("/putOrders", async (req, res) => {
             value
           );
         } else {
-          console.log(orderData);
-
           data = await OrderCompleted.create({
-            ...orderData,
             ...value,
             entry: 0,
           });
@@ -231,6 +226,7 @@ router.put("/putOrders", async (req, res) => {
           let user_delivery_intensive = value.status.find(
             (c) => +c.stage === 4
           )?.user_uuid;
+          console.log(incentiveData);
           incentiveData = incentiveData.filter(
             (a) =>
               a.counters.filter((b) => b === value.counter_uuid).length ||
@@ -241,17 +237,23 @@ router.put("/putOrders", async (req, res) => {
           let rangeOrderIncentive = incentiveData.filter(
             (a) =>
               a.users.filter((b) => b === user_range_order).length &&
-              type === "range-order"
+              a.type === "range-order"
           );
           let rangeDeliveryIntensive = incentiveData.filter(
             (a) =>
               a.users.filter((b) => b === user_delivery_intensive).length &&
-              type === "delivery-incentive"
+              a.type === "delivery-incentive"
           );
           let rangeItemIntensive = incentiveData.filter(
             (a) =>
               a.users.filter((b) => b === user_range_order).length &&
-              type === "item-incentive"
+              a.type === "item-incentive"
+          );
+          console.log(
+            incentiveData,
+            rangeOrderIncentive,
+            rangeDeliveryIntensive,
+            rangeItemIntensive
           );
           for (let incentive_item of rangeOrderIncentive) {
             let eligibleItems = value.item_details.filter(
@@ -285,7 +287,7 @@ router.put("/putOrders", async (req, res) => {
                 counter_uuid: value.counter_uuid,
                 incentive_uuid: incentive_item.incentive_uuid,
                 time: time.getTime(),
-                amt,
+                amt: amt.toFixed(2),
               });
               console.log(statment);
             }
@@ -304,7 +306,7 @@ router.put("/putOrders", async (req, res) => {
               ) {
                 amt =
                   (incentive_item.value / 100) *
-                  (value.order_grandtotal || orderData.order_grandtotal);
+                  (value.order_grandtotal || value.order_grandtotal);
                 incentive_balance = +(userData.incentive_balance || 0) + amt;
               }
               if (
@@ -325,7 +327,7 @@ router.put("/putOrders", async (req, res) => {
               }
 
               let tripData = await Trips.findOne({
-                trip_uuid: value.trip_uuid || orderData.trip_uuid,
+                trip_uuid: value.trip_uuid || value.trip_uuid,
               });
               tripData = JSON.parse(JSON.stringify(tripData));
 
@@ -364,7 +366,7 @@ router.put("/putOrders", async (req, res) => {
                   counter_uuid: value.counter_uuid,
                   incentive_uuid: incentive_item.incentive_uuid,
                   time: time.getTime(),
-                  amt,
+                  amt: amt.toFixed(2),
                 });
                 console.log(statment);
               }
@@ -388,14 +390,13 @@ router.put("/putOrders", async (req, res) => {
                 user_uuid: user_range_order,
               });
               userData = JSON.parse(JSON.stringify(userData));
+              let amt = 0;
               let incentive_balance = 0;
               if (
                 incentive_item.calculation === "amt" &&
                 incentive_item.value
               ) {
-                let amt =
-                  (incentive_item.value / 100) *
-                  (value.order_grandtotal | orderData.order_grandtotal);
+                amt = (incentive_item.value / 100) * value.order_grandtotal;
                 incentive_balance = (
                   +(userData.incentive_balance || 0) + amt
                 ).toFixed(2);
@@ -427,7 +428,7 @@ router.put("/putOrders", async (req, res) => {
                 counter_uuid: value.counter_uuid,
                 incentive_uuid: incentive_item.incentive_uuid,
                 time: time.getTime(),
-                amt,
+                amt: amt.toFixed(2),
               });
               console.log(statment);
             }
