@@ -12,6 +12,7 @@ const Users = require("../Models/Users");
 const IncentiveStatment = require("../Models/IncentiveStatment");
 const SignedBills = require("../Models/SignedBills");
 const { v4: uuid } = require("uuid");
+const Trips = require("../Models/Trips");
 router.post("/postOrder", async (req, res) => {
   try {
     let value = req.body;
@@ -181,7 +182,10 @@ router.put("/putOrders", async (req, res) => {
           ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
           : +value?.status[0]?.stage
         : "";
-
+      let orderData = await Orders.findOne({
+        order_uuid: value.order_uuid,
+      });
+      orderData = JSON.parse(JSON.stringify(orderData));
       console.log(value, orderStage);
 
       if (
@@ -200,10 +204,6 @@ router.put("/putOrders", async (req, res) => {
             value
           );
         } else {
-          let orderData = await Orders.findOne({
-            order_uuid: value.order_uuid,
-          });
-          orderData = JSON.parse(JSON.stringify(orderData));
           console.log(orderData);
 
           data = await OrderCompleted.create({
@@ -225,17 +225,35 @@ router.put("/putOrders", async (req, res) => {
           });
           let incentiveData = await Incentive.find({ status: 1 });
           incentiveData = JSON.parse(JSON.stringify(incentiveData));
-          let user_uuid = value.status.find((c) => +c.stage === 1)?.user_uuid;
-          incentiveData = incentiveData
-            .filter((a) => a.users.filter((b) => b === user_uuid).length)
-            .filter(
-              (a) =>
-                a.counters.filter((b) => b === value.counter_uuid).length ||
-                a.counter_groups.filter((b) =>
-                  counterGroupsData?.counter_group_uuid?.find((c) => b === c)
-                ).length
-            );
-          for (let incentive_item of incentiveData) {
+          let user_range_order = value.status.find(
+            (c) => +c.stage === 1
+          )?.user_uuid;
+          let user_delivery_intensive = value.status.find(
+            (c) => +c.stage === 4
+          )?.user_uuid;
+          incentiveData = incentiveData.filter(
+            (a) =>
+              a.counters.filter((b) => b === value.counter_uuid).length ||
+              a.counter_groups.filter((b) =>
+                counterGroupsData?.counter_group_uuid?.find((c) => b === c)
+              ).length
+          );
+          let rangeOrderIncentive = incentiveData.filter(
+            (a) =>
+              a.users.filter((b) => b === user_range_order).length &&
+              type === "range-order"
+          );
+          let rangeDeliveryIntensive = incentiveData.filter(
+            (a) =>
+              a.users.filter((b) => b === user_delivery_intensive).length &&
+              type === "delivery-incentive"
+          );
+          let rangeItemIntensive = incentiveData.filter(
+            (a) =>
+              a.users.filter((b) => b === user_range_order).length &&
+              type === "item-incentive"
+          );
+          for (let incentive_item of rangeOrderIncentive) {
             let eligibleItems = value.item_details.filter(
               (a) =>
                 +a.status !== 3 &&
@@ -249,15 +267,162 @@ router.put("/putOrders", async (req, res) => {
                   ))
             );
             if (+incentive_item.min_range <= eligibleItems.length) {
-              let userData = await Users.findOne({ user_uuid });
+              let userData = await Users.findOne({
+                user_uuid: user_range_order,
+              });
               userData = JSON.parse(JSON.stringify(userData));
               let amt = eligibleItems.length * incentive_item.amt;
               let incentive_balance = +(userData.incentive_balance || 0) + amt;
 
-              await Users.updateMany({ user_uuid }, { incentive_balance });
+              await Users.updateMany(
+                { user_uuid: user_range_order },
+                { incentive_balance }
+              );
               let time = new Date();
               let statment = await IncentiveStatment.create({
-                user_uuid,
+                user_uuid: user_range_order,
+                order_uuid: value.order_uuid,
+                counter_uuid: value.counter_uuid,
+                incentive_uuid: incentive_item.incentive_uuid,
+                time: time.getTime(),
+                amt,
+              });
+              console.log(statment);
+            }
+          }
+          for (let incentive_item of rangeDeliveryIntensive) {
+            if (incentive_item.value) {
+              let userData = await Users.findOne({
+                user_uuid: user_delivery_intensive,
+              });
+              userData = JSON.parse(JSON.stringify(userData));
+              let amt = 0;
+              let incentive_balance = 0;
+              if (
+                incentive_item.calculation === "amt" &&
+                incentive_item.value
+              ) {
+                amt =
+                  (incentive_item.value / 100) *
+                  (value.order_grandtotal || orderData.order_grandtotal);
+                incentive_balance = +(userData.incentive_balance || 0) + amt;
+              }
+              if (
+                incentive_item.calculation === "qty" &&
+                incentive_item.value
+              ) {
+                amt =
+                  (incentive_item.value || 0) *
+                  (value.item_details.filter((a) => +a.status !== 3).length > 1
+                    ? value.item_details
+                        .filter((a) => +a.status !== 3)
+                        .map((a) => +a.b)
+                        .reduce((a, b) => a + b)
+                    : value.item_details.length
+                    ? +value.item_details[0]?.b
+                    : 0);
+                incentive_balance = +(userData.incentive_balance || 0) + amt;
+              }
+
+              let tripData = await Trips.findOne({
+                trip_uuid: value.trip_uuid || orderData.trip_uuid,
+              });
+              tripData = JSON.parse(JSON.stringify(tripData));
+
+              if (tripData?.users.length > 1) {
+                for (let tripUser of tripData.users) {
+                  await Users.updateMany(
+                    { user_uuid: tripUser },
+                    {
+                      $inc: {
+                        incentive_balance: (
+                          amt / tripData?.users.length
+                        ).toFixed(2),
+                      },
+                    }
+                  );
+                  let time = new Date();
+                  let statment = await IncentiveStatment.create({
+                    user_uuid: tripUser,
+                    order_uuid: value.order_uuid,
+                    counter_uuid: value.counter_uuid,
+                    incentive_uuid: incentive_item.incentive_uuid,
+                    time: time.getTime(),
+                    amt: (amt / tripData?.users.length).toFixed(2),
+                  });
+                  console.log(statment);
+                }
+              } else {
+                await Users.updateMany(
+                  { user_uuid: user_delivery_intensive },
+                  { incentive_balance }
+                );
+                let time = new Date();
+                let statment = await IncentiveStatment.create({
+                  user_uuid: user_delivery_intensive,
+                  order_uuid: value.order_uuid,
+                  counter_uuid: value.counter_uuid,
+                  incentive_uuid: incentive_item.incentive_uuid,
+                  time: time.getTime(),
+                  amt,
+                });
+                console.log(statment);
+              }
+            }
+          }
+          for (let incentive_item of rangeItemIntensive) {
+            if (incentive_item.value) {
+              let eligibleItems = value.item_details.filter(
+                (a) =>
+                  +a.status !== 3 &&
+                  (a.b || a.p) &&
+                  (incentive_item.items.find((b) => b === a.item_uuid) ||
+                    incentive_item.item_groups.find(
+                      (b) =>
+                        itemsData
+                          .find((c) => c.item_uuid === a.item_uuid)
+                          ?.item_group_uuid.filter((d) => b === d).length
+                    ))
+              );
+              let userData = await Users.findOne({
+                user_uuid: user_range_order,
+              });
+              userData = JSON.parse(JSON.stringify(userData));
+              let incentive_balance = 0;
+              if (
+                incentive_item.calculation === "amt" &&
+                incentive_item.value
+              ) {
+                let amt =
+                  (incentive_item.value / 100) *
+                  (value.order_grandtotal | orderData.order_grandtotal);
+                incentive_balance = (
+                  +(userData.incentive_balance || 0) + amt
+                ).toFixed(2);
+              }
+              if (
+                incentive_item.calculation === "qty" &&
+                incentive_item.value
+              ) {
+                let amt = 0;
+                for (let item of eligibleItems) {
+                  let itemData = await Item.findOne({
+                    item_uuid: item.item_uuid,
+                  });
+                  amt = amt + ((+item.b * +itemData.conversion || 0) + item.p);
+                }
+                incentive_balance = (
+                  +(userData.incentive_balance || 0) + amt
+                ).toFixed(2);
+              }
+
+              await Users.updateMany(
+                { user_uuid: user_range_order },
+                { incentive_balance }
+              );
+              let time = new Date();
+              let statment = await IncentiveStatment.create({
+                user_uuid: user_range_order,
                 order_uuid: value.order_uuid,
                 counter_uuid: value.counter_uuid,
                 incentive_uuid: incentive_item.incentive_uuid,
