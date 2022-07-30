@@ -65,6 +65,17 @@ router.get("/getRangeOrderIncentive", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.get("/getDeliveryIncentive", async (req, res) => {
+  try {
+  
+    let response = await Incentive.find( {type:"delivery-incentive"} );
+    if (response.length) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Incentive Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 
 

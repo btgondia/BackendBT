@@ -11,12 +11,13 @@ const Incentive = require("../Models/Incentive");
 const Users = require("../Models/Users");
 const IncentiveStatment = require("../Models/IncentiveStatment");
 const SignedBills = require("../Models/SignedBills");
-
+const { v4: uuid } = require("uuid");
 router.post("/postOrder", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
+    value = { ...value, order_uuid: uuid() };
     console.log(value);
     let invoice_number = await Details.findOne({});
     let orderStage = value.status
@@ -189,11 +190,29 @@ router.put("/putOrders", async (req, res) => {
         value?.item_details?.length === 0
       ) {
         // console.log("length", value?.item_details?.length);
-        //  data = await OrderCompleted.findOne({ order_uuid: value.order_uuid });
+        let data = await OrderCompleted.findOne({
+          order_uuid: value.order_uuid,
+        });
         // console.log("Old Data",data)
+        if (data) {
+          await OrderCompleted.updateOne(
+            { order_uuid: value.order_uuid },
+            value
+          );
+        } else {
+          let orderData = await Orders.findOne({
+            order_uuid: value.order_uuid,
+          });
+          orderData=JSON.parse(JSON.stringify(orderData))
+          console.log(orderData)
 
-        let data = await OrderCompleted.create({ ...value, entry: 0 });
-        await Orders.deleteOne({ order_uuid: value.order_uuid });
+          data = await OrderCompleted.create({
+            ...value,
+            entry: 0,
+            ...orderData,
+          });
+          await Orders.deleteOne({ order_uuid: value.order_uuid });
+        }
         // console.log("New DAta", data);
         if (+orderStage === 4) {
           let counterGroupsData = await Counters.findOne({
@@ -257,7 +276,7 @@ router.put("/putOrders", async (req, res) => {
           value
         );
         if (data.acknowledged) response.push(value);
-        else{
+        else {
           data = await OrderCompleted.updateOne(
             { order_uuid: value.order_uuid },
             value

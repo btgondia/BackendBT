@@ -10,7 +10,13 @@ const IncentiveSchema = new mongoose.Schema({
   counter_uuid: {
     type: String,
   },
+  type: {
+    type: String,
+  },
   incentive_uuid: {
+    type: String,
+  },
+  remarks: {
     type: String,
   },
 

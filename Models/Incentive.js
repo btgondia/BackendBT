@@ -39,6 +39,8 @@ const IncentiveSchema = new mongoose.Schema({
     },
   ],
   min_range: { type: String },
+  calculation: { type: String },
+  value: { type: String },
   amt: { type: Number },
 });
 

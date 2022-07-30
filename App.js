@@ -19,8 +19,9 @@ const PaymentModes = require("./Routes/PaymentModes");
 const Receipts = require("./Routes/Receipts");
 const Outstanding = require("./Routes/Outstanding");
 const Details = require("./Routes/Details");
-var bodyParser = require('body-parser');
+var bodyParser = require("body-parser");
 const Incentive = require("./Routes/Incentives");
+const IncentiveStatment = require("./Routes/IncentiveStatment");
 connectDB();
 app = express();
 app.use(
@@ -31,8 +32,14 @@ app.use(
 );
 
 // app.use(express.json());
-app.use(bodyParser.json({limit: '100mb'}));
-app.use(bodyParser.urlencoded({ limit: "100mb", extended: true, parameterLimit: 50000 }))
+app.use(bodyParser.json({ limit: "100mb" }));
+app.use(
+  bodyParser.urlencoded({
+    limit: "100mb",
+    extended: true,
+    parameterLimit: 50000,
+  })
+);
 app.use(morgan("dev"));
 
 app.use("/routes", Routes);
@@ -52,13 +59,15 @@ app.use("/paymentModes", PaymentModes);
 app.use("/receipts", Receipts);
 app.use("/Outstanding", Outstanding);
 app.use("/details", Details);
+app.use("/incentiveStatment", IncentiveStatment);
 
 app.get("/stream/:text", async (req, res) => {
   try {
-    let { text, } = await req.params;
-    let extra = ', extra audio text, extra audio text, extra audio text, extra audio text, extra'
-    const gtts = new gTTS(`${text?.replaceAll('_', " ")}` + extra, 'en');
-    res.set({ 'Content-Type': 'audio/mpeg' });
+    let { text } = await req.params;
+    let extra =
+      ", extra audio text, extra audio text, extra audio text, extra audio text, extra";
+    const gtts = new gTTS(`${text?.replaceAll("_", " ")}` + extra, "en");
+    res.set({ "Content-Type": "audio/mpeg" });
     gtts.stream().pipe(res);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
