@@ -103,12 +103,13 @@ router.post("/postOrder", async (req, res) => {
           }
         }
         if (incentive_item.calculation === "qty" && incentive_item.value) {
-          let amt = 0;
           for (let item of eligibleItems) {
             let itemData = await Item.findOne({
               item_uuid: item.item_uuid,
             });
-            amt = +amt + ((+item.b * +itemData.conversion || 0) + item.p);
+            amt =
+              +amt +
+              ((+item.b * +itemData.conversion || 0) + item.p) * +incentive_item.value;
           }
         }
 
@@ -133,7 +134,8 @@ router.post("/postOrder", async (req, res) => {
         { next_invoice_number: +invoice_number.next_invoice_number + 1 }
       );
       res.json({ success: true, result: response, incentives });
-    } else res.json({ success: false, message: "Order Not created" });
+    } else
+    res.json({ success: false, message: "Order Not created" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -436,24 +438,27 @@ router.put("/putOrders", async (req, res) => {
               userData = JSON.parse(JSON.stringify(userData));
               let amt = 0;
               let incentive_balance = 0;
-              if (incentive_item.calculation === "amt" && incentive_item.value) {
+              if (
+                incentive_item.calculation === "amt" &&
+                incentive_item.value
+              ) {
                 for (let item of eligibleItems) {
                   amt = +amt + (incentive_item.value / 100) * item.item_total;
                 }
               }
               if (incentive_item.calculation === "qty" && incentive_item.value) {
-                let amt = 0;
                 for (let item of eligibleItems) {
                   let itemData = await Item.findOne({
                     item_uuid: item.item_uuid,
                   });
-                  amt = +amt + ((+item.b * +itemData.conversion || 0) + item.p);
+                  amt =
+                    +amt +
+                    ((+item.b * +itemData.conversion || 0) + item.p) * +incentive_item.value;
                 }
               }
               incentive_balance = (
                 +(userData.incentive_balance || 0) + amt
               ).toFixed(2);
-              
 
               await Users.updateMany(
                 { user_uuid: user_range_order },
