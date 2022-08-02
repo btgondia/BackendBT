@@ -603,7 +603,7 @@ router.put("/putCompleteOrder", async (req, res) => {
     let value = req.body;
     console.log(value);
     let data = await OrderCompleted.updateOne(
-      { order_uuid: value.order_uuid },
+      { invoice_number: value.invoice_number },
       value
     );
     if (data.acknowledged) {
