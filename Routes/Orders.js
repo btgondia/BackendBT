@@ -109,7 +109,8 @@ router.post("/postOrder", async (req, res) => {
             });
             amt =
               +amt +
-              ((+item.b * +itemData.conversion || 0) + item.p) * +incentive_item.value;
+              ((+item.b * +itemData.conversion || 0) + item.p) *
+                +incentive_item.value;
           }
         }
 
@@ -134,8 +135,7 @@ router.post("/postOrder", async (req, res) => {
         { next_invoice_number: +invoice_number.next_invoice_number + 1 }
       );
       res.json({ success: true, result: response, incentives });
-    } else
-    res.json({ success: false, message: "Order Not created" });
+    } else res.json({ success: false, message: "Order Not created" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -446,14 +446,18 @@ router.put("/putOrders", async (req, res) => {
                   amt = +amt + (incentive_item.value / 100) * item.item_total;
                 }
               }
-              if (incentive_item.calculation === "qty" && incentive_item.value) {
+              if (
+                incentive_item.calculation === "qty" &&
+                incentive_item.value
+              ) {
                 for (let item of eligibleItems) {
                   let itemData = await Item.findOne({
                     item_uuid: item.item_uuid,
                   });
                   amt =
                     +amt +
-                    ((+item.b * +itemData.conversion || 0) + item.p) * +incentive_item.value;
+                    ((+item.b * +itemData.conversion || 0) + item.p) *
+                      +incentive_item.value;
                 }
               }
               incentive_balance = (
@@ -598,6 +602,7 @@ router.put("/putCompleteSignedBills", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+
 router.put("/putCompleteOrder", async (req, res) => {
   try {
     let value = req.body;
@@ -606,6 +611,38 @@ router.put("/putCompleteOrder", async (req, res) => {
       { invoice_number: value.invoice_number },
       value
     );
+    if (data.acknowledged) {
+      res.json({
+        success: true,
+        result: data,
+      });
+    } else
+      res.status(404).json({
+        success: false,
+        result: data,
+      });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.put("/putOrderNotes", async (req, res) => {
+  try {
+    let value = req.body;
+    console.log(value);
+    let orderData = await Orders.findOne({
+      invoice_number: value.invoice_number,
+    });
+    let data = {};
+    if (orderData)
+      data = await Orders.updateOne(
+        { invoice_number: value.invoice_number },
+        value
+      );
+    else
+      data = await OrderCompleted.updateOne(
+        { invoice_number: value.invoice_number },
+        value
+      );
     if (data.acknowledged) {
       res.json({
         success: true,

@@ -11,6 +11,8 @@ const OrdersSchema = new mongoose.Schema({
   replacement: { type: Number },
   replacement_mrp: { type: Number },
   opened_by: { type: String },
+  notes: [{ type: String }],
+
   item_details: [
     {
       item_uuid: { type: String },

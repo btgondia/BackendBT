@@ -32,6 +32,8 @@ const OrdersSchema = new mongoose.Schema({
       ],
     },
   ],
+  notes: [{ type: String }],
+
   auto_added: [
     {
       item_uuid: { type: String },
