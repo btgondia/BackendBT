@@ -21,7 +21,7 @@ router.post("/postIncentiveStatment", async (req, res) => {
   //   let userData = await Users.findOne({ user_uuid: value.user_uuid });
   await Users.updateMany(
     { user_uuid: value.user_uuid },
-    { $inc: { incentive_balance: -(+value.amount || 0) } }
+    { $inc: { incentive_balance: -(+value.amount || 0).toFixed(2) } }
   );
   if (response) {
     res.json({ success: true, result: response });

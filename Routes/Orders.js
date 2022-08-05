@@ -320,7 +320,7 @@ router.put("/putOrders", async (req, res) => {
               });
               userData = JSON.parse(JSON.stringify(userData));
               let amt = eligibleItems.length * incentive_item.amt;
-              let incentive_balance = +(userData.incentive_balance || 0) + amt;
+              let incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2);
 
               await Users.updateMany(
                 { user_uuid: user_range_order },
@@ -353,7 +353,7 @@ router.put("/putOrders", async (req, res) => {
                 amt =
                   (incentive_item.value / 100) *
                   (value.order_grandtotal || value.order_grandtotal);
-                incentive_balance = +(userData.incentive_balance || 0) + amt;
+                incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2);
               }
               if (
                 incentive_item.calculation === "qty" &&
@@ -369,7 +369,7 @@ router.put("/putOrders", async (req, res) => {
                     : value.item_details.length
                     ? +value.item_details[0]?.b
                     : 0);
-                incentive_balance = +(userData.incentive_balance || 0) + amt;
+                incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2);
               }
 
               let tripData = await Trips.findOne({
