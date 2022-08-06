@@ -40,5 +40,58 @@ router.get("/getOutstanding", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/getOutstanding", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let { order_uuid, counter_uuid } = value;
+    let response = await Outstanding.findOne({ order_uuid, counter_uuid });
 
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.put("/putOutstanding", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let { order_uuid, counter_uuid, amount } = value;
+    let data = await Outstanding.findOne({ order_uuid, counter_uuid });
+    let response;
+    if (data) {
+      response = await Outstanding.updateOne(
+        { order_uuid, counter_uuid },
+        { amount }
+      );
+      await SignedBills.updateMany(
+        {
+          order_uuid
+        },
+        {
+          amount,
+        }
+      );
+    } else {
+      console.log(value);
+      let time = new Date();
+      response = await Outstanding.create(value);
+      result = await SignedBills.create({
+        time_stamp: time.getTime(),
+        user_uuid: value.user_uuid,
+        order_uuid: value.order_uuid,
+        status: 0,
+        amount: value.amount,
+      });
+    }
+
+    if (response.acknowledged) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 module.exports = router;
