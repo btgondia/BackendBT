@@ -228,10 +228,16 @@ router.get("/GetTripSummaryDetails/:trip_uuid", async (req, res) => {
           receiptData.map((b) => b?.modes || [])
         )
         .filter((b) => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002");
+      let CompleteOrderData = await CompleteOrder.find({
+        trip_uuid: a.trip_uuid,
+      });
+      CompleteOrderData = JSON.parse(JSON.stringify(CompleteOrderData));
       let amt =
-        receiptData?.length > 1
-          ? receiptData.map((a) => +a.amt || 0).reduce((c, d) => c + d)
-          : receiptData[0]?.amt;
+        CompleteOrderData?.length > 1
+          ? CompleteOrderData.map((a) => +a.order_grandtotal || 0).reduce(
+              (c, d) => c + d
+            )
+          : CompleteOrderData[0]?.order_grandtotal;
       let coin =
         receiptData?.length > 1
           ? receiptData.map((a) => +a.coin || 0).reduce((c, d) => c + d)
