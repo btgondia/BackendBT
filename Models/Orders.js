@@ -10,6 +10,9 @@ const OrdersSchema = new mongoose.Schema({
   ],
   replacement: { type: Number },
   replacement_mrp: { type: Number },
+  shortage: { type: Number },
+  adjustment: { type: Number },
+  adjustment_remarks: { type: String },
   opened_by: { type: String },
   notes: [{ type: String }],
 
