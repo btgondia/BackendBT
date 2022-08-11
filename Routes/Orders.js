@@ -568,7 +568,6 @@ router.get("/getPendingEntry", async (req, res) => {
       order_uuid: { $in: data.map((a) => a.order_uuid) },
     });
     outstandindData = JSON.parse(JSON.stringify(outstandindData));
-
     res.json({
       success: true,
       result: data.map((order) => ({
@@ -577,8 +576,11 @@ router.get("/getPendingEntry", async (req, res) => {
           receiptData?.find((b) => b.order_uuid === order.order_uuid)?.modes ||
           [],
         unpaid:
-          outstandindData?.find((b) => b.order_uuid === order.order_uuid)
-            ?.amount || 0,
+          outstandindData?.find(
+            (b) =>
+              b.order_uuid === order.order_uuid &&
+              b.counter_uuid === order.counter_uuid
+          )?.amount || 0,
       })),
     });
   } catch (err) {
