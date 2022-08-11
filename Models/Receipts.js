@@ -7,6 +7,9 @@ const ReceiptsSchema = new mongoose.Schema({
   order_uuid: {
     type: String,
   },
+  invoice_number: {
+    type: Number,
+  },
   receipt_number: {
     type: String,
   },

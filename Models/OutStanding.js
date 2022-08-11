@@ -16,8 +16,10 @@ const OutstandingSchema = new mongoose.Schema({
   time: {
     type: Number,
   },
+  invoice_number: {
+    type: Number,
+  },
   amount: { type: Number },
-  invoice_number: { type: Number },
 });
 
 module.exports = mongoose.model("outstanding", OutstandingSchema);

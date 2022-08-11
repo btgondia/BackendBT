@@ -19,6 +19,9 @@ const RoutesSchema = new mongoose.Schema({
   time_stamp: {
     type: Number,
   },
+  invoice_number: {
+    type: Number,
+  },
 });
 
 module.exports = mongoose.model("signed_bills", RoutesSchema);

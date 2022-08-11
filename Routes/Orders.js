@@ -118,6 +118,36 @@ router.post("/postOrder", async (req, res) => {
       }
     }
     if (+orderStage === 4 || +orderStage === 5) {
+      let next_receipt_number = await Details.find({});
+      console.log(next_receipt_number[0].next_receipt_number);
+      next_receipt_number = next_receipt_number[0].next_receipt_number;
+      let time = new Date();
+       await Receipts.create({
+        ...value,
+        time:time.getTime(),
+        receipt_number: next_receipt_number,
+        invoice_number: invoice_number.next_invoice_number || 0,
+      });
+      next_receipt_number = "R" + (+next_receipt_number.match(/\d+/)[0] + 1);
+      await Details.updateMany({}, { next_receipt_number });
+
+      if (value.OutStanding) {
+        let time = new Date();
+        let outstandingObj = {
+          time: time.getTime(),
+          counter_uuid: value.counter_uuid,
+          user_uuid: value.user_uuid,
+          order_uuid: value.order_uuid,
+          invoice_number: invoice_number.next_invoice_number || 0,
+          status: 0,
+          amount: value.OutStanding,
+        };
+        await OutStanding.create(outstandingObj);
+        await SignedBills.create({
+          ...outstandingObj,
+          time_stamp: outstandingObj.time,
+        });
+      }
       response = await OrderCompleted.create({
         ...value,
         invoice_number: invoice_number.next_invoice_number || 0,
@@ -129,6 +159,7 @@ router.post("/postOrder", async (req, res) => {
         ...value,
         invoice_number: invoice_number.next_invoice_number || 0,
       });
+
     if (response) {
       await Details.updateMany(
         {},
@@ -573,13 +604,18 @@ router.get("/getPendingEntry", async (req, res) => {
       result: data.map((order) => ({
         ...order,
         modes:
-          receiptData?.find((b) => b.order_uuid === order.order_uuid)?.modes ||
-          [],
+          receiptData?.find(
+            (b) =>
+              b.invoice_number === order.invoice_number ||
+              (b.order_uuid === order.order_uuid &&
+                b.counter_uuid === order.counter_uuid)
+          )?.modes || [],
         unpaid:
           outstandindData?.find(
             (b) =>
-              b.order_uuid === order.order_uuid &&
-              b.counter_uuid === order.counter_uuid
+              b.invoice_number === order.invoice_number ||
+              (b.order_uuid === order.order_uuid &&
+                b.counter_uuid === order.counter_uuid)
           )?.amount || 0,
       })),
     });
