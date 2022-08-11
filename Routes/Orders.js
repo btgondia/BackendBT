@@ -320,7 +320,9 @@ router.put("/putOrders", async (req, res) => {
               });
               userData = JSON.parse(JSON.stringify(userData));
               let amt = eligibleItems.length * incentive_item.amt;
-              let incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2);
+              let incentive_balance = (
+                +(userData.incentive_balance || 0) + amt
+              ).toFixed(2);
 
               await Users.updateMany(
                 { user_uuid: user_range_order },
@@ -353,7 +355,9 @@ router.put("/putOrders", async (req, res) => {
                 amt =
                   (incentive_item.value / 100) *
                   (value.order_grandtotal || value.order_grandtotal);
-                incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2);
+                incentive_balance = (
+                  +(userData.incentive_balance || 0) + amt
+                ).toFixed(2);
               }
               if (
                 incentive_item.calculation === "qty" &&
@@ -369,7 +373,9 @@ router.put("/putOrders", async (req, res) => {
                     : value.item_details.length
                     ? +value.item_details[0]?.b
                     : 0);
-                incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2);
+                incentive_balance = (
+                  +(userData.incentive_balance || 0) + amt
+                ).toFixed(2);
               }
 
               let tripData = await Trips.findOne({
@@ -923,7 +929,8 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
     console.log(response);
     response = JSON.parse(JSON.stringify(response));
     let receiptData = await Receipts.find({
-      order_uuid: response.map((a) => a.order_uuid),
+      trip_uuid: value.trip_uuid,
+      $in: { order_uuid: response.map((a) => a.order_uuid) },
     });
 
     receiptData = JSON.parse(JSON.stringify(receiptData));
@@ -950,15 +957,72 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
           ? order?.item_details[0]?.p
           : 0),
       amt: order.order_grandtotal || 0,
-      modes:
-        receiptData.find((b) => b.order_uuid === order.order_uuid)?.modes || [],
+      cash: receiptData
+        .find((b) => b.order_uuid === order.order_uuid)
+        ?.modes?.find(
+          (b) => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002"
+        )?.amt,
+      cheque: receiptData
+        .find((b) => b.order_uuid === order.order_uuid)
+        ?.modes.find(
+          (b) => b.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002"
+        )?.amt,
+      upi: receiptData
+        .find((b) => b.order_uuid === order.order_uuid)
+        ?.modes?.find(
+          (b) => b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002"
+        )?.amt,
+
       unpaid:
         outstandindData.find((b) => b.order_uuid === order.order_uuid)
           ?.amount || 0,
     }));
+    let cash = [].concat
+      .apply(
+        [],
+        receiptData.map((b) => b?.modes || [])
+      )
+      .filter((b) => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002");
+    let cheque = [].concat
+      .apply(
+        [],
+        receiptData.map((b) => b?.modes || [])
+      )
+      .filter((b) => b.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002");
+    let upi = [].concat
+      .apply(
+        [],
+        receiptData.map((b) => b?.modes || [])
+      )
+      .filter((b) => b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002");
 
     if (response.length) {
-      res.json({ success: true, result: response });
+      res.json({
+        success: true,
+        result: response,
+        total: {
+          total_amt:
+            response.length > 1
+              ? response.map((a) => +a?.amt || 0).reduce((a, b) => a + b)
+              : response[0]?.amt || 0,
+          total_cash:
+            cash.length > 1
+              ? cash.map((a) => +a?.amt || 0).reduce((a, b) => a + b)
+              : amt[0]?.cash || 0,
+          total_cheque:
+            cheque.length > 1
+              ? cheque.map((a) => +a?.amt || 0).reduce((a, b) => a + b)
+              : cheque[0]?.amt || 0,
+          total_upi:
+            upi.length > 1
+              ? upi.map((a) => +a?.amt || 0).reduce((a, b) => a + b)
+              : upi[0]?.amt || 0,
+          total_unpaid:
+            response.length > 1
+              ? response.map((a) => +a?.unpaid || 0).reduce((a, b) => a + b)
+              : response[0]?.unpaid || 0,
+        },
+      });
     } else res.json({ success: false, message: "Order Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
