@@ -932,13 +932,13 @@ router.post("/getCompleteOrderList", async (req, res) => {
     console.log(value);
     let endDate = +value.endDate + 86400000;
     console.log(endDate, value.startDate);
-    let response = await OrderCompleted.find({});
+    let response = await OrderCompleted.find(
+      !req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid }
+    );
 
     response = JSON.parse(JSON.stringify(response));
     response = response?.filter(
       (order) =>
-        (!req.body.counter_uuid ||
-          order.counter_uuid === req.body.counter_uuid) &&
         order.status.filter(
           (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
         ).length
