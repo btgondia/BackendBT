@@ -921,7 +921,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
     let response = await OrderCompleted.find({});
 
     response = JSON.parse(JSON.stringify(response));
-    response = response.filter(
+    response = response?.filter(
       (order) =>
         (!req.body.counter_uuid ||
           order.counter_uuid === req.body.counter_uuid) &&
@@ -949,8 +949,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
           : 0),
       amt: order.order_grandtotal || 0,
     }));
-    console.log(response, endDate);
-    if (response) {
+    if (response?.length) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Order Not Found" });
   } catch (err) {
