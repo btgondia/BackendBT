@@ -122,9 +122,9 @@ router.post("/postOrder", async (req, res) => {
       console.log(next_receipt_number[0].next_receipt_number);
       next_receipt_number = next_receipt_number[0].next_receipt_number;
       let time = new Date();
-       await Receipts.create({
+      await Receipts.create({
         ...value,
-        time:time.getTime(),
+        time: time.getTime(),
         receipt_number: next_receipt_number,
         invoice_number: invoice_number.next_invoice_number || 0,
       });
@@ -567,14 +567,28 @@ router.get("/getSignedBills", async (req, res) => {
 
       let user_title =
         item.user_uuid === "240522" ? "Admin" : userData.user_title;
-      let order_grandtotal = orderData?.orderData_grandtotal || 0;
+      let order_grandtotal = orderData?.order_grandtotal || 0;
       let invoice_number = orderData?.invoice_number || 0;
       let counter_title = counterData?.counter_title || "";
+      let qty =
+        (orderData?.item_details?.length > 1
+          ? orderData.item_details.map((a) => a.b).reduce((a, b) => +a + b)
+          : orderData?.item_details?.length
+          ? orderData?.item_details[0]?.b
+          : 0) +
+        ":" +
+        (orderData?.item_details?.length > 1
+          ? orderData.item_details.map((a) => a.p).reduce((a, b) => +a + b)
+          : orderData?.item_details?.length
+          ? orderData?.item_details[0]?.p
+          : 0);
       response.push({
         ...item,
+        ...orderData,
         user_title,
         order_grandtotal,
         counter_title,
+        qty,
         invoice_number,
       });
     }
