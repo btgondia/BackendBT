@@ -30,8 +30,7 @@ router.get("/GetTasksList/:status", async (req, res) => {
   try {
     let data = await Tasks.find({ status: req.params.status });
     console.log(data);
-    if (data.length)
-      res.json({ success: true, result: data });
+    if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Task Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
@@ -51,10 +50,12 @@ router.put("/putTask", async (req, res) => {
         }, {});
       console.log(value);
       let time = new Date();
-      value = {
-        ...value,
-        completed_at: time.getTime(),
-      };
+      value = value.completed
+        ? {
+            ...value,
+            completed_at: time.getTime(),
+          }
+        : value;
       let response = await Tasks.updateOne(
         { task_uuid: value.task_uuid },
         value

@@ -25,6 +25,9 @@ const taskSchema = new mongoose.Schema({
   task: {
     type: String,
   },
+  assigned_to: [{
+    type: String,
+  }],
 });
 
 module.exports = mongoose.model("tasks", taskSchema);
