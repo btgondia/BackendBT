@@ -26,12 +26,12 @@ router.post("/postTask", async (req, res) => {
   }
 });
 
-router.get("/GetTasksList", async (req, res) => {
+router.get("/GetTasksList/:status", async (req, res) => {
   try {
-    let data = await Tasks.find({});
-
+    let data = await Tasks.find({ status: req.params.status });
+    console.log(data);
     if (data.length)
-      res.json({ success: true, result: data.filter((a) => +a.status === 0) });
+      res.json({ success: true, result: data });
     else res.json({ success: false, message: "Task Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
