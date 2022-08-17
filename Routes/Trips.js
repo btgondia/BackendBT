@@ -11,6 +11,7 @@ const Counters = require("../Models/Counters");
 
 const Item = require("../Models/Item");
 const OutStanding = require("../Models/OutStanding");
+const Warehouse = require("../Models/Warehouse");
 
 router.post("/postTrip", async (req, res) => {
   try {
@@ -43,7 +44,7 @@ router.put("/putTrip", async (req, res) => {
       }, {});
     console.log(value);
     let response = await Trips.updateOne({ trip_uuid: value.trip_uuid }, value);
-    if (response) {
+    if (response.acknowledged) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Trips Not updated" });
   } catch (err) {
@@ -147,12 +148,16 @@ router.get("/GetTripListSummary", async (req, res) => {
 
       for (let a of data) {
         let ordersData = await Orders.find({ trip_uuid: a.trip_uuid });
+        let warehouseData = await Warehouse.findOne({
+          warehouse_uuid: a.warehouse_uuid,
+        });
         ordersData = JSON.parse(JSON.stringify(ordersData));
         let orderLength = ordersData.length;
-
+        console.log(warehouseData,a);
         result.push({
           ...a,
           orderLength,
+          warehouse_title: warehouseData?.warehouse_title || "",
         });
       }
 

@@ -13,6 +13,9 @@ const TripsSchema = new mongoose.Schema({
   trip_uuid: {
     type: String,
   },
+  warehouse_uuid: {
+    type: String,
+  },
   remarks: {
     type: String,
   },

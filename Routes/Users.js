@@ -62,7 +62,7 @@ router.get("/GetUserList", async (req, res) => {
 router.get("/GetUser/:user_uuid", async (req, res) => {
   try {
     let data = await User.findOne({user_uuid:req.params.user_uuid});
-
+console.log(req.params.user_uuid.data)
     if (data) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Users Not found" });
   } catch (err) {

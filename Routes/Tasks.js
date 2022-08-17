@@ -36,6 +36,33 @@ router.get("/GetTasksList/:status", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.get("/getCounterTask/:counter_uuid", async (req, res) => {
+  try {
+    let data = await Tasks.findOne({
+      counter_uuid: req.params.counter_uuid,
+      status: 0,
+    });
+    console.log(data);
+    if (data) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Task Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.post("/getCounterList", async (req, res) => {
+  try {
+    let data = await Tasks.find({
+      $in:{counter_uuid: req.body.counter_uuid.map(a=>a)}
+      ,
+      status: 0,
+    });
+    console.log(data);
+    if (data.length) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Task Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 router.put("/putTask", async (req, res) => {
   try {
@@ -54,8 +81,10 @@ router.put("/putTask", async (req, res) => {
         ? {
             ...value,
             completed_at: time.getTime(),
+            status:1
           }
         : value;
+        console.log(value)
       let response = await Tasks.updateOne(
         { task_uuid: value.task_uuid },
         value
