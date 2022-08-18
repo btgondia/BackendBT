@@ -184,5 +184,19 @@ router.put("/ConfirmVoucher", async (req, res) => {
         res.status(500).json({ success: false, message: err });
       }
 });
+router.put("/PutVoucher", async (req, res) => {
+    try {
+        let value = req.body;
+        if (!value) res.json({ success: false, message: "Invalid Data" });
+       
+       
+        let response = await Vochers.updateMany({voucher_uuid:value.voucher_uuid},value);
+        if (response) {
+          res.json({ success: true, result: response });
+        } else res.json({ success: false, message: "Item Not created" });
+      } catch (err) {
+        res.status(500).json({ success: false, message: err });
+      }
+});
 
 module.exports = router;
