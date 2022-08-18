@@ -279,6 +279,54 @@ router.put("/putOrders", async (req, res) => {
             value
           );
         } else {
+          if (value.trip_uuid) {
+            let tripData = await Trips.findOne({ trip_uuid: value.trip_uuid });
+            tripData = JSON.parse(JSON.stringify(tripData));
+            console.log(tripData.warehouse_uuid);
+            if (tripData.warehouse_uuid) {
+              value = { ...value, warehouse_uuid: tripData.warehouse_uuid };
+              for (let item of value.item_details) {
+                let itemData = await Item.findOne({
+                  item_uuid: item.item_uuid,
+                });
+                itemData = JSON.parse(JSON.stringify(itemData));
+                let stock = itemData.stock;
+                console.log("Stock", stock);
+                let qty = (+item.b * +itemData.conversion)+item.p;
+                stock = stock?.filter(
+                  (a) => a.warehouse_uuid === tripData.warehouse_uuid
+                )?.length
+                  ? stock.map((a) =>
+                      a.warehouse_uuid === tripData.warehouse_uuid
+                        ? { ...a, qty: a.qty - qty }
+                        : a
+                    )
+                  : stock?.length
+                  ? [
+                      ...stock,
+                      {
+                        warehouse_uuid: tripData.warehouse_uuid,
+                        min_level: 0,
+                        qty: -qty,
+                      },
+                    ]
+                  : [
+                      {
+                        warehouse_uuid: tripData.warehouse_uuid,
+                        min_level: 0,
+                        qty: -qty,
+                      },
+                    ];
+                console.log("Stock", stock);
+                await Item.updateOne(
+                  {
+                    item_uuid: item.item_uuid,
+                  },
+                  { stock }
+                );
+              }
+            }
+          }
           data = await OrderCompleted.create({
             ...value,
             entry: 0,
@@ -303,7 +351,7 @@ router.put("/putOrders", async (req, res) => {
           let user_delivery_intensive = value.status.find(
             (c) => +c.stage === 4
           )?.user_uuid;
-          console.log(incentiveData);
+
           incentiveData = incentiveData.filter(
             (a) =>
               a.counters.filter((b) => b === value.counter_uuid).length ||
@@ -326,12 +374,7 @@ router.put("/putOrders", async (req, res) => {
               a.users.filter((b) => b === user_range_order).length &&
               a.type === "item-incentive"
           );
-          console.log(
-            incentiveData,
-            rangeOrderIncentive,
-            rangeDeliveryIntensive,
-            rangeItemIntensive
-          );
+
           for (let incentive_item of rangeOrderIncentive) {
             let eligibleItems = value.item_details.filter(
               (a) =>
@@ -368,7 +411,6 @@ router.put("/putOrders", async (req, res) => {
                 time: time.getTime(),
                 amt: amt.toFixed(2),
               });
-              console.log(statment);
             }
           }
           for (let incentive_item of rangeDeliveryIntensive) {
@@ -435,7 +477,6 @@ router.put("/putOrders", async (req, res) => {
                     time: time.getTime(),
                     amt: (amt / tripData?.users.length).toFixed(2),
                   });
-                  console.log(statment);
                 }
               } else {
                 await Users.updateMany(
@@ -451,7 +492,6 @@ router.put("/putOrders", async (req, res) => {
                   time: time.getTime(),
                   amt: amt.toFixed(2),
                 });
-                console.log(statment);
               }
             }
           }
@@ -514,7 +554,6 @@ router.put("/putOrders", async (req, res) => {
                 time: time.getTime(),
                 amt: amt.toFixed(2),
               });
-              console.log(statment);
             }
           }
         }
