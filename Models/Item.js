@@ -58,6 +58,19 @@ const itemSchema = new mongoose.Schema({
       type: String,
     },
   ],
+  stock: [
+    {
+      warehouse_uuid: {
+        type: String,
+      },
+      qty: {
+        type: Number,
+      },
+      min_level: {
+        type: Number,
+      },
+    },
+  ],
 });
 
 module.exports = mongoose.model("items", itemSchema);
