@@ -28,6 +28,9 @@ const UserSchema = new mongoose.Schema({
     user_role: [{
         type: String,
     }],
+    routes: [{
+        type: String,
+    }],
 })
 
 
