@@ -125,7 +125,7 @@ router.get("/GetTripList", async (req, res) => {
           ).length,
         })),
       ];
-      console.log(result);
+      // console.log(result);
       res.json({
         success: true,
         result,
