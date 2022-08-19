@@ -11,8 +11,10 @@ const ItemGroup = require("./Routes/ItemGroup");
 const Counter = require("./Routes/Counters");
 const Users = require("./Routes/Users");
 const Item = require("./Routes/Item");
+const ItemModel = require("./Models/Item");
 const Vouchers = require("./Routes/Vouchers");
 const Warehouse = require("./Routes/Warehouse");
+const WarehouseModel = require("./Models/Warehouse");
 const Tasks = require("./Routes/Tasks");
 const AutoBill = require("./Routes/AutoBill");
 const Orders = require("./Routes/Orders");
@@ -22,9 +24,11 @@ const PaymentModes = require("./Routes/PaymentModes");
 const Receipts = require("./Routes/Receipts");
 const Outstanding = require("./Routes/Outstanding");
 const Details = require("./Routes/Details");
+const DetailsModel = require("./Models/Details");
 var bodyParser = require("body-parser");
 const Incentive = require("./Routes/Incentives");
 const IncentiveStatment = require("./Routes/IncentiveStatment");
+const OrderCompleted = require("./Models/OrderCompleted");
 connectDB();
 app = express();
 app.use(
@@ -80,4 +84,113 @@ app.get("/stream/:text", async (req, res) => {
   }
 });
 
+const MinLevelUpdateAutomation = async () => {
+  console.log("Fuction");
+  let DetailsData = await DetailsModel.findOne({});
+  DetailsData = JSON.parse(JSON.stringify(DetailsData));
+  let time = new Date().getTime();
+  let FiteenDaysTime = new Date(
+    time - 86400000 * (DetailsData?.compare_stock_level || 1)
+  ).toDateString();
+  FiteenDaysTime = new Date(FiteenDaysTime + " 00:00:00 AM").getTime();
+  let ordersData = await OrderCompleted.find({
+    "status.time": { $gt: FiteenDaysTime },
+  });
+  ordersData = JSON.parse(JSON.stringify(ordersData));
+  ordersData = ordersData.filter(
+    (a) =>
+      a.status.filter((b) => +b.stage === 1 && b.time > FiteenDaysTime).length
+  );
+  let warehouseData = await WarehouseModel.find({});
+  warehouseData = JSON.parse(JSON.stringify(warehouseData));
+  warehouseData = warehouseData.filter((a) => a.warehouse_uuid);
+  warehouseData = warehouseData.map((a) => ({
+    ...a,
+    orders: ordersData.filter((b) => b.warehouse_uuid === a.warehouse_uuid),
+  }));
+  for (let warehouseItem of warehouseData) {
+    let items = [].concat.apply(
+      [],
+      warehouseItem?.orders?.map((a) => a.item_details)
+    );
+    let result = [];
+    for (let item of items) {
+      let itemData = await ItemModel.findOne({ item_uuid: item.item_uuid });
+      itemData = JSON.parse(JSON.stringify(itemData));
+      var existing = result.filter(function (v, i) {
+        return v.item_uuid === item.item_uuid;
+      });
+
+      if (existing.length === 0) {
+        let itemsFilteredData = items.filter(
+          (a) => a.item_uuid === item.item_uuid
+        );
+        let b =
+          itemsFilteredData.length > 1
+            ? itemsFilteredData?.map((c) => +c.b || 0).reduce((c, d) => c + d)
+            : +itemsFilteredData[0]?.b || 0;
+        let p =
+          itemsFilteredData.length > 1
+            ? itemsFilteredData?.map((c) => +c.p || 0).reduce((c, d) => c + d)
+            : +itemsFilteredData[0]?.p || 0;
+
+        let obj = {
+          ...item,
+          stock: itemData.stock,
+          conversion: itemData.conversion,
+          b: parseInt(+b + +p / +itemData?.conversion),
+          p: parseInt(+p % +itemData?.conversion),
+        };
+        result.push(obj);
+      }
+    }
+    for (let item of result) {
+      let min_level = +item.b * +item.conversion + +item.p;
+      min_level = (
+        min_level *
+        ((DetailsData?.maintain_stock_days || 1) /
+          (DetailsData?.compare_stock_level || 1))
+      ).toFixed(0);
+      let stock = item.stock;
+      stock = stock?.filter(
+        (a) => a.warehouse_uuid === warehouseItem.warehouse_uuid
+      )?.length
+        ? stock.map((a) =>
+            a.warehouse_uuid === warehouseItem.warehouse_uuid
+              ? { ...a, min_level }
+              : a
+          )
+        : stock?.length
+        ? [
+            ...stock,
+            {
+              warehouse_uuid: warehouseItem.warehouse_uuid,
+              min_level,
+              qty: 0,
+            },
+          ]
+        : [
+            {
+              warehouse_uuid: warehouseItem.warehouse_uuid,
+              min_level,
+              qty: 0,
+            },
+          ];
+      const response = await ItemModel.updateOne(
+        { item_uuid: item.item_uuid },
+        { stock }
+      );
+      console.log(response);
+    }
+  }
+};
+// setTimeout(MinLevelUpdateAutomation, 5000);
+setInterval(function () {
+  // Set interval for checking
+  var date = new Date(); // Create a Date object to find out what time it is
+  if (date.getHours() === 2 ) {
+    // Check the time
+    MinLevelUpdateAutomation();
+  }
+}, 3600000);
 module.exports = app;

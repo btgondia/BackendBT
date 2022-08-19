@@ -161,9 +161,7 @@ router.put("/ConfirmVoucher", async (req, res) => {
               : a
           )
         : stock?.length
-        ? +voucherData.from_warehouse === 0
-          ? stock || []
-          : [
+        ?  [
               ...stock,
               {
                 warehouse_uuid: voucherData.to_warehouse,
