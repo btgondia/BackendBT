@@ -153,7 +153,7 @@ router.get("/GetTripListSummary", async (req, res) => {
         });
         ordersData = JSON.parse(JSON.stringify(ordersData));
         let orderLength = ordersData.length;
-        console.log(warehouseData,a);
+        console.log(warehouseData, a);
         result.push({
           ...a,
           orderLength,
@@ -226,7 +226,7 @@ router.get("/GetTripSummaryDetails/:trip_uuid", async (req, res) => {
     }));
     let receiptData = await Receipts.find({
       trip_uuid: a.trip_uuid,
-      $in: { order_uuid: receiptItems.map((a) => a.order_uuid) },
+      order_uuid: { $in: receiptItems.map((a) => a.order_uuid) },
     });
 
     receiptData = [].concat

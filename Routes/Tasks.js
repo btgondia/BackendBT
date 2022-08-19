@@ -52,8 +52,7 @@ router.get("/getCounterTask/:counter_uuid", async (req, res) => {
 router.post("/getCounterList", async (req, res) => {
   try {
     let data = await Tasks.find({
-      $in:{counter_uuid: req.body.counter_uuid.map(a=>a)}
-      ,
+      counter_uuid: { $in: req.body.counter_uuid.map((a) => a) },
       status: 0,
     });
     console.log(data);
@@ -81,10 +80,10 @@ router.put("/putTask", async (req, res) => {
         ? {
             ...value,
             completed_at: time.getTime(),
-            status:1
+            status: 1,
           }
         : value;
-        console.log(value)
+      console.log(value);
       let response = await Tasks.updateOne(
         { task_uuid: value.task_uuid },
         value

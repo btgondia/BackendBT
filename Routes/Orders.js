@@ -32,8 +32,8 @@ router.post("/postOrder", async (req, res) => {
       counter_uuid: value.counter_uuid,
     });
     let itemsData = await Item.find({
-      $in: {
-        item_uuid: value.item_details.map((a) => a.item_uuid),
+      item_uuid: {
+        $in: value.item_details.map((a) => a.item_uuid),
       },
     });
     let incentiveData = await Incentive.find({
@@ -292,7 +292,7 @@ router.put("/putOrders", async (req, res) => {
                 itemData = JSON.parse(JSON.stringify(itemData));
                 let stock = itemData.stock;
                 console.log("Stock", stock);
-                let qty = (+item.b * +itemData.conversion)+item.p;
+                let qty = +item.b * +itemData.conversion + item.p;
                 stock = stock?.filter(
                   (a) => a.warehouse_uuid === tripData.warehouse_uuid
                 )?.length
@@ -339,8 +339,8 @@ router.put("/putOrders", async (req, res) => {
             counter_uuid: value.counter_uuid,
           });
           let itemsData = await Item.find({
-            $in: {
-              item_uuid: value.item_details.map((a) => a.item_uuid),
+            item_uuid: {
+              $in : value.item_details.map((a) => a.item_uuid),
             },
           });
           let incentiveData = await Incentive.find({ status: 1 });
@@ -1020,7 +1020,7 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
     response = JSON.parse(JSON.stringify(response));
     let receiptData = await Receipts.find({
       trip_uuid: value.trip_uuid,
-      $in: { order_uuid: response.map((a) => a.order_uuid) },
+      order_uuid: {  $in: response.map((a) => a.order_uuid) },
     });
 
     receiptData = JSON.parse(JSON.stringify(receiptData));
