@@ -781,16 +781,37 @@ router.get("/GetOrderRunningList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-router.get("/GetOrderAllRunningList", async (req, res) => {
+router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
   try {
-    let data = await Orders.find({});
-    data = JSON.parse(JSON.stringify(data));
+    let userData = await Users.findOne({ user_uuid: req.params.user_uuid });
+    userData = JSON.parse(JSON.stringify(userData));
+
+    let data = [];
+    let counterData = [];
+    if (userData.routes.length) {
+      counterData = await Counters.find({
+        route_uuid: {
+          $in: userData.routes,
+        },
+      });
+      data = await Orders.find({
+        counter_uuid: {
+          $in: counterData
+            .filter((a) => a.counter_uuid)
+            .map((a) => a.counter_uuid),
+        },
+      });
+      data = JSON.parse(JSON.stringify(data));
+    } else {
+      data = await Orders.find({});
+      data = JSON.parse(JSON.stringify(data));
+      counterData = await Counters.find({
+        counter_uuid: {
+          $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+        },
+      });
+    }
     data = data.filter((a) => a.order_uuid && a.hold !== "Y");
-    let counterData = await Counters.find({
-      counter_uuid: {
-        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
-      },
-    });
     res.json({
       success: true,
       result: data
@@ -807,16 +828,37 @@ router.get("/GetOrderAllRunningList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-router.get("/GetOrderHoldRunningList", async (req, res) => {
+router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
   try {
-    let data = await Orders.find({});
-    data = JSON.parse(JSON.stringify(data));
+    let userData = await Users.findOne({ user_uuid: req.params.user_uuid });
+    userData = JSON.parse(JSON.stringify(userData));
+
+    let data = [];
+    let counterData = [];
+    if (userData.routes.length) {
+      counterData = await Counters.find({
+        route_uuid: {
+          $in: userData.routes,
+        },
+      });
+      data = await Orders.find({
+        counter_uuid: {
+          $in: counterData
+            .filter((a) => a.counter_uuid)
+            .map((a) => a.counter_uuid),
+        },
+      });
+      data = JSON.parse(JSON.stringify(data));
+    } else {
+      data = await Orders.find({});
+      data = JSON.parse(JSON.stringify(data));
+      counterData = await Counters.find({
+        counter_uuid: {
+          $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+        },
+      });
+    }
     data = data.filter((a) => a.order_uuid && a.hold === "Y");
-    let counterData = await Counters.find({
-      counter_uuid: {
-        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
-      },
-    });
     res.json({
       success: true,
       result: data
