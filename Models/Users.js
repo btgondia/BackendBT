@@ -31,6 +31,9 @@ const UserSchema = new mongoose.Schema({
     routes: [{
         type: String,
     }],
+    warehouse: [{
+        type: String,
+    }],
 })
 
 
