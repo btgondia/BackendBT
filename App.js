@@ -71,8 +71,8 @@ app.use("/Outstanding", Outstanding);
 app.use("/details", Details);
 app.use("/incentiveStatment", IncentiveStatment);
 app.get("/MinLevelUpdate", async (req, res, next) => {
-  await MinLevelUpdateAutomation();
-  res.json({ success: true, message: "Updated" });
+  const response = await MinLevelUpdateAutomation();
+  res.json({ success: true, message: "Updated", result: response });
 });
 app.get("/stream/:text", async (req, res) => {
   try {
@@ -88,6 +88,7 @@ app.get("/stream/:text", async (req, res) => {
 });
 
 const MinLevelUpdateAutomation = async () => {
+  let items = [];
   console.log("Fuction");
   let DetailsData = await DetailsModel.findOne({});
   DetailsData = JSON.parse(JSON.stringify(DetailsData));
@@ -183,9 +184,10 @@ const MinLevelUpdateAutomation = async () => {
         { item_uuid: item.item_uuid },
         { stock }
       );
-      console.log(response);
+      items.push({ item_uuid: item.item_uuid, stock });
     }
   }
+  return items;
 };
 // setTimeout(MinLevelUpdateAutomation, 5000);
 setInterval(function () {
