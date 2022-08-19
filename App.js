@@ -146,11 +146,11 @@ const MinLevelUpdateAutomation = async () => {
     }
     for (let item of result) {
       let min_level = +item.b * +item.conversion + +item.p;
-      min_level = (
+      min_level = Math.floor(
         min_level *
         ((DetailsData?.maintain_stock_days || 1) /
           (DetailsData?.compare_stock_level || 1))
-      ).toFixed(0);
+      );
       let stock = item.stock;
       stock = stock?.filter(
         (a) => a.warehouse_uuid === warehouseItem.warehouse_uuid
