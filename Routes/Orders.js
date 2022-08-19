@@ -148,11 +148,12 @@ router.post("/postOrder", async (req, res) => {
           time_stamp: outstandingObj.time,
         });
       }
+      console.log(+orderStage)
       response = await OrderCompleted.create({
         ...value,
         invoice_number: invoice_number.next_invoice_number || 0,
         order_status: "R",
-        entry: 0,
+        entry: +orderStage === 5 ? 1 : 0,
       });
     } else
       response = await Orders.create({
@@ -330,7 +331,7 @@ router.put("/putOrders", async (req, res) => {
 
           data = await OrderCompleted.create({
             ...value,
-            entry: 0,
+            entry: +orderStage === 5 ? 1 : 0,
           });
           await Orders.deleteOne({ order_uuid: value.order_uuid });
         }

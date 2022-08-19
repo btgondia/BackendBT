@@ -70,7 +70,10 @@ app.use("/receipts", Receipts);
 app.use("/Outstanding", Outstanding);
 app.use("/details", Details);
 app.use("/incentiveStatment", IncentiveStatment);
-
+app.get("/MinLevelUpdate", async (req, res, next) => {
+  await MinLevelUpdateAutomation();
+  res.json({ success: true, message: "Updated" });
+});
 app.get("/stream/:text", async (req, res) => {
   try {
     let { text } = await req.params;
@@ -148,8 +151,8 @@ const MinLevelUpdateAutomation = async () => {
       let min_level = +item.b * +item.conversion + +item.p;
       min_level = Math.floor(
         min_level *
-        ((DetailsData?.maintain_stock_days || 1) /
-          (DetailsData?.compare_stock_level || 1))
+          ((DetailsData?.maintain_stock_days || 1) /
+            (DetailsData?.compare_stock_level || 1))
       );
       let stock = item.stock;
       stock = stock?.filter(
@@ -188,7 +191,7 @@ const MinLevelUpdateAutomation = async () => {
 setInterval(function () {
   // Set interval for checking
   var date = new Date(); // Create a Date object to find out what time it is
-  if (date.getHours() === 2 ) {
+  if (date.getHours() === 2) {
     // Check the time
     MinLevelUpdateAutomation();
   }
