@@ -194,7 +194,8 @@ setInterval(function () {
   // Set interval for checking
   var date = new Date(); // Create a Date object to find out what time it is
   if (date.getHours() === 2) {
-    console.log(date.getHours())
+    console.log(date.getHours());
+    DetailsModel.updateMany({}, { timer_run_at: date.getTime() });
     // Check the time
     MinLevelUpdateAutomation();
   }

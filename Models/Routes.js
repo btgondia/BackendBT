@@ -13,6 +13,11 @@ const RoutesSchema = new mongoose.Schema({
 
     },
     
+    warehouse_uuid: {
+        type: String,
+
+    },
+    
 
 })
 

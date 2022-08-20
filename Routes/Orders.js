@@ -13,12 +13,24 @@ const IncentiveStatment = require("../Models/IncentiveStatment");
 const SignedBills = require("../Models/SignedBills");
 const { v4: uuid } = require("uuid");
 const Trips = require("../Models/Trips");
+const Routes = require("../Models/Routes");
 router.post("/postOrder", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
     value = { ...value, order_uuid: uuid() };
+    if (!value.warehouse_uuid) {
+      let counterData = await Counters.findOne({
+        counter_uuid: value.counter_uuid,
+      });
+      if (counterData?.route_uuid) {
+        let routeData = await Routes.findOne({ route_uuid: value.route_uuid });
+        if (routeData.warehouse_uuid) {
+          value = { ...value, warehouse_uuid: routeData.warehouse_uuid };
+        }
+      }
+    }
     console.log(value);
     let invoice_number = await Details.findOne({});
     let orderStage = value.status
@@ -148,7 +160,7 @@ router.post("/postOrder", async (req, res) => {
           time_stamp: outstandingObj.time,
         });
       }
-      console.log(+orderStage)
+      console.log(+orderStage);
       response = await OrderCompleted.create({
         ...value,
         invoice_number: invoice_number.next_invoice_number || 0,
