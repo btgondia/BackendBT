@@ -194,6 +194,7 @@ setInterval(function () {
   // Set interval for checking
   var date = new Date(); // Create a Date object to find out what time it is
   if (date.getHours() === 2) {
+    console.log(date.getHours())
     // Check the time
     MinLevelUpdateAutomation();
   }
