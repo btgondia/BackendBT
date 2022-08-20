@@ -14,6 +14,7 @@ const SignedBills = require("../Models/SignedBills");
 const { v4: uuid } = require("uuid");
 const Trips = require("../Models/Trips");
 const Routes = require("../Models/Routes");
+const CancelOrders = require("../Models/CancelOrders");
 router.post("/postOrder", async (req, res) => {
   try {
     let value = req.body;
@@ -281,6 +282,9 @@ router.put("/putOrders", async (req, res) => {
         +orderStage === 5 ||
         value?.item_details?.length === 0
       ) {
+        if(+orderStage === 5||value?.item_details?.length === 0){
+          await CancelOrders.create(value)
+        }
         // console.log("length", value?.item_details?.length);
         let data = await OrderCompleted.findOne({
           order_uuid: value.order_uuid,

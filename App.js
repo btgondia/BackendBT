@@ -29,6 +29,7 @@ var bodyParser = require("body-parser");
 const Incentive = require("./Routes/Incentives");
 const IncentiveStatment = require("./Routes/IncentiveStatment");
 const OrderCompleted = require("./Models/OrderCompleted");
+const CancelOrders = require("./Routes/CancelOrder");
 connectDB();
 app = express();
 app.use(
@@ -70,6 +71,7 @@ app.use("/receipts", Receipts);
 app.use("/Outstanding", Outstanding);
 app.use("/details", Details);
 app.use("/incentiveStatment", IncentiveStatment);
+app.use("/cancelOrders", CancelOrders);
 app.get("/MinLevelUpdate", async (req, res, next) => {
   const response = await MinLevelUpdateAutomation();
   res.json({ success: true, message: "Updated", result: response });
