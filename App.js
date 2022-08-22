@@ -189,6 +189,10 @@ const MinLevelUpdateAutomation = async () => {
       items.push({ item_uuid: item.item_uuid, stock });
     }
   }
+  var date = new Date(); // Create a Date object to find out what time it is
+
+  const response= await DetailsModel.updateMany({}, { timer_run_at: date.getTime() });
+console.log(response)
   return items;
 };
 // setTimeout(MinLevelUpdateAutomation, 5000);
@@ -197,9 +201,8 @@ setInterval(function () {
   var date = new Date(); // Create a Date object to find out what time it is
   if (date.getHours() === 2) {
     console.log(date.getHours());
-    DetailsModel.updateMany({}, { timer_run_at: date.getTime() });
     // Check the time
     MinLevelUpdateAutomation();
   }
-}, 3600000);
+}, 360000);
 module.exports = app;
