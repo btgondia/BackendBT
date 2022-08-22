@@ -27,8 +27,8 @@ router.post("/postOrder", async (req, res) => {
       });
       if (counterData?.route_uuid) {
         let routeData = await Routes.findOne({ route_uuid: value.route_uuid });
-        if (routeData.warehouse_uuid) {
-          value = { ...value, warehouse_uuid: routeData.warehouse_uuid };
+        if (routeData?.warehouse_uuid) {
+          value = { ...value, warehouse_uuid: routeData?.warehouse_uuid };
         }
       }
     }
