@@ -161,14 +161,14 @@ router.put("/ConfirmVoucher", async (req, res) => {
               : a
           )
         : stock?.length
-        ?  [
-              ...stock,
-              {
-                warehouse_uuid: voucherData.to_warehouse,
-                min_level: 0,
-                qty: +qty,
-              },
-            ]
+        ? [
+            ...stock,
+            {
+              warehouse_uuid: voucherData.to_warehouse,
+              min_level: 0,
+              qty: +qty,
+            },
+          ]
         : [
             {
               warehouse_uuid: voucherData.to_warehouse,
@@ -188,6 +188,21 @@ router.put("/ConfirmVoucher", async (req, res) => {
       { voucher_uuid: value.voucher_uuid },
       { delivered: 1 }
     );
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Item Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.delete("/DeleteVoucher", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+
+    let response = await Vochers.deleteMany({
+      voucher_uuid: value.voucher_uuid,
+    });
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Item Not created" });

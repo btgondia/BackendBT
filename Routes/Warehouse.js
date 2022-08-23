@@ -4,6 +4,7 @@ const router = express.Router();
 const { v4: uuid } = require("uuid");
 const Item = require("../Models/Item");
 const Orders = require("../Models/Orders");
+const Vochers = require("../Models/Vochers");
 const Warehouse = require("../Models/Warehouse");
 
 router.post("/postWarehouse", async (req, res) => {
@@ -39,6 +40,15 @@ router.get("/GetSuggestionItemsList/:warehouse_uuid", async (req, res) => {
       warehouse_uuid: req.params.warehouse_uuid,
     });
     ordersData = JSON.parse(JSON.stringify(ordersData));
+    let vouchersData = await Vochers.find({
+      to_warehouse: req.params.warehouse_uuid,
+      delivered: 0,
+    });
+    vouchersData = JSON.parse(JSON.stringify(vouchersData));
+    let vocherItems = [].concat.apply(
+      [],
+      vouchersData?.map((a) => a.item_details)
+    );
 
     let items = [].concat.apply(
       [],
@@ -56,7 +66,7 @@ router.get("/GetSuggestionItemsList/:warehouse_uuid", async (req, res) => {
       });
 
       if (existing.length === 0) {
-        let itemsFilteredData = items.filter(
+        let itemsFilteredData = allItemsData.filter(
           (a) => a.item_uuid === item.item_uuid
         );
         let b =
@@ -79,7 +89,31 @@ router.get("/GetSuggestionItemsList/:warehouse_uuid", async (req, res) => {
         result.push(obj);
       }
     }
-    console.log(result.length);
+    let newVocherItems = [];
+    for (let item of vocherItems) {
+      var existing = newVocherItems.filter(function (v, i) {
+        return v.item_uuid === item.item_uuid;
+      });
+
+      if (existing.length === 0) {
+        let itemsFilteredData = vocherItems.filter(
+          (a) => a.item_uuid === item.item_uuid
+        );
+        let b =
+          itemsFilteredData.length > 1
+            ? itemsFilteredData?.map((c) => +c.b || 0).reduce((c, d) => c + d)
+            : +itemsFilteredData[0]?.b || 0;
+
+        let obj = {
+          ...item,
+
+          b: b,
+        };
+
+        newVocherItems.push(obj);
+      }
+    }
+
     let data = [];
     for (let item of result) {
       let warehouseData = item?.stock?.find(
@@ -93,13 +127,22 @@ router.get("/GetSuggestionItemsList/:warehouse_uuid", async (req, res) => {
               +item.conversion +
             +item.b;
 
-          b =
+          b = Math.floor(
             +warehouseData.min_level % +item.conversion ||
-            +warehouseData.min_level === 0 ||
-            +item.p % +item.conversion
-              ? Math.floor(b + 1)
-              : Math.floor(b);
-          data.push({ ...item, b, p: 0, uuid: item.item_uuid });
+              +warehouseData.min_level === 0 ||
+              +item.p % +item.conversion
+              ? b + 1
+              : b
+          );
+          let vocherItem = newVocherItems?.find(
+            (a) => a.item_uuid === item.item_uuid
+          );
+
+          if (vocherItem) {
+            b = b - vocherItem?.b >= 0 ? b - vocherItem?.b : 0;
+          }
+
+          data.push({ ...item, b: Math.floor(b), p: 0, uuid: item.item_uuid });
         }
       }
     }
