@@ -121,7 +121,7 @@ router.put("/ConfirmVoucher", async (req, res) => {
         item_uuid: item.item_uuid,
       });
       itemData = JSON.parse(JSON.stringify(itemData));
-      let stock = itemData.stock;
+      let stock = itemData.stock||[];
       console.log("Stock", stock);
       let qty = +item.b * +itemData.conversion + item.p;
       stock =

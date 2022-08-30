@@ -73,57 +73,57 @@ router.get("/GetOrderRouteList", async (req, res) => {
 
     if (ordersData.length) {
       let result = [
-        {
-          route_uuid: 0,
-          route_title: "Unknown",
-          orderLength: ordersData.filter(
-            (a) =>
-              counter.filter(
-                (c) =>
-                  c.counter_uuid === a.counter_uuid &&
-                  (!c.route_uuid || +c.route_uuid === 0)
-              ).length
-          ).length,
-          checkingLength: ordersData.filter(
-            (b) =>
-              counter.filter(
-                (c) =>
-                  c.counter_uuid === b.counter_uuid &&
-                  (!c.route_uuid || +c.route_uuid === 0)
-              ).length &&
-              (b.status.length > 1
-                ? +b.status
-                    .map((x) => +x.stage || 0)
-                    .reduce((c, d) => Math.max(c, d)) === 2
-                : +b?.status[0]?.stage === 2)
-          ).length,
-          processingLength: ordersData.filter(
-            (b) =>
-              counter.filter(
-                (c) =>
-                  c.counter_uuid === b.counter_uuid &&
-                  (!c.route_uuid || +c.route_uuid === 0)
-              ).length &&
-              (b.status.length > 1
-                ? +b.status
-                    .map((x) => +x.stage || 0)
-                    .reduce((c, d) => Math.max(c, d)) === 1
-                : +b?.status[0]?.stage === 1)
-          ).length,
-          deliveryLength: ordersData.filter(
-            (b) =>
-              counter.filter(
-                (c) =>
-                  c.counter_uuid === b.counter_uuid &&
-                  (!c.route_uuid || +c.route_uuid === 0)
-              ).length &&
-              (b.status.length > 1
-                ? +b.status
-                    .map((x) => +x.stage || 0)
-                    .reduce((c, d) => Math.max(c, d)) === 3
-                : +b?.status[0]?.stage === 3)
-          ).length,
-        },
+        // {
+        //   route_uuid: 0,
+        //   route_title: "Unknown",
+        //   orderLength: ordersData.filter(
+        //     (a) =>
+        //       counter.filter(
+        //         (c) =>
+        //           c.counter_uuid === a.counter_uuid &&
+        //           (!c.route_uuid || +c.route_uuid === 0)
+        //       ).length
+        //   ).length,
+        //   checkingLength: ordersData.filter(
+        //     (b) =>
+        //       counter.filter(
+        //         (c) =>
+        //           c.counter_uuid === b.counter_uuid &&
+        //           (!c.route_uuid || +c.route_uuid === 0)
+        //       ).length &&
+        //       (b.status.length > 1
+        //         ? +b.status
+        //             .map((x) => +x.stage || 0)
+        //             .reduce((c, d) => Math.max(c, d)) === 2
+        //         : +b?.status[0]?.stage === 2)
+        //   ).length,
+        //   processingLength: ordersData.filter(
+        //     (b) =>
+        //       counter.filter(
+        //         (c) =>
+        //           c.counter_uuid === b.counter_uuid &&
+        //           (!c.route_uuid || +c.route_uuid === 0)
+        //       ).length &&
+        //       (b.status.length > 1
+        //         ? +b.status
+        //             .map((x) => +x.stage || 0)
+        //             .reduce((c, d) => Math.max(c, d)) === 1
+        //         : +b?.status[0]?.stage === 1)
+        //   ).length,
+        //   deliveryLength: ordersData.filter(
+        //     (b) =>
+        //       counter.filter(
+        //         (c) =>
+        //           c.counter_uuid === b.counter_uuid &&
+        //           (!c.route_uuid || +c.route_uuid === 0)
+        //       ).length &&
+        //       (b.status.length > 1
+        //         ? +b.status
+        //             .map((x) => +x.stage || 0)
+        //             .reduce((c, d) => Math.max(c, d)) === 3
+        //         : +b?.status[0]?.stage === 3)
+        //   ).length,
+        // },
         ...data.map((a) => {
           return {
             ...a,
