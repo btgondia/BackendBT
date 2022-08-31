@@ -92,29 +92,29 @@ app.get("/stream/:text", async (req, res) => {
 const MinLevelUpdateAutomation = async () => {
   let items = [];
   console.log("Fuction");
-  let DetailsData = await DetailsModel.findOne({});
-  DetailsData = JSON.parse(JSON.stringify(DetailsData));
-  let time = new Date().getTime();
-  let FiteenDaysTime = new Date(
-    time - 86400000 * (DetailsData?.compare_stock_level || 1)
-  ).toDateString();
-  FiteenDaysTime = new Date(FiteenDaysTime + " 00:00:00 AM").getTime();
-  let ordersData = await OrderCompleted.find({
-    "status.time": { $gt: FiteenDaysTime },
-  });
-  ordersData = JSON.parse(JSON.stringify(ordersData));
-  ordersData = ordersData.filter(
-    (a) =>
-      a.status.filter((b) => +b.stage === 1 && b.time > FiteenDaysTime).length
-  );
+
   let warehouseData = await WarehouseModel.find({});
   warehouseData = JSON.parse(JSON.stringify(warehouseData));
   warehouseData = warehouseData.filter((a) => a.warehouse_uuid);
-  warehouseData = warehouseData.map((a) => ({
-    ...a,
-    orders: ordersData.filter((b) => b.warehouse_uuid === a.warehouse_uuid),
-  }));
+
   for (let warehouseItem of warehouseData) {
+    let time = new Date().getTime();
+    let FiteenDaysTime = new Date(
+      time - 86400000 * (warehouseItem?.compare_stock_level || 0)
+    ).toDateString();
+    FiteenDaysTime = new Date(FiteenDaysTime + " 00:00:00 AM").getTime();
+    let ordersData = await OrderCompleted.find({
+      "status.time": { $gt: FiteenDaysTime },
+    });
+    ordersData = JSON.parse(JSON.stringify(ordersData));
+    ordersData = ordersData.filter(
+      (a) =>
+        a.status.filter((b) => +b.stage === 1 && b.time > FiteenDaysTime).length
+    );
+    warehouseItem = {
+      ...warehouseItem,
+      orders: ordersData.filter((b) => b.warehouse_uuid === warehouseItem.warehouse_uuid),
+    };
     let items = [].concat.apply(
       [],
       warehouseItem?.orders?.map((a) => a.item_details)
@@ -154,8 +154,8 @@ const MinLevelUpdateAutomation = async () => {
       let min_level = +item.b * +item.conversion + +item.p;
       min_level = Math.floor(
         min_level *
-          ((DetailsData?.maintain_stock_days || 1) /
-            (DetailsData?.compare_stock_level || 1))
+          ((warehouseItem?.maintain_stock_days || 0) /
+            (warehouseItem?.compare_stock_level || 0))
       );
       let stock = item.stock;
       stock = stock?.filter(
@@ -191,8 +191,11 @@ const MinLevelUpdateAutomation = async () => {
   }
   var date = new Date(); // Create a Date object to find out what time it is
 
-  const response= await DetailsModel.updateMany({}, { timer_run_at: date.getTime() });
-console.log(response)
+  const response = await DetailsModel.updateMany(
+    {},
+    { timer_run_at: date.getTime() }
+  );
+  console.log(response);
   return items;
 };
 // setTimeout(MinLevelUpdateAutomation, 5000);
