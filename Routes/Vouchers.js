@@ -121,7 +121,9 @@ router.put("/ConfirmVoucher", async (req, res) => {
       item_uuid: item.item_uuid,
     });
     itemData = JSON.parse(JSON.stringify(itemData));
-    if (!itemData) return;
+    if (itemData) {
+
+    
     let stock = itemData?.stock || [];
     console.log("Stock", stock, item.item_uuid);
     let qty = +item.b * +itemData.conversion + item.p;
@@ -183,7 +185,7 @@ router.put("/ConfirmVoucher", async (req, res) => {
         },
         { stock }
       );
-  }
+  }}
   let response = await Vochers.updateMany(
     { voucher_uuid: value.voucher_uuid },
     { delivered: 1 }
