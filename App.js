@@ -30,6 +30,7 @@ const Incentive = require("./Routes/Incentives");
 const IncentiveStatment = require("./Routes/IncentiveStatment");
 const OrderCompleted = require("./Models/OrderCompleted");
 const CancelOrders = require("./Routes/CancelOrder");
+const Vochers = require("./Models/Vochers");
 connectDB();
 app = express();
 app.use(
@@ -105,20 +106,29 @@ const MinLevelUpdateAutomation = async () => {
     FiteenDaysTime = new Date(FiteenDaysTime + " 00:00:00 AM").getTime();
     let ordersData = await OrderCompleted.find({
       "status.time": { $gt: FiteenDaysTime },
+      warehouse_uuid: warehouseItem.warehouse_uuid,
+    });
+    let vocherData = await Vochers.find({
+      created_at: { $gt: FiteenDaysTime },
+      from_warehouse: warehouseItem.warehouse_uuid,
     });
     ordersData = JSON.parse(JSON.stringify(ordersData));
     ordersData = ordersData.filter(
       (a) =>
         a.status.filter((b) => +b.stage === 1 && b.time > FiteenDaysTime).length
     );
-    warehouseItem = {
-      ...warehouseItem,
-      orders: ordersData.filter((b) => b.warehouse_uuid === warehouseItem.warehouse_uuid),
-    };
-    let items = [].concat.apply(
-      [],
-      warehouseItem?.orders?.map((a) => a.item_details)
-    );
+    console.log(warehouseItem);
+    let items = [
+      ...([].concat.apply(
+        [],
+        ordersData?.map((a) => a.item_details)
+      ) || []),
+      ...([].concat.apply(
+        [],
+        vocherData?.map((a) => a.item_details)
+      ) || []),
+    ];
+
     let result = [];
     for (let item of items) {
       let itemData = await ItemModel.findOne({ item_uuid: item.item_uuid });
