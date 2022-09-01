@@ -282,8 +282,8 @@ router.put("/putOrders", async (req, res) => {
         +orderStage === 5 ||
         value?.item_details?.length === 0
       ) {
-        if(+orderStage === 5||value?.item_details?.length === 0){
-          await CancelOrders.create(value)
+        if (+orderStage === 5 || value?.item_details?.length === 0) {
+          await CancelOrders.create(value);
         }
         // console.log("length", value?.item_details?.length);
         let data = await OrderCompleted.findOne({
@@ -901,6 +901,10 @@ router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
 router.get("/GetOrder/:order_uuid", async (req, res) => {
   try {
     let data = await Orders.findOne({ order_uuid: req.params.order_uuid });
+    if (!data)
+      data = await OrderCompleted.findOne({
+        order_uuid: req.params.order_uuid,
+      });
     data = JSON.parse(JSON.stringify(data));
 
     res.json({

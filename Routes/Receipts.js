@@ -7,6 +7,7 @@ const Users = require("../Models/Users");
 const router = express.Router();
 const Receipts = require("../Models/Receipts");
 const Details = require("../Models/Details");
+const { format } = require("express/lib/response");
 
 router.post("/postReceipt", async (req, res) => {
   try {
@@ -59,8 +60,9 @@ router.put("/putReceipt", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+
 router.put("/putReceiptUPIStatus", async (req, res) => {
-  // try {
+  try {
   let value = req.body;
   if (!value) res.json({ success: false, message: "Invalid Data" });
 
@@ -84,10 +86,24 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
   if (data.acknowledged) {
     res.json({ success: true, result: response });
   } else res.json({ success: false, message: "Receipts Not created" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
+// const updateStetus = async () => {
+//   let response = await Receipts.find({});
+
+//   response = JSON.parse(JSON.stringify(response));
+//   for (let item of response) {
+//     let modes = item.modes.map((a) => ({ ...a, status: 1 }));
+//     let data = await Receipts.updateMany(
+//       { order_uuid: item.order_uuid },
+//       { modes }
+//     );
+//   }
+//   console.log("done");
+// };
+// updateStetus()
 router.get("/getReceipt", async (req, res) => {
   try {
     let response = await Receipts.find({});
@@ -122,7 +138,10 @@ router.get("/getReceipt", async (req, res) => {
           });
           for (let item1 of modes) {
             let obj = {
-              mode_title: item1.mode_uuid==="c67b5988-d2b6-11ec-9d64-0242ac120002"?"UPI":"Cheque",
+              mode_title:
+                item1.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002"
+                  ? "UPI"
+                  : "Cheque",
               mode_uuid: item1.mode_uuid,
               counter_title: counterData?.counter_title || "",
               invoice_number: orderData?.invoice_number || "",
