@@ -147,6 +147,14 @@ const MinLevelUpdateAutomation = async () => {
       ) || []),
       ...([].concat.apply(
         [],
+        ordersData?.map((a) => a.fulfillment)
+      ) || []),
+      ...([].concat.apply(
+        [],
+        cancelOrdersData?.map((a) => a.fulfillment)
+      ) || []),
+      ...([].concat.apply(
+        [],
         cancelOrdersData?.map((a) => a.delivery_return)
       ) || []),
       ...([].concat.apply(

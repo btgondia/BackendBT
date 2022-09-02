@@ -51,6 +51,13 @@ const OrdersSchema = new mongoose.Schema({
       p: { type: Number },
     },
   ],
+  fulfillment: [
+    {
+      item_uuid: { type: String },
+      b: { type: Number },
+      p: { type: Number },
+    },
+  ],
   delivery_return: [
     {
       item_uuid: { type: String },
