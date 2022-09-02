@@ -834,7 +834,13 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
         },
       });
     }
-    data = data.filter((a) => a.order_uuid && a.hold !== "Y");
+    data = data.filter(
+      (a) =>
+        a.order_uuid &&
+        a.hold !== "Y" &&
+        (!a.warehouse_uuid ||
+          userData?.warehouse?.find((b) => b === a.warehouse_uuid))
+    );
     res.json({
       success: true,
       result: data
@@ -858,12 +864,17 @@ router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
 
     let data = [];
     let counterData = [];
-    if (userData.routes.length) {
-      counterData = await Counters.find({
-        route_uuid: {
-          $in: userData.routes,
-        },
-      });
+    if (
+      userData.routes.length &&
+      !userData.routes.filter((a) => +a === 1).length
+    ) {
+      counterData = await Counters.find({});
+      counterData = JSON.parse(JSON.stringify(counterData));
+      counterData = counterData.filter(
+        (a) =>
+          userData.routes.filter((b) => b === a.route_uuid).length ||
+          (userData.routes.filter((b) => +b === 0).length && !a.route_uuid)
+      );
       data = await Orders.find({
         counter_uuid: {
           $in: counterData
@@ -881,7 +892,13 @@ router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
         },
       });
     }
-    data = data.filter((a) => a.order_uuid && a.hold === "Y");
+    data = data.filter(
+      (a) =>
+        a.order_uuid &&
+        a.hold === "Y" &&
+        (!a.warehouse_uuid ||
+          userData?.warehouse?.find((b) => b === a.warehouse_uuid))
+    );
     res.json({
       success: true,
       result: data
