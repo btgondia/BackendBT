@@ -191,7 +191,7 @@ const MinLevelUpdateAutomation = async () => {
       min_level = Math.floor(
         min_level *
           ((warehouseItem?.maintain_stock_days || 0) /
-            (warehouseItem?.compare_stock_level || 0))
+            (warehouseItem?.compare_stock_level || 1))
       );
       let stock = item.stock;
       stock = stock?.filter(
