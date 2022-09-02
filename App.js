@@ -92,12 +92,14 @@ app.get("/stream/:text", async (req, res) => {
 });
 
 const MinLevelUpdateAutomation = async () => {
-  let items = [];
+  let itemsList = [];
   console.log("Fuction");
 
   let warehouseData = await WarehouseModel.find({});
   warehouseData = JSON.parse(JSON.stringify(warehouseData));
   warehouseData = warehouseData.filter((a) => a.warehouse_uuid);
+  let itemsData = await ItemModel.find({});
+  itemsData = JSON.parse(JSON.stringify(itemsData));
 
   for (let warehouseItem of warehouseData) {
     let time = new Date().getTime();
@@ -165,13 +167,12 @@ const MinLevelUpdateAutomation = async () => {
 
     let result = [];
     for (let item of items) {
-      let itemData = await ItemModel.findOne({ item_uuid: item.item_uuid });
-      itemData = JSON.parse(JSON.stringify(itemData));
+      let itemData = itemsData.find((a) => a.item_uuid === item.item_uuid);
       var existing = result.filter(function (v, i) {
         return v.item_uuid === item.item_uuid;
       });
 
-      if (existing.length === 0) {
+      if (existing.length === 0 && itemData) {
         let itemsFilteredData = items.filter(
           (a) => a.item_uuid === item.item_uuid
         );
@@ -186,8 +187,8 @@ const MinLevelUpdateAutomation = async () => {
 
         let obj = {
           ...item,
-          stock: itemData.stock,
-          conversion: itemData.conversion,
+          stock: itemData?.stock || [],
+          conversion: itemData?.conversion,
           b: parseInt(+b + +p / +itemData?.conversion),
           p: parseInt(+p % +itemData?.conversion),
         };
@@ -230,7 +231,7 @@ const MinLevelUpdateAutomation = async () => {
         { item_uuid: item.item_uuid },
         { stock }
       );
-      items.push({ item_uuid: item.item_uuid, stock });
+      itemsList.push({ item_uuid: item.item_uuid, stock });
     }
   }
   var date = new Date(); // Create a Date object to find out what time it is
@@ -240,7 +241,7 @@ const MinLevelUpdateAutomation = async () => {
     { timer_run_at: date.getTime() }
   );
   console.log(response);
-  return items;
+  return itemsList;
 };
 // setTimeout(MinLevelUpdateAutomation, 5000);
 setInterval(function () {
