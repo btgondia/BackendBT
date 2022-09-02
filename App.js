@@ -30,6 +30,7 @@ const Incentive = require("./Routes/Incentives");
 const IncentiveStatment = require("./Routes/IncentiveStatment");
 const OrderCompleted = require("./Models/OrderCompleted");
 const CancelOrders = require("./Routes/CancelOrder");
+const CancelOrdersModel = require("./Models/CancelOrders");
 const Vochers = require("./Models/Vochers");
 connectDB();
 app = express();
@@ -108,6 +109,10 @@ const MinLevelUpdateAutomation = async () => {
       "status.time": { $gt: FiteenDaysTime },
       warehouse_uuid: warehouseItem.warehouse_uuid,
     });
+    let cancelOrdersData = await CancelOrdersModel.find({
+      "status.time": { $gt: FiteenDaysTime },
+      warehouse_uuid: warehouseItem.warehouse_uuid,
+    });
     let vocherData = await Vochers.find({
       created_at: { $gt: FiteenDaysTime },
       from_warehouse: warehouseItem.warehouse_uuid,
@@ -117,11 +122,32 @@ const MinLevelUpdateAutomation = async () => {
       (a) =>
         a.status.filter((b) => +b.stage === 1 && b.time > FiteenDaysTime).length
     );
+    cancelOrdersData = JSON.parse(JSON.stringify(cancelOrdersData));
+    cancelOrdersData = cancelOrdersData.filter(
+      (a) =>
+        a.status.filter((b) => +b.stage === 1 && b.time > FiteenDaysTime).length
+    );
     console.log(warehouseItem);
     let items = [
       ...([].concat.apply(
         [],
         ordersData?.map((a) => a.item_details)
+      ) || []),
+      ...([].concat.apply(
+        [],
+        ordersData?.map((a) => a.processing_canceled)
+      ) || []),
+      ...([].concat.apply(
+        [],
+        ordersData?.map((a) => a.delivery_return)
+      ) || []),
+      ...([].concat.apply(
+        [],
+        cancelOrdersData?.map((a) => a.processing_canceled)
+      ) || []),
+      ...([].concat.apply(
+        [],
+        cancelOrdersData?.map((a) => a.delivery_return)
       ) || []),
       ...([].concat.apply(
         [],
