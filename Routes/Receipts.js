@@ -63,29 +63,29 @@ router.put("/putReceipt", async (req, res) => {
 
 router.put("/putReceiptUPIStatus", async (req, res) => {
   try {
-  let value = req.body;
-  if (!value) res.json({ success: false, message: "Invalid Data" });
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
 
-  let response = await Receipts.findOne({
-    $or: [
-      { invoice_number: value.invoice_number },
+    let response = await Receipts.findOne({
+      $or: [
+        { invoice_number: value.invoice_number },
+        { order_uuid: value.order_uuid },
+      ],
+    });
+    console.log(response);
+
+    response = JSON.parse(JSON.stringify(response));
+    response = response.modes.map((a) =>
+      a.mode_uuid === value.mode_uuid ? { ...a, status: value.status } : a
+    );
+    console.log(response);
+    let data = await Receipts.updateMany(
       { order_uuid: value.order_uuid },
-    ],
-  });
-  console.log(response);
-
-  response = JSON.parse(JSON.stringify(response));
-  response = response.modes.map((a) =>
-    a.mode_uuid === value.mode_uuid ? { ...a, status: value.status } : a
-  );
-  console.log(response);
-  let data = await Receipts.updateMany(
-    { order_uuid: value.order_uuid },
-    { modes: response }
-  );
-  if (data.acknowledged) {
-    res.json({ success: true, result: response });
-  } else res.json({ success: false, message: "Receipts Not created" });
+      { modes: response }
+    );
+    if (data.acknowledged) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -151,6 +151,7 @@ router.get("/getReceipt", async (req, res) => {
               user_title: usersData.find((a) => item.user_uuid === a.user_uuid)
                 ?.user_title,
               amt: item1?.amt,
+              remarks: item1?.remarks,
             };
             data.push(obj);
           }
@@ -162,5 +163,37 @@ router.get("/getReceipt", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.put("/putRemarks", async (req, res) => {
+  try {
+  let value = req.body;
+  console.log(value);
+  let orderData = await Receipts.findOne({
+    invoice_number: value.invoice_number,
+  });
+  orderData = JSON.parse(JSON.stringify(orderData));
+  let modes = orderData.modes.map((a) =>
+    a.mode_uuid === value.mode_uuid ? { ...a, remarks: value.remarks } : a
+  );
 
+  console.log(modes);
+  let data = await Receipts.updateOne(
+    {
+      invoice_number: value.invoice_number,
+    },
+    { modes }
+  );
+  if (data.acknowledged) {
+    res.json({
+      success: true,
+      result: data,
+    });
+  } else
+    res.status(404).json({
+      success: false,
+      result: data,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 module.exports = router;

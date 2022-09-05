@@ -161,6 +161,50 @@ router.post("/postOrder", async (req, res) => {
           time_stamp: outstandingObj.time,
         });
       }
+      if (value.warehouse_uuid) {
+        let warehouse_uuid = value.warehouse_uuid;
+        console.log(warehouse_uuid)
+        for (let item of value.item_details) {
+          let itemData = await Item.findOne({
+            item_uuid: item.item_uuid,
+          });
+          itemData = JSON.parse(JSON.stringify(itemData));
+          let stock = itemData.stock;
+          console.log("Stock", stock);
+          let qty =
+            +item.b * +itemData.conversion + +item.p + (+item.free || 0);
+          stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)
+            ?.length
+            ? stock.map((a) =>
+                a.warehouse_uuid === warehouse_uuid
+                  ? { ...a, qty: a.qty - qty }
+                  : a
+              )
+            : stock?.length
+            ? [
+                ...stock,
+                {
+                  warehouse_uuid: warehouse_uuid,
+                  min_level: 0,
+                  qty: -qty,
+                },
+              ]
+            : [
+                {
+                  warehouse_uuid: warehouse_uuid,
+                  min_level: 0,
+                  qty: -qty,
+                },
+              ];
+          console.log("Stock", stock);
+          await Item.updateOne(
+            {
+              item_uuid: item.item_uuid,
+            },
+            { stock }
+          );
+        }
+      }
       console.log(+orderStage);
       response = await OrderCompleted.create({
         ...value,

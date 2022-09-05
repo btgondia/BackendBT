@@ -28,6 +28,7 @@ const ReceiptsSchema = new mongoose.Schema({
       amt: { type: Number },
       coin: { type: Number },
       status: { type: Number },
+      remarks: [{ type: String }],
     },
   ],
 });

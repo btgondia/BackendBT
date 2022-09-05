@@ -139,10 +139,10 @@ const MinLevelUpdateAutomation = async () => {
         [],
         ordersData?.map((a) => a.processing_canceled)
       ) || []),
-      ...([].concat.apply(
-        [],
-        ordersData?.map((a) => a.delivery_return)
-      ) || []),
+      // ...([].concat.apply(
+      //   [],
+      //   ordersData?.map((a) => a.delivery_return)
+      // ) || []),
       ...([].concat.apply(
         [],
         cancelOrdersData?.map((a) => a.processing_canceled)
@@ -155,10 +155,10 @@ const MinLevelUpdateAutomation = async () => {
         [],
         cancelOrdersData?.map((a) => a.fulfillment)
       ) || []),
-      ...([].concat.apply(
-        [],
-        cancelOrdersData?.map((a) => a.delivery_return)
-      ) || []),
+      // ...([].concat.apply(
+      //   [],
+      //   cancelOrdersData?.map((a) => a.delivery_return)
+      // ) || []),
       ...([].concat.apply(
         [],
         vocherData?.map((a) => a.item_details)
