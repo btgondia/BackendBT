@@ -37,6 +37,21 @@ router.get("/GetItemList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.get("/GetItemStockList/:warhouse_uuid", async (req, res) => {
+  try {
+    console.log(req.params.warhouse_uuid)
+    let data = await Item.find({});
+    data= JSON.parse(JSON.stringify(data))
+    if(req.params.warhouse_uuid)
+data=data.map(a=>({...a,qty:a.stock.find(b=>b.warehouse_uuid===req.params.warhouse_uuid)?.qty||0}))
+
+    if (data.length)
+      res.json({ success: true, result: data.filter((a) => a.item_uuid&&a.item_title) });
+    else res.json({ success: false, message: "Item Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 router.put("/putItem", async (req, res) => {
   try {
