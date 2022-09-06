@@ -163,7 +163,7 @@ router.post("/postOrder", async (req, res) => {
       }
       if (value.warehouse_uuid) {
         let warehouse_uuid = value.warehouse_uuid;
-        console.log(warehouse_uuid)
+        console.log(warehouse_uuid);
         for (let item of value.item_details) {
           let itemData = await Item.findOne({
             item_uuid: item.item_uuid,
@@ -845,58 +845,63 @@ router.get("/GetOrderRunningList", async (req, res) => {
 });
 router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
   try {
-    let userData = await Users.findOne({ user_uuid: req.params.user_uuid });
-    userData = JSON.parse(JSON.stringify(userData));
+  let userData = await Users.findOne({ user_uuid: req.params.user_uuid });
+  userData = JSON.parse(JSON.stringify(userData));
 
-    let data = [];
-    let counterData = [];
-    if (
-      userData.routes.length &&
-      !userData.routes.filter((a) => +a === 1).length
-    ) {
-      counterData = await Counters.find({});
-      counterData = JSON.parse(JSON.stringify(counterData));
-      counterData = counterData.filter(
-        (a) =>
-          userData.routes.filter((b) => b === a.route_uuid).length ||
-          (userData.routes.filter((b) => +b === 0).length && !a.route_uuid)
-      );
-      data = await Orders.find({
-        counter_uuid: {
-          $in: counterData
-            .filter((a) => a.counter_uuid)
-            .map((a) => a.counter_uuid),
-        },
-      });
-      data = JSON.parse(JSON.stringify(data));
-    } else {
-      data = await Orders.find({});
-      data = JSON.parse(JSON.stringify(data));
-      counterData = await Counters.find({
-        counter_uuid: {
-          $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
-        },
-      });
-    }
-    data = data.filter(
+  let data = [];
+  let counterData = [];
+  if (
+    userData.routes.length &&
+    !userData.routes.filter((a) => +a === 1).length
+  ) {
+    counterData = await Counters.find({});
+    counterData = JSON.parse(JSON.stringify(counterData));
+    counterData = counterData.filter(
       (a) =>
+        userData.routes.filter((b) => b === a.route_uuid).length ||
+        (userData.routes.filter((b) => +b === 0).length && !a.route_uuid)
+    );
+    data = await Orders.find({
+      counter_uuid: {
+        $in: counterData
+          .filter((a) => a.counter_uuid)
+          .map((a) => a.counter_uuid),
+      },
+    });
+    data = JSON.parse(JSON.stringify(data));
+  } else {
+    data = await Orders.find({});
+    data = JSON.parse(JSON.stringify(data));
+    counterData = await Counters.find({
+      counter_uuid: {
+        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+      },
+    });
+  }
+  console.log(data.length);
+  data = data.filter((a) => {
+
+      return (
         a.order_uuid &&
         a.hold !== "Y" &&
         (!a.warehouse_uuid ||
+          !userData?.warehouse?.length ||
           userData?.warehouse?.find((b) => b === a.warehouse_uuid))
-    );
-    res.json({
-      success: true,
-      result: data
-        .filter((a) => a.item_details.length)
-        .map((a) => ({
-          ...a,
-          counter_title: a.counter_uuid
-            ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
-                ?.counter_title
-            : "",
-        })),
-    });
+      );
+  });
+  console.log(data.length);
+  res.json({
+    success: true,
+    result: data
+      .filter((a) => a.item_details.length)
+      .map((a) => ({
+        ...a,
+        counter_title: a.counter_uuid
+          ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
+              ?.counter_title
+          : "",
+      })),
+  });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
