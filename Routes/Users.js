@@ -11,6 +11,7 @@ const ItemCategories = require("../Models/ItemCategories");
 const Routes = require("../Models/Routes");
 const User = require("../Models/Users");
 const PaymentModes = require("../Models/PaymentModes");
+const Warehouse = require("../Models/Warehouse");
 
 router.post("/postUser", async (req, res) => {
   try {
@@ -101,6 +102,8 @@ router.get("/getDetails", async (req, res) => {
     routes = routes.filter((a) => a.route_uuid);
     let payment_modes = await PaymentModes.find({});
     payment_modes = payment_modes.filter((a) => a.mode_uuid);
+    let warehouse = await Warehouse.find({});
+    warehouse = warehouse.filter((a) => a.warehouse_uuid);
     // const payment_modes= await Item.find({  })
 
     res.json({
@@ -114,6 +117,7 @@ router.get("/getDetails", async (req, res) => {
         items,
         routes,
         payment_modes,
+        warehouse
       },
     });
   } catch (err) {

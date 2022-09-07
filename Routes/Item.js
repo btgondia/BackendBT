@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const { v4: uuid } = require("uuid");
 const Item = require("../Models/Item");
+const Orders = require("../Models/Orders");
 
 router.post("/postItem", async (req, res) => {
   try {
@@ -31,7 +32,41 @@ router.get("/GetItemList", async (req, res) => {
     let data = await Item.find({});
 
     if (data.length)
-      res.json({ success: true, result: data.filter((a) => a.item_uuid&&a.item_title) });
+      res.json({
+        success: true,
+        result: data.filter((a) => a.item_uuid && a.item_title),
+      });
+    else res.json({ success: false, message: "Item Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.get("/minValue/:warhouse_uuid/:item_uuid", async (req, res) => {
+  try {
+    let Itemdata = await Item.findOne({ item_uuid: req.params.item_uuid });
+    let ordersData = await Orders.find({
+      "item_details.item_uuid": req.params.item_uuid,
+      warehouse_uuid: req.params.warhouse_uuid,
+    });
+    let allItems = [].concat
+      .apply(
+        [],
+        ordersData.map((b) => b?.item_details || [])
+      )
+      .filter((a) => a.item_uuid === req.params.item_uuid)
+      .map((a) => +a.b * Itemdata.conversion + +a.p);
+    allItems =
+      allItems.length > 1
+        ? allItems.reduce((a, b) => +a + b)
+        : allItems.length
+        ? allItems[0]
+        : 0;
+    console.log(allItems);
+    if (allItems)
+      res.json({
+        success: true,
+        result: allItems,
+      });
     else res.json({ success: false, message: "Item Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
@@ -39,14 +74,22 @@ router.get("/GetItemList", async (req, res) => {
 });
 router.get("/GetItemStockList/:warhouse_uuid", async (req, res) => {
   try {
-    console.log(req.params.warhouse_uuid)
+    console.log(req.params.warhouse_uuid);
     let data = await Item.find({});
-    data= JSON.parse(JSON.stringify(data))
-    if(req.params.warhouse_uuid)
-data=data.map(a=>({...a,qty:a.stock.find(b=>b.warehouse_uuid===req.params.warhouse_uuid)?.qty||0}))
+    data = JSON.parse(JSON.stringify(data));
+    if (req.params.warhouse_uuid)
+      data = data.map((a) => ({
+        ...a,
+        qty:
+          a.stock.find((b) => b.warehouse_uuid === req.params.warhouse_uuid)
+            ?.qty || 0,
+      }));
 
     if (data.length)
-      res.json({ success: true, result: data.filter((a) => a.item_uuid&&a.item_title) });
+      res.json({
+        success: true,
+        result: data.filter((a) => a.item_uuid && a.item_title),
+      });
     else res.json({ success: false, message: "Item Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
