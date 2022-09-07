@@ -3,6 +3,8 @@ const express = require("express");
 const router = express.Router();
 const { v4: uuid } = require("uuid");
 const Counter = require("../Models/Counters");
+const OrderCompleted = require("../Models/OrderCompleted");
+const Orders = require("../Models/Orders");
 const Routes = require("../Models/Routes");
 
 router.post("/postCounter", async (req, res) => {
@@ -26,7 +28,27 @@ router.post("/postCounter", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-
+router.delete("/deleteCounter", async (req, res) => {
+  try {
+    let { counter_uuid } = req.body;
+    if (!counter_uuid) res.json({ success: false, message: "Invalid Data" });
+    let response = { acknowledged: false };
+    let orderData = await Orders.find({
+      counter_uuid,
+    });
+    let CompleteOrderData = await OrderCompleted.find({
+      counter_uuid,
+    });
+    if (!(orderData.length || CompleteOrderData.length))
+      response = await Counter.deleteOne({ counter_uuid });
+    if (response.acknowledged) {
+      res.json({ success: true, result: response });
+    } else
+      res.status(404).json({ success: false, message: "Counter Not Deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.get("/GetCounterList", async (req, res) => {
   try {
     let data = await Counter.find({});
@@ -36,8 +58,9 @@ router.get("/GetCounterList", async (req, res) => {
     });
     data = data.map((a) => ({
       ...a,
-      route_title: RoutesData.find((b) => b.route_uuid === a.route_uuid)
-        ?.route_title||"",
+      route_title:
+        RoutesData.find((b) => b.route_uuid === a.route_uuid)?.route_title ||
+        "",
     }));
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Counters Not found" });

@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const { v4: uuid } = require("uuid");
 const Item = require("../Models/Item");
+const OrderCompleted = require("../Models/OrderCompleted");
 const Orders = require("../Models/Orders");
 
 router.post("/postItem", async (req, res) => {
@@ -22,6 +23,26 @@ router.post("/postItem", async (req, res) => {
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Item Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.delete("/deleteItem", async (req, res) => {
+  try {
+    let { item_uuid } = req.body;
+    if (!item_uuid) res.json({ success: false, message: "Invalid Data" });
+    let response = { acknowledged: false };
+    let orderData = await Orders.find({
+      "item_details.item_uuid": item_uuid,
+    });
+    let CompleteOrderData = await OrderCompleted.find({
+      "item_details.item_uuid": item_uuid,
+    });
+    if (!(orderData.length || CompleteOrderData.length))
+      response = await Item.deleteOne({ item_uuid });
+    if (response.acknowledged) {
+      res.json({ success: true, result: response });
+    } else res.status(404).json({ success: false, message: "Item Not Deleted" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
