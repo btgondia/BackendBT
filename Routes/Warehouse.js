@@ -82,6 +82,7 @@ router.get("/GetSuggestionItemsList/:warehouse_uuid", async (req, res) => {
           ...item,
           stock: itemData.stock,
           item_title: itemData.item_title,
+          status: itemData.status,
           mrp: itemData.mrp,
           conversion: itemData.conversion,
           b: parseInt(+b + +p / +itemData?.conversion),
@@ -91,6 +92,7 @@ router.get("/GetSuggestionItemsList/:warehouse_uuid", async (req, res) => {
       }
     }
     let newVocherItems = [];
+  
     for (let item of vocherItems) {
       var existing = newVocherItems.filter(function (v, i) {
         return v.item_uuid === item.item_uuid;
@@ -116,7 +118,7 @@ router.get("/GetSuggestionItemsList/:warehouse_uuid", async (req, res) => {
     }
 
     let data = [];
-    for (let item of result) {
+    for (let item of result.filter(a=>a.status)) {
       let warehouseData = item?.stock?.find(
         (a) => a.warehouse_uuid === req.params.warehouse_uuid
       );

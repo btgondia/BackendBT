@@ -52,9 +52,11 @@ router.put("/putTrip", async (req, res) => {
   }
 });
 
-router.get("/GetTripList", async (req, res) => {
+router.get("/GetTripList/:user_uuid", async (req, res) => {
   try {
-    let data = await Trips.find({});
+    let userData = await Users.findOne({ user_uuid: req.params.user_uuid });
+    userData = JSON.parse(JSON.stringify(userData));
+    let data = await Trips.find({warehouse_uuid:{$in:userData.warehouse}});
     data = JSON.parse(JSON.stringify(data));
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
