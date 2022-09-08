@@ -981,6 +981,23 @@ router.get("/GetOrder/:order_uuid", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/getOrderData", async (req, res) => {
+  try {
+    let data = await Orders.find({ invoice_number: req.body.invoice_number });
+    if (!data)
+      data = await OrderCompleted.find({
+        invoice_number: req.body.invoice_number
+      });
+    data = JSON.parse(JSON.stringify(data));
+
+    res.json({
+      success: true,
+      result: data,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.post("/GetOrderProcessingList", async (req, res) => {
   try {
     let data = [];
