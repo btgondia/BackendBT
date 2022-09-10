@@ -15,6 +15,9 @@ const { v4: uuid } = require("uuid");
 const Trips = require("../Models/Trips");
 const Routes = require("../Models/Routes");
 const CancelOrders = require("../Models/CancelOrders");
+const Voucher = require("../Models/Vochers");
+const WarehouseModel = require("../Models/Warehouse");
+const Vochers = require("../Models/Vochers");
 router.post("/postOrder", async (req, res) => {
   try {
     let value = req.body;
@@ -845,42 +848,41 @@ router.get("/GetOrderRunningList", async (req, res) => {
 });
 router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
   try {
-  let userData = await Users.findOne({ user_uuid: req.params.user_uuid });
-  userData = JSON.parse(JSON.stringify(userData));
+    let userData = await Users.findOne({ user_uuid: req.params.user_uuid });
+    userData = JSON.parse(JSON.stringify(userData));
 
-  let data = [];
-  let counterData = [];
-  if (
-    userData.routes.length &&
-    !userData.routes.filter((a) => +a === 1).length
-  ) {
-    counterData = await Counters.find({});
-    counterData = JSON.parse(JSON.stringify(counterData));
-    counterData = counterData.filter(
-      (a) =>
-        userData.routes.filter((b) => b === a.route_uuid).length ||
-        (userData.routes.filter((b) => +b === 0).length && !a.route_uuid)
-    );
-    data = await Orders.find({
-      counter_uuid: {
-        $in: counterData
-          .filter((a) => a.counter_uuid)
-          .map((a) => a.counter_uuid),
-      },
-    });
-    data = JSON.parse(JSON.stringify(data));
-  } else {
-    data = await Orders.find({});
-    data = JSON.parse(JSON.stringify(data));
-    counterData = await Counters.find({
-      counter_uuid: {
-        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
-      },
-    });
-  }
-  console.log(data.length);
-  data = data.filter((a) => {
-
+    let data = [];
+    let counterData = [];
+    if (
+      userData.routes.length &&
+      !userData.routes.filter((a) => +a === 1).length
+    ) {
+      counterData = await Counters.find({});
+      counterData = JSON.parse(JSON.stringify(counterData));
+      counterData = counterData.filter(
+        (a) =>
+          userData.routes.filter((b) => b === a.route_uuid).length ||
+          (userData.routes.filter((b) => +b === 0).length && !a.route_uuid)
+      );
+      data = await Orders.find({
+        counter_uuid: {
+          $in: counterData
+            .filter((a) => a.counter_uuid)
+            .map((a) => a.counter_uuid),
+        },
+      });
+      data = JSON.parse(JSON.stringify(data));
+    } else {
+      data = await Orders.find({});
+      data = JSON.parse(JSON.stringify(data));
+      counterData = await Counters.find({
+        counter_uuid: {
+          $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+        },
+      });
+    }
+    console.log(data.length);
+    data = data.filter((a) => {
       return (
         a.order_uuid &&
         a.hold !== "Y" &&
@@ -888,20 +890,20 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
           !userData?.warehouse?.length ||
           userData?.warehouse?.find((b) => b === a.warehouse_uuid))
       );
-  });
-  console.log(data.length);
-  res.json({
-    success: true,
-    result: data
-      .filter((a) => a.item_details.length)
-      .map((a) => ({
-        ...a,
-        counter_title: a.counter_uuid
-          ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
-              ?.counter_title
-          : "",
-      })),
-  });
+    });
+    console.log(data.length);
+    res.json({
+      success: true,
+      result: data
+        .filter((a) => a.item_details.length)
+        .map((a) => ({
+          ...a,
+          counter_title: a.counter_uuid
+            ? counterData.find((b) => b.counter_uuid === a.counter_uuid)
+                ?.counter_title
+            : "",
+        })),
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -986,7 +988,7 @@ router.post("/getOrderData", async (req, res) => {
     let data = await Orders.find({ invoice_number: req.body.invoice_number });
     if (!data)
       data = await OrderCompleted.find({
-        invoice_number: req.body.invoice_number
+        invoice_number: req.body.invoice_number,
       });
     data = JSON.parse(JSON.stringify(data));
 
@@ -1158,6 +1160,85 @@ router.post("/getCompleteOrderList", async (req, res) => {
     if (response?.length) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Order Not Found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.post("/getStockDetails", async (req, res) => {
+  try {
+  let value = req.body;
+  if (!value) res.json({ success: false, message: "Invalid Data" });
+  console.log(value);
+  let endDate = +value.endDate + 86400000;
+  console.log(endDate, value.startDate);
+  let response = await OrderCompleted.find({
+    "item_details.item_uuid": value.item_uuid,
+  });
+  let responseVoucher = await Vochers.find({
+    "item_details.item_uuid": value.item_uuid,
+    $or: [
+      { from_warehouse: value.warehouse_uuid },
+      { to_warehouse: value.warehouse_uuid },
+    ],
+  });
+  response = JSON.parse(JSON.stringify(response));
+  response = response?.filter(
+    (order) =>
+      order.status.filter(
+        (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
+      ).length
+  );
+  const counterData = await Counters.find({
+    counter_uuid: { $in: response.map((a) => a.counter_uuid) },
+  });
+  const warehouseData = await WarehouseModel.find({});
+  responseVoucher = JSON.parse(JSON.stringify(responseVoucher));
+  responseVoucher = responseVoucher?.filter(
+    (order) => order.created_at > value.startDate && order.created_at < endDate
+  );
+  let data = [];
+  for (let item of response) {
+    let orderItem = item?.item_details?.find(
+      (a) => a.item_uuid === value.item_uuid
+    );
+    if (orderItem?.b || orderItem?.p) {
+      let obj = {
+        date: item?.status?.find((a) => +a.stage === 1)?.time,
+        to: counterData?.find((a) => a.counter_uuid === item.counter_uuid)
+          ?.counter_title,
+        added: 0,
+        reduce: (orderItem?.b || 0) + ":" + (orderItem.p || 0),
+      };
+      data.push(obj);
+    }
+  }
+  for (let item of responseVoucher) {
+    let orderItem = item.item_details.find(
+      (a) => a.item_uuid === value.item_uuid
+    );
+    console.log(orderItem);
+    if (orderItem?.b || orderItem?.p) {
+      let added = item.to_warehouse === value.warehouse_uuid;
+
+      let obj = {
+        date: item.created_at,
+        to:
+          "Warehouse:" +
+          warehouseData?.find(
+            (a) =>
+              a.warehouse_uuid ===
+              (added ? item.from_warehouse : item.to_warehouse)
+          )?.warehouse_title,
+        added: added ? (orderItem?.b || 0) + ":" + (orderItem.p || 0) : 0,
+        reduce: added ? 0 : (orderItem?.b || 0) + ":" + (orderItem.p || 0),
+      };
+      data.push(obj);
+    }
+  }
+
+  if (data?.length) {
+    res.json({ success: true, result: data });
+  } else res.json({ success: false, message: "Order Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
