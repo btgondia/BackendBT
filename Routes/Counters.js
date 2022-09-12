@@ -6,6 +6,8 @@ const Counter = require("../Models/Counters");
 const OrderCompleted = require("../Models/OrderCompleted");
 const Orders = require("../Models/Orders");
 const Routes = require("../Models/Routes");
+const Companies = require("../Models/Companies");
+const Item = require("../Models/Item");
 
 router.post("/postCounter", async (req, res) => {
   try {
@@ -63,6 +65,81 @@ router.get("/GetCounterList", async (req, res) => {
         "",
     }));
     if (data.length) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Counters Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.get("/getCounterSales/:days", async (req, res) => {
+  try {
+    let days = req.params.days;
+    let time = new Date();
+    time.setHours(12);
+    time = new Date(time.setDate(time.getDate() - +days)).getTime();
+    // time= time.getTime()
+    console.log(time);
+    let orderData = await OrderCompleted.find(
+      !req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid }
+    );
+
+    orderData = JSON.parse(JSON.stringify(orderData));
+    orderData = orderData?.filter(
+      (order) =>
+        order.status.filter((a) => +a.stage === 1 && a.time > time).length
+    );
+    let data = await Counter.find({});
+    data = JSON.parse(JSON.stringify(data));
+
+    let RoutesData = await Routes.find({
+      route_uuid: { $in: data.map((a) => a.route_uuid) },
+    });
+    let CompaniesData = await Companies.find({});
+    CompaniesData = JSON.parse(JSON.stringify(CompaniesData));
+    let ItemsData = await Item.find({});
+    ItemsData = JSON.parse(JSON.stringify(ItemsData));
+    let result = [];
+    for (let item of data) {
+      let counterOrders = orderData.filter(
+        (a) => a.counter_uuid === item.counter_uuid
+      );
+      let sales = [];
+      for (let Company of CompaniesData) {
+        let orderItems = [].concat
+          .apply(
+            [],
+            counterOrders?.map((a) => a.item_details)
+          )
+          ?.filter(
+            (a) =>
+              Company.company_uuid ===
+              ItemsData?.find((b) => b.item_uuid === a.item_uuid)?.company_uuid
+          )
+          ?.map((a) => +a.price);
+        let value =
+          orderItems.length > 1
+            ? orderItems.reduce((a, b) => a + b)
+            : orderItems?.length
+            ? orderItems[0]
+            : 0;
+        value =
+          value - Math.floor(value) !== 0
+            ? value
+                .toString()
+                .match(new RegExp("^-?\\d+(?:.\\d{0," + (2 || -1) + "})?"))[0]
+            : value;
+        sales.push({ company_uuid: Company?.company_uuid, value });
+      }
+      let obj = {
+        ...item,
+        route_title:
+          RoutesData.find((b) => b.route_uuid === item.route_uuid)
+            ?.route_title || "",
+        sales,
+      };
+      result.push(obj);
+    }
+
+    if (result.length) res.json({ success: true, result });
     else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
