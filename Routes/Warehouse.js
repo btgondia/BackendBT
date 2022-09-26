@@ -82,6 +82,7 @@ router.get("/GetSuggestionItemsList/:warehouse_uuid", async (req, res) => {
           ...item,
           stock: itemData.stock,
           item_title: itemData.item_title,
+          category_uuid: itemData.category_uuid,
           status: itemData.status,
           mrp: itemData.mrp,
           conversion: itemData.conversion,
