@@ -114,7 +114,17 @@ router.get("/getCounterSales/:days", async (req, res) => {
               Company.company_uuid ===
               ItemsData?.find((b) => b.item_uuid === a.item_uuid)?.company_uuid
           )
-          ?.map((a) => +a.price);
+          ?.map(
+            (a) =>
+              +(
+                +a.b +
+                +(
+                  ItemsData?.find((b) => b.item_uuid === a.item_uuid)
+                    ?.conversion || 0
+                ) +
+                +a.p
+              ) * +a.price
+          );
         let value =
           orderItems.length > 1
             ? orderItems.reduce((a, b) => a + b)
