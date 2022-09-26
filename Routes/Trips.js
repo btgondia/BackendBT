@@ -56,16 +56,20 @@ router.get("/GetTripList/:user_uuid", async (req, res) => {
   try {
     let userData = await Users.findOne({ user_uuid: req.params.user_uuid });
     userData = JSON.parse(JSON.stringify(userData));
-    let data = await Trips.find({warehouse_uuid:{$in:userData.warehouse}});
+    let data = await Trips.find(
+      +userData?.warehouse[0] === 1
+        ? {}
+        : { warehouse_uuid: { $in: userData.warehouse } }
+    );
     data = JSON.parse(JSON.stringify(data));
+
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
     if (data.length) {
-      
       // // console.log(result);
       res.json({
         success: true,
-        result:data,
+        result: data,
       });
     } else res.json({ success: false, message: "Trips Not found" });
   } catch (err) {
@@ -81,7 +85,11 @@ router.get("/GetTripListSummary/:user_uuid", async (req, res) => {
 
     let CounterData = await Counters.find({});
     CounterData = JSON.parse(JSON.stringify(CounterData));
-data= data.filter(a=>!a.warehouse_uuid||userData?.warehouse.find(b=>b===a.warehouse_uuid))
+    data = data.filter(
+      (a) =>
+        !a.warehouse_uuid ||
+        userData?.warehouse.find((b) => b === a.warehouse_uuid)
+    );
     if (data.length) {
       let result = [];
 
@@ -92,7 +100,7 @@ data= data.filter(a=>!a.warehouse_uuid||userData?.warehouse.find(b=>b===a.wareho
         });
         ordersData = JSON.parse(JSON.stringify(ordersData));
         let orderLength = ordersData.length;
-         // console.log(warehouseData, a);
+        // console.log(warehouseData, a);
         result.push({
           ...a,
           orderLength,
