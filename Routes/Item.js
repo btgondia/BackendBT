@@ -2,6 +2,7 @@ const express = require("express");
 
 const router = express.Router();
 const { v4: uuid } = require("uuid");
+const Details = require("../Models/Details");
 const Item = require("../Models/Item");
 const OrderCompleted = require("../Models/OrderCompleted");
 const Orders = require("../Models/Orders");
@@ -17,6 +18,7 @@ router.post("/postItem", async (req, res) => {
       //   console.log(response)
       value.sort_order =
         Math.max(...response.map((o) => o?.sort_order || 0)) + 1 || 0;
+      value.created_at = new Date().getTime();
     }
     console.log(value);
     let response = await Item.create(value);
@@ -42,7 +44,8 @@ router.delete("/deleteItem", async (req, res) => {
       response = await Item.deleteOne({ item_uuid });
     if (response.acknowledged) {
       res.json({ success: true, result: response });
-    } else res.status(404).json({ success: false, message: "Item Not Deleted" });
+    } else
+      res.status(404).json({ success: false, message: "Item Not Deleted" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -56,6 +59,20 @@ router.get("/GetItemList", async (req, res) => {
       res.json({
         success: true,
         result: data.filter((a) => a.item_uuid && a.item_title),
+      });
+    else res.json({ success: false, message: "Item Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.get("/getNewItemReminder", async (req, res) => {
+  try {
+    let data = await Details.findOne({});
+
+    if (data)
+      res.json({
+        success: true,
+        result: data?.new_item_reminder,
       });
     else res.json({ success: false, message: "Item Not found" });
   } catch (err) {

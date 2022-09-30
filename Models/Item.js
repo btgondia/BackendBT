@@ -71,6 +71,7 @@ const itemSchema = new mongoose.Schema({
       },
     },
   ],
+  created_at: { type: Number },
 });
 
 module.exports = mongoose.model("items", itemSchema);
