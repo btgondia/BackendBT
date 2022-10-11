@@ -7,6 +7,9 @@ const itemSchema = new mongoose.Schema({
   voucher_uuid: {
     type: String,
   },
+  vocher_number: {
+    type: Number,
+  },
   created_at: {
     type: Number,
   },
