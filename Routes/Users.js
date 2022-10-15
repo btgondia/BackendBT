@@ -105,20 +105,20 @@ router.get("/getDetails", async (req, res) => {
     let warehouse = await Warehouse.find({});
     warehouse = warehouse.filter((a) => a.warehouse_uuid);
     // const payment_modes= await Item.find({  })
-
+let result= {
+  autobill,
+  companies,
+  counter_groups,
+  counter,
+  item_category,
+  items,
+  routes,
+  payment_modes,
+  warehouse
+}
     res.json({
       success: true,
-      result: {
-        autobill,
-        companies,
-        counter_groups,
-        counter,
-        item_category,
-        items,
-        routes,
-        payment_modes,
-        warehouse
-      },
+      result,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
