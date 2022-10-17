@@ -873,8 +873,9 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
       counterData = counterData.filter(
         (a) =>
           userData.routes.filter((b) => b === a.route_uuid).length ||
-          (userData.routes.filter((b) => +b === 0).length && !a.route_uuid)
+          (userData.routes.filter((b) => b === "none").length && !a.route_uuid)
       );
+     
       data = await Orders.find({
         counter_uuid: {
           $in: counterData
@@ -892,7 +893,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
         },
       });
     }
-    console.log(data.length);
+    console.log(data);
     data = data.filter((a) => {
       return (
         a.order_uuid &&
@@ -900,6 +901,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
         (!a.warehouse_uuid ||
           !userData?.warehouse?.length ||
           +userData?.warehouse[0] === 1 ||
+          userData?.warehouse[0] === "none" ||
           userData?.warehouse?.find((b) => b === a.warehouse_uuid))
       );
     });
@@ -936,7 +938,7 @@ router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
       counterData = counterData.filter(
         (a) =>
           userData.routes.filter((b) => b === a.route_uuid).length ||
-          (userData.routes.filter((b) => +b === 0).length && !a.route_uuid)
+          (userData.routes.filter((b) => b === "none").length && !a.route_uuid)
       );
       data = await Orders.find({
         counter_uuid: {
