@@ -34,6 +34,9 @@ const UserSchema = new mongoose.Schema({
     warehouse: [{
         type: String,
     }],
+    salesman_suggestion: [{
+        type: String,
+    }],
 })
 
 
