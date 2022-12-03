@@ -167,21 +167,27 @@ router.put("/flushWarehouse", async (req, res) => {
     itemsData = JSON.parse(JSON.stringify(itemsData));
 
     for (let item of itemsData) {
-      let stock = item.stock.map((b) =>
-        value.find((c) => c === b.warehouse_uuid) ? { ...b, qty: 0 } : b
-      );
-      let response = await Item.updateOne(
-        { item_uuid: item.item_uuid },
-        { stock }
-      );
-      if (response.acknowledged) {
-        result.push({ item_uuid: item?.item_uuid, success: true });
-      } else {
-        result.push({ item_uuid: item?.item_uuid, success: false });
+      let stock = item.stock;
+      if (
+        stock.filter((a) => a.qty && value?.find((b) => b === a.warehouse_uuid))
+          .length
+      ) {
+        stock=stock.map((b) =>
+          value.find((c) => c === b.warehouse_uuid) ? { ...b, qty: 0 } : b
+        );
+        let response = await Item.updateOne(
+          { item_uuid: item.item_uuid },
+          { stock }
+        );
+        if (response.acknowledged) {
+          result.push({ item_uuid: item?.item_uuid, success: true });
+        } else {
+          result.push({ item_uuid: item?.item_uuid, success: false });
+        }
       }
     }
 
-    res.json({ success: true,result });
+    res.json({ success: true, result });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
