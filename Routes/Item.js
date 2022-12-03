@@ -159,5 +159,32 @@ router.put("/putItem", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.put("/flushWarehouse", async (req, res) => {
+  try {
+    const value = req.body;
+    let result = [];
+    let itemsData = await Item.find({});
+    itemsData = JSON.parse(JSON.stringify(itemsData));
+
+    for (let item of itemsData) {
+      let stock = item.stock.map((b) =>
+        value.find((c) => c === b.warehouse_uuid) ? { ...b, qty: 0 } : b
+      );
+      let response = await Item.updateOne(
+        { item_uuid: item.item_uuid },
+        { stock }
+      );
+      if (response.acknowledged) {
+        result.push({ item_uuid: item?.item_uuid, success: true });
+      } else {
+        result.push({ item_uuid: item?.item_uuid, success: false });
+      }
+    }
+
+    res.json({ success: true,result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 module.exports = router;
