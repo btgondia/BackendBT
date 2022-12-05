@@ -8,7 +8,7 @@ router.post("/postOutstanding", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
-    console.log(value);
+    //console.log(value);
     let time = new Date();
     let response = await Outstanding.create(value);
     let result = await SignedBills.create({
@@ -18,7 +18,7 @@ router.post("/postOutstanding", async (req, res) => {
       status: 0,
       amount: value.amount,
     });
-    console.log(result);
+    //console.log(result);
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Outstanding Not created" });
@@ -32,7 +32,7 @@ router.get("/getOutstanding", async (req, res) => {
     let response = await Outstanding.find({});
     response = JSON.parse(JSON.stringify(response));
 
-    console.log(response);
+    //console.log(response);
     if (response.length) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Outstanding Not created" });
@@ -75,7 +75,7 @@ router.put("/putOutstanding", async (req, res) => {
         }
       );
     } else {
-      console.log(value);
+      //console.log(value);
       let time = new Date();
       response = await Outstanding.create(value);
       result = await SignedBills.create({

@@ -11,7 +11,7 @@ router.post("/postCounterGroup", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
     value = {...value,counter_group_uuid:uuid()};
 
-    console.log(value);
+    //console.log(value);
     let response = await CounterGroup.create( value );
     if (response) {
       res.json({ success: true, result: response });
@@ -43,7 +43,7 @@ router.put("/putCounterGroup", async (req, res) => {
       return obj;
     }, {})
 
-    console.log(value);
+    //console.log(value);
     let response = await CounterGroup.updateOne({counter_group_uuid:value.counter_group_uuid}, value );
     if (response.acknowledged) {
       res.json({ success: true, result: value });

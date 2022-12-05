@@ -19,7 +19,7 @@ router.post("/postUser", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
     value = { ...value, user_uuid: uuid() };
 
-    console.log(value);
+    //console.log(value);
     let response = await User.create(value);
     if (response) {
       res.json({ success: true, result: response });
@@ -31,7 +31,7 @@ router.post("/postUser", async (req, res) => {
 router.put("/putUser", async (req, res) => {
   try {
     let value = req.body;
-    console.log(value);
+    //console.log(value);
     if (!value) res.json({ success: false, message: "Invalid Data" });
     value = Object.keys(value)
       .filter((key) => key !== "_id")
@@ -41,7 +41,7 @@ router.put("/putUser", async (req, res) => {
       }, {});
 
     let response = await User.updateOne({ user_uuid: value.user_uuid }, value);
-    console.log(response);
+    //console.log(response);
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "User Not updated" });
@@ -73,7 +73,7 @@ router.get("/GetNormalUserList", async (req, res) => {
 router.get("/GetUser/:user_uuid", async (req, res) => {
   try {
     let data = await User.findOne({user_uuid:req.params.user_uuid});
-console.log(req.params.user_uuid.data)
+//console.log(req.params.user_uuid.data)
     if (data) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Users Not found" });
   } catch (err) {
@@ -82,12 +82,12 @@ console.log(req.params.user_uuid.data)
 });
 
 router.post("/login", async (req, res) => {
-  console.log(req.body);
+  //console.log(req.body);
   const login_username = req.body.login_username;
   const login_password = req.body.login_password;
   try {
     const result = await User.findOne({ login_username, login_password });
-    console.log(result, login_password, login_username);
+    //console.log(result, login_password, login_username);
     if (result && +result.status === 1) res.json({ success: true, result });
     else res.json({ success: false, message: "Users Not found" });
   } catch (err) {

@@ -11,7 +11,7 @@ router.post("/CreateAutoQty", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
     value = {...value,auto_uuid:uuid()};
     
-    console.log(value);
+    //console.log(value);
     let response = await AutoBill.create( value );
     if (response) {
       res.json({ success: true, result: response });
@@ -26,7 +26,7 @@ router.delete("/DeleteAutoQty", async (req, res) => {
     if (!value.auto_uuid) res.json({ success: false, message: "Invalid Data" });
 
     
-    console.log(value);
+    //console.log(value);
     let response = await AutoBill.deleteMany( {auto_uuid:value.auto_uuid} );
     if (response) {
       res.json({ success: true, result: response });
@@ -45,7 +45,7 @@ router.put("/UpdateAutoQty", async (req, res) => {
       obj[key] = value[key];
       return obj;
     }, {})
-    console.log(value);
+    //console.log(value);
     let response = await AutoBill.updateMany( {auto_uuid:value.auto_uuid},value );
     if (response.acknowledged) {
       res.json({ success: true, result: value });

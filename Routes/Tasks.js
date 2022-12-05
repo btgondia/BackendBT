@@ -16,7 +16,7 @@ router.post("/postTask", async (req, res) => {
       status: 0,
     };
 
-    console.log(value);
+    //console.log(value);
     let response = await Tasks.create(value);
     if (response) {
       res.json({ success: true, result: response });
@@ -29,7 +29,7 @@ router.post("/postTask", async (req, res) => {
 router.get("/GetTasksList/:status", async (req, res) => {
   try {
     let data = await Tasks.find({ status: req.params.status });
-    console.log(data);
+    //console.log(data);
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Task Not found" });
   } catch (err) {
@@ -42,7 +42,7 @@ router.get("/getCounterTask/:counter_uuid", async (req, res) => {
       counter_uuid: req.params.counter_uuid,
       status: 0,
     });
-    console.log(data);
+    //console.log(data);
     if (data) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Task Not found" });
   } catch (err) {
@@ -55,7 +55,7 @@ router.post("/getCounterList", async (req, res) => {
       counter_uuid: { $in: req.body.counter_uuid.map((a) => a) },
       status: 0,
     });
-    console.log(data);
+    //console.log(data);
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Task Not found" });
   } catch (err) {
@@ -74,7 +74,7 @@ router.put("/putTask", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-      console.log(value);
+      //console.log(value);
       let time = new Date();
       value = value.completed
         ? {
@@ -83,7 +83,7 @@ router.put("/putTask", async (req, res) => {
             status: 1,
           }
         : value;
-      console.log(value);
+      //console.log(value);
       let response = await Tasks.updateOne(
         { task_uuid: value.task_uuid },
         value

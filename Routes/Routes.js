@@ -14,11 +14,11 @@ router.post("/postRoute", async (req, res) => {
     if (!value.sort_order) {
       let response = await Routes.find({});
       response = JSON.parse(JSON.stringify(response));
-      //   console.log(response)
+      //   //console.log(response)
       value.sort_order =
         Math.max(...response.map((o) => o?.sort_order || 0)) + 1 || 0;
     }
-    console.log(value);
+    //console.log(value);
     let response = await Routes.create(value);
     if (response) {
       res.json({ success: true, result: response });
@@ -37,7 +37,7 @@ router.put("/putRoute", async (req, res) => {
         obj[key] = value[key];
         return obj;
       }, {});
-    console.log(value);
+    //console.log(value);
     let response = await Routes.updateOne(
       { route_uuid: value.route_uuid },
       value
