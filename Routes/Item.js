@@ -15,12 +15,12 @@ router.post("/postItem", async (req, res) => {
     if (!value.sort_order) {
       let response = await Item.find({});
       response = JSON.parse(JSON.stringify(response));
-      //   //console.log(response)
+      //   console.log(response)
       value.sort_order =
         Math.max(...response.map((o) => o?.sort_order || 0)) + 1 || 0;
       value.created_at = new Date().getTime();
     }
-    //console.log(value);
+    console.log(value);
     let response = await Item.create(value);
     if (response) {
       res.json({ success: true, result: response });
@@ -99,7 +99,7 @@ router.get("/minValue/:warhouse_uuid/:item_uuid", async (req, res) => {
         : allItems.length
         ? allItems[0]
         : 0;
-    //console.log(allItems);
+    console.log(allItems);
     if (allItems)
       res.json({
         success: true,
@@ -112,7 +112,7 @@ router.get("/minValue/:warhouse_uuid/:item_uuid", async (req, res) => {
 });
 router.get("/GetItemStockList/:warhouse_uuid", async (req, res) => {
   try {
-    //console.log(req.params.warhouse_uuid);
+    console.log(req.params.warhouse_uuid);
     let data = await Item.find({});
     data = JSON.parse(JSON.stringify(data));
     if (req.params.warhouse_uuid)
@@ -145,7 +145,7 @@ router.put("/putItem", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-      //console.log(value);
+      console.log(value);
       let response = await Item.updateOne(
         { item_uuid: value.item_uuid },
         value

@@ -5,7 +5,7 @@ const connectDB = async () => {
         useNewUrlParser: true,
         useUnifiedTopology: true
     });
-    //console.log(`connected to mongoDB atlas ${conn.connection.host}`)
+    console.log(`connected to mongoDB atlas ${conn.connection.host}`)
 }
 
 module.exports = connectDB;

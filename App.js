@@ -93,7 +93,7 @@ app.get("/stream/:text", async (req, res) => {
 
 const MinLevelUpdateAutomation = async () => {
   let itemsList = [];
-  //console.log("Fuction");
+  console.log("Fuction");
 
   let warehouseData = await WarehouseModel.find({});
   warehouseData = JSON.parse(JSON.stringify(warehouseData));
@@ -129,7 +129,7 @@ const MinLevelUpdateAutomation = async () => {
       (a) =>
         a.status.filter((b) => +b.stage === 1 && b.time > FiteenDaysTime).length
     );
-    //console.log(warehouseItem);
+    console.log(warehouseItem);
     let items = [
       ...([].concat.apply(
         [],
@@ -240,7 +240,7 @@ const MinLevelUpdateAutomation = async () => {
     {},
     { timer_run_at: date.getTime() }
   );
-  //console.log(response);
+  console.log(response);
   return itemsList;
 };
 // setTimeout(MinLevelUpdateAutomation, 5000);
@@ -248,7 +248,7 @@ setInterval(function () {
   // Set interval for checking
   var date = new Date(); // Create a Date object to find out what time it is
   if (date.getHours() === 2) {
-    //console.log(date.getHours());
+    console.log(date.getHours());
     // Check the time
     MinLevelUpdateAutomation();
   }

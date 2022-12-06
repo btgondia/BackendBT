@@ -22,7 +22,7 @@ router.post("/postVoucher", async (req, res) => {
       vocher_number: vocher_number.next_vocher_number || 0,
     };
 
-    //console.log(value);
+    console.log(value);
 
     let response = await Vochers.create(value);
     if (response) {
@@ -41,7 +41,7 @@ router.get("/GetPendingVoucharsList/:delivered", async (req, res) => {
   try {
     let data = await Vochers.find({ delivered: req.params.delivered });
     data= JSON.parse(JSON.stringify(data))
-    //console.log(data);
+    console.log(data);
     if (data.length)
       res.json({
         success: true,
@@ -65,7 +65,7 @@ router.put("/ConfirmVoucher", async (req, res) => {
     });
     voucherData = JSON.parse(JSON.stringify(voucherData));
 
-    //console.log(voucherData);
+    console.log(voucherData);
     for (let item of voucherData.item_details) {
       let itemData = await Item.findOne({
         item_uuid: item.item_uuid,
@@ -73,7 +73,7 @@ router.put("/ConfirmVoucher", async (req, res) => {
       itemData = JSON.parse(JSON.stringify(itemData));
       if (itemData) {
         let stock = itemData?.stock || [];
-        //console.log("Stock", stock, item.item_uuid);
+        console.log("Stock", stock, item.item_uuid);
         let qty = +item.b * +itemData.conversion + item.p;
         stock =
           +voucherData.from_warehouse === 0
@@ -102,7 +102,7 @@ router.put("/ConfirmVoucher", async (req, res) => {
                   qty: -qty,
                 },
               ];
-        //console.log("Stock", stock);
+        console.log("Stock", stock);
         stock = stock?.filter(
           (a) => a.warehouse_uuid === voucherData.to_warehouse
         )?.length
@@ -127,7 +127,7 @@ router.put("/ConfirmVoucher", async (req, res) => {
                 qty: +qty,
               },
             ];
-        //console.log("Stock", stock);
+        console.log("Stock", stock);
         if (stock.length)
           await Item.updateOne(
             {

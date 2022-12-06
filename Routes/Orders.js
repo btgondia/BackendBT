@@ -35,7 +35,7 @@ router.post("/postOrder", async (req, res) => {
         }
       }
     }
-    //console.log(value);
+    console.log(value);
     let invoice_number = await Details.findOne({});
     let orderStage = value.status
       ? value?.status?.length > 1
@@ -135,7 +135,7 @@ router.post("/postOrder", async (req, res) => {
     }
     if (+orderStage === 4 || +orderStage === 5) {
       let next_receipt_number = await Details.find({});
-      //console.log(next_receipt_number[0].next_receipt_number);
+      console.log(next_receipt_number[0].next_receipt_number);
       next_receipt_number = next_receipt_number[0].next_receipt_number;
       let time = new Date();
       await Receipts.create({
@@ -166,14 +166,14 @@ router.post("/postOrder", async (req, res) => {
       }
       if (value.warehouse_uuid) {
         let warehouse_uuid = value.warehouse_uuid;
-        //console.log(warehouse_uuid);
+        console.log(warehouse_uuid);
         for (let item of value.item_details) {
           let itemData = await Item.findOne({
             item_uuid: item.item_uuid,
           });
           itemData = JSON.parse(JSON.stringify(itemData));
           let stock = itemData.stock;
-          //console.log("Stock", stock);
+          console.log("Stock", stock);
           let qty =
             +item.b * +itemData.conversion + +item.p + (+item.free || 0);
           stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)
@@ -199,7 +199,7 @@ router.post("/postOrder", async (req, res) => {
                   qty: -qty,
                 },
               ];
-          //console.log("Stock", stock);
+          console.log("Stock", stock);
           await Item.updateOne(
             {
               item_uuid: item.item_uuid,
@@ -208,7 +208,7 @@ router.post("/postOrder", async (req, res) => {
           );
         }
       }
-      //console.log(+orderStage);
+      console.log(+orderStage);
       response = await OrderCompleted.create({
         ...value,
         invoice_number: invoice_number.next_invoice_number || 0,
@@ -244,7 +244,7 @@ router.post("/postOrder", async (req, res) => {
 //         return obj;
 //       }, {});
 
-//     //console.log(value, value.orderStatus === "edit");
+//     console.log(value, value.orderStatus === "edit");
 //     let response = {};
 //     if (value.orderStatus === "edit") {
 //       response = await OrderCompleted.updateOne(
@@ -291,7 +291,7 @@ router.post("/postOrder", async (req, res) => {
 //         item.price = (price||0).toFixed(2);
 //         item_details.push(item);
 //       }
-//       // //console.log(item_details);
+//       // console.log(item_details);
 //       let response = await OrderCompleted.updateMany(
 //         { order_uuid: order.order_uuid },
 //         { item_details }
@@ -336,14 +336,14 @@ router.put("/putOrders", async (req, res) => {
         let data = await OrderCompleted.findOne({
           order_uuid: value.order_uuid,
         });
-        //console.log(orderStage)
+        console.log(orderStage)
         if (+orderStage === 5 || value?.item_details?.length === 0) {
            data= await CancelOrders.create(value);
     
           await Orders.deleteOne({ order_uuid: value.order_uuid });
         }
-        // //console.log("length", value?.item_details?.length);
-        // //console.log("Old Data",data)
+        // console.log("length", value?.item_details?.length);
+        // console.log("Old Data",data)
         else if (data) {
           await OrderCompleted.updateOne(
             { order_uuid: value.order_uuid },
@@ -359,7 +359,7 @@ router.put("/putOrders", async (req, res) => {
               });
               itemData = JSON.parse(JSON.stringify(itemData));
               let stock = itemData.stock;
-              //console.log("Stock", stock);
+              console.log("Stock", stock);
               let qty =
                 +item.b * +itemData.conversion + +item.p + (+item.free || 0);
               stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)
@@ -385,7 +385,7 @@ router.put("/putOrders", async (req, res) => {
                       qty: -qty,
                     },
                   ];
-              //console.log("Stock", stock);
+              console.log("Stock", stock);
               await Item.updateOne(
                 {
                   item_uuid: item.item_uuid,
@@ -401,7 +401,7 @@ router.put("/putOrders", async (req, res) => {
           });
           await Orders.deleteOne({ order_uuid: value.order_uuid });
         }
-        // //console.log("New DAta", data);
+        // console.log("New DAta", data);
         if (+orderStage === 4) {
           let counterGroupsData = await Counters.findOne({
             counter_uuid: value.counter_uuid,
@@ -552,7 +552,7 @@ router.put("/putOrders", async (req, res) => {
                     time: time.getTime(),
                     amt: (amt / tripData?.users.length).toFixed(2),
                   });
-                  //console.log(update, statment, amt, incentive_balance);
+                  console.log(update, statment, amt, incentive_balance);
                 }
               } else {
                 let update = await Users.updateMany(
@@ -568,7 +568,7 @@ router.put("/putOrders", async (req, res) => {
                   time: time.getTime(),
                   amt: amt.toFixed(2),
                 });
-                //console.log(update, statment, amt, incentive_balance);
+                console.log(update, statment, amt, incentive_balance);
               }
             }
           }
@@ -756,7 +756,7 @@ router.get("/getPendingEntry", async (req, res) => {
 router.put("/putCompleteSignedBills", async (req, res) => {
   try {
     let value = req.body;
-    //console.log(value);
+    console.log(value);
     let time = new Date();
     let data = await SignedBills.updateOne(
       { order_uuid: value.order_uuid },
@@ -780,7 +780,7 @@ router.put("/putCompleteSignedBills", async (req, res) => {
 router.put("/putCompleteOrder", async (req, res) => {
   try {
     let value = req.body;
-    //console.log(value);
+    console.log(value);
     let data = await OrderCompleted.updateOne(
       { invoice_number: value.invoice_number },
       value
@@ -802,7 +802,7 @@ router.put("/putCompleteOrder", async (req, res) => {
 router.put("/putOrderNotes", async (req, res) => {
   try {
     let value = req.body;
-    //console.log(value);
+    console.log(value);
     let orderData = await Orders.findOne({
       invoice_number: value.invoice_number,
     });
@@ -893,7 +893,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
         },
       });
     }
-    //console.log(data);
+    console.log(data);
     data = data.filter((a) => {
       return (
         a.order_uuid &&
@@ -905,7 +905,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
           userData?.warehouse?.find((b) => b === a.warehouse_uuid))
       );
     });
-    //console.log(data.length);
+    console.log(data.length);
     res.json({
       success: true,
       result: data
@@ -1138,9 +1138,9 @@ router.post("/getCompleteOrderList", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    //console.log(value);
+    console.log(value);
     let endDate = +value.endDate + 86400000;
-    //console.log(endDate, value.startDate);
+    console.log(endDate, value.startDate);
     let response = await OrderCompleted.find(
       !req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid }
     );
@@ -1183,9 +1183,9 @@ router.post("/getStockDetails", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    //console.log(value);
+    console.log(value);
     let endDate = +value.endDate + 86400000;
-    //console.log(endDate, value.startDate);
+    console.log(endDate, value.startDate);
     let response = await OrderCompleted.find({
       "item_details.item_uuid": value.item_uuid,
     });
@@ -1232,7 +1232,7 @@ router.post("/getStockDetails", async (req, res) => {
       let orderItem = item.item_details.find(
         (a) => a.item_uuid === value.item_uuid
       );
-      //console.log(orderItem);
+      console.log(orderItem);
       if (orderItem?.b || orderItem?.p) {
         let added = item.to_warehouse === value.warehouse_uuid;
 
@@ -1263,10 +1263,10 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    //console.log(value);
+    console.log(value);
 
     let response = await OrderCompleted.find({ trip_uuid: value.trip_uuid });
-    //console.log(response);
+    console.log(response);
     response = JSON.parse(JSON.stringify(response));
     let receiptData = await Receipts.find({
       trip_uuid: value.trip_uuid,
@@ -1373,9 +1373,9 @@ router.post("/getCounterLedger", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    //console.log(value);
+    console.log(value);
     let endDate = +value.endDate + 86400000;
-    //console.log(endDate, value.startDate);
+    console.log(endDate, value.startDate);
     let receiptsData = await Receipts.find({
       counter_uuid: req.body.counter_uuid,
     });
@@ -1416,7 +1416,7 @@ router.post("/getOrderItemReport", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    //console.log(value);
+    console.log(value);
     let endDate = +value.endDate + 86400000;
     let response = await OrderCompleted.find({});
     let counterData = await Counters.find({});

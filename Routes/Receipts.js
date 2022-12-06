@@ -14,7 +14,7 @@ router.post("/postReceipt", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     let next_receipt_number = await Details.find({});
-    //console.log(next_receipt_number[0].next_receipt_number);
+    console.log(next_receipt_number[0].next_receipt_number);
     next_receipt_number = next_receipt_number[0].next_receipt_number;
     let response = await Receipts.create({
       ...value,
@@ -72,13 +72,13 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
         { order_uuid: value.order_uuid },
       ],
     });
-    //console.log(response);
+    console.log(response);
 
     response = JSON.parse(JSON.stringify(response));
     response = response.modes.map((a) =>
       a.mode_uuid === value.mode_uuid ? { ...a, status: value.status } : a
     );
-    //console.log(response);
+    console.log(response);
     let data = await Receipts.updateMany(
       { order_uuid: value.order_uuid },
       { modes: response }
@@ -101,7 +101,7 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
 //       { modes }
 //     );
 //   }
-//   //console.log("done");
+//   console.log("done");
 // };
 // updateStetus()
 router.get("/getReceipt", async (req, res) => {
@@ -111,11 +111,11 @@ router.get("/getReceipt", async (req, res) => {
     let usersData = await Users.find({
       user_uuid: { $in: response.map((a) => a.user_uuid).filter((a) => a) },
     });
-    //console.log(response.length);
+    console.log(response.length);
     response = response.filter(
       (a) => a.modes.filter((b) => b.status === 0 && b.amt).length
     );
-    //console.log(response.length);
+    console.log(response.length);
     if (response.length) {
       let data = [];
       for (let item of response) {
@@ -166,7 +166,7 @@ router.get("/getReceipt", async (req, res) => {
 router.put("/putRemarks", async (req, res) => {
   try {
   let value = req.body;
-  //console.log(value);
+  console.log(value);
   let orderData = await Receipts.findOne({
     invoice_number: value.invoice_number,
   });
@@ -175,7 +175,7 @@ router.put("/putRemarks", async (req, res) => {
     a.mode_uuid === value.mode_uuid ? { ...a, remarks: value.remarks } : a
   );
 
-  //console.log(modes);
+  console.log(modes);
   let data = await Receipts.updateOne(
     {
       invoice_number: value.invoice_number,

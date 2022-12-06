@@ -6,7 +6,7 @@ router.post("/postUserActivity", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    //console.log(value);
+    console.log(value);
     let time = new Date();
     value = { ...value, timestamp: time.getTime() };
 
@@ -22,14 +22,14 @@ router.post("/getUserActivity", async (req, res) => {
   try {
   let value = req.body;
   if (!value) res.json({ success: false, message: "Invalid Data" });
-  //console.log(value);
+  console.log(value);
   let endDate = +value.endDate + 86400000;
-  //console.log(endDate,value.startDate);
+  console.log(endDate,value.startDate);
   let response = await UserActivity.find({
     user_uuid: value.user_uuid,
     timestamp: { $gt: value.startDate, $lt: endDate },
   });
-  //console.log(response, endDate);
+  console.log(response, endDate);
   if (response) {
     res.json({ success: true, result: response });
   } else res.json({ success: false, message: "Activity Not created" });
