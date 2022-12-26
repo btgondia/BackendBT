@@ -336,10 +336,10 @@ router.put("/putOrders", async (req, res) => {
         let data = await OrderCompleted.findOne({
           order_uuid: value.order_uuid,
         });
-        console.log(orderStage)
+        console.log(orderStage);
         if (+orderStage === 5 || value?.item_details?.length === 0) {
-           data= await CancelOrders.create(value);
-    
+          data = await CancelOrders.create(value);
+
           await Orders.deleteOne({ order_uuid: value.order_uuid });
         }
         // console.log("length", value?.item_details?.length);
@@ -875,7 +875,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
           userData.routes.filter((b) => b === a.route_uuid).length ||
           (userData.routes.filter((b) => b === "none").length && !a.route_uuid)
       );
-     
+
       data = await Orders.find({
         counter_uuid: {
           $in: counterData
@@ -1396,14 +1396,19 @@ router.post("/getCounterLedger", async (req, res) => {
     response = [...receiptsData, ...response];
     response = response.map((order) => ({
       ...order,
-      reference_number: order?.invoice_number || order.receipt_number || "-",
+      reference_number: order.receipt_number
+        ? order.receipt_number + " (" + order?.invoice_number + ")"
+        : order?.invoice_number || "-",
       order_date:
         order?.status?.find((a) => +a.stage === 1)?.time || order?.time || "",
 
       amt1: order?.order_grandtotal || "",
-      amt2: order?.modes?.length
-        ? order?.modes?.map((a) => a.amt || 0).reduce((a, b) => a + b)
-        : "",
+      amt2:
+        order?.modes?.length > 1
+          ? order?.modes?.map((a) => a.amt || 0).reduce((a, b) => a + b)
+          : order?.modes?.length
+          ? order?.modes[0]?.amt
+          : "0",
     }));
     if (response.length) {
       res.json({ success: true, result: response });
