@@ -13,7 +13,13 @@ const OutstandingSchema = new mongoose.Schema({
   counter_uuid: {
     type: String,
   },
+  remarks: {
+    type: String,
+  },
   time: {
+    type: Number,
+  },
+  reminder: {
     type: Number,
   },
   invoice_number: {

@@ -26,6 +26,22 @@ router.post("/postOutstanding", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/postMenualOutstanding", async (req, res) => {
+  // try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+
+    console.log(value);
+    let time = new Date();
+    let response = await Outstanding.create({ ...value, time: time.getTime() });
+
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Outstanding Not created" });
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
+});
 
 router.get("/getOutstanding", async (req, res) => {
   try {
@@ -68,7 +84,7 @@ router.put("/putOutstanding", async (req, res) => {
       );
       await SignedBills.updateMany(
         {
-          order_uuid
+          order_uuid,
         },
         {
           amount,
@@ -94,4 +110,5 @@ router.put("/putOutstanding", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+
 module.exports = router;

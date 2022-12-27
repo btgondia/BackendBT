@@ -10,6 +10,9 @@ const CounterSchema = new mongoose.Schema({
   sort_order: {
     type: Number,
   },
+  payment_reminder_days: {
+    type: Number,
+  },
   credit_allowed: {
     type: String,
   },
