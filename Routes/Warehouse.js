@@ -25,6 +25,17 @@ router.post("/postWarehouse", async (req, res) => {
 
 router.get("/GetWarehouseList", async (req, res) => {
   try {
+    let data = await Warehouse.find({status:true});
+
+    if (data.length)
+      res.json({ success: true, result: data.filter((a) => a.warehouse_uuid) });
+    else res.json({ success: false, message: "Warehouse Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.get("/GetWarehouseAllList", async (req, res) => {
+  try {
     let data = await Warehouse.find({});
 
     if (data.length)

@@ -28,16 +28,16 @@ router.post("/postOutstanding", async (req, res) => {
 });
 router.post("/postMenualOutstanding", async (req, res) => {
   // try {
-    let value = req.body;
-    if (!value) res.json({ success: false, message: "Invalid Data" });
+  let value = req.body;
+  if (!value) res.json({ success: false, message: "Invalid Data" });
 
-    console.log(value);
-    let time = new Date();
-    let response = await Outstanding.create({ ...value, time: time.getTime() });
+  console.log(value);
+  let time = new Date();
+  let response = await Outstanding.create({ ...value, time: time.getTime() });
 
-    if (response) {
-      res.json({ success: true, result: response });
-    } else res.json({ success: false, message: "Outstanding Not created" });
+  if (response) {
+    res.json({ success: true, result: response });
+  } else res.json({ success: false, message: "Outstanding Not created" });
   // } catch (err) {
   //   res.status(500).json({ success: false, message: err });
   // }
@@ -102,6 +102,23 @@ router.put("/putOutstanding", async (req, res) => {
         amount: value.amount,
       });
     }
+
+    if (response.acknowledged) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.put("/putOutstandingReminder", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let { order_uuid, counter_uuid, reminder } = value;
+    let response = await Outstanding.updateOne(
+      { order_uuid, counter_uuid },
+      { reminder }
+    );
 
     if (response.acknowledged) {
       res.json({ success: true, result: response });
