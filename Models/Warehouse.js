@@ -4,6 +4,9 @@ const warehouseSchema = new mongoose.Schema({
   warehouse_title: {
     type: String,
   },
+  status: {
+    type: Boolean,
+  },
 
   warehouse_uuid: {
     type: String,
