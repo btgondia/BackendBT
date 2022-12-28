@@ -9,6 +9,21 @@ const Receipts = require("../Models/Receipts");
 const Details = require("../Models/Details");
 const { format } = require("express/lib/response");
 
+router.get("/getPendingEntry", async (req, res) => {
+  try {
+    let receiptData = await Receipts.find({
+   entry:0
+    });
+    receiptData = JSON.parse(JSON.stringify(receiptData));
+console.log(receiptData)
+    res.json({
+      success: true,
+      result: receiptData,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.post("/postReceipt", async (req, res) => {
   try {
     let value = req.body;
@@ -47,10 +62,10 @@ router.put("/putReceipt", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    let { order_uuid, counter_uuid, modes } = value;
+    let { order_uuid, counter_uuid, modes,entry=1 } = value;
     let response = await Receipts.updateOne(
       { order_uuid, counter_uuid },
-      { modes }
+      { modes,entry }
     );
 
     if (response.acknowledged) {
@@ -60,7 +75,28 @@ router.put("/putReceipt", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-
+router.put("/putCompleteOrder", async (req, res) => {
+  try {
+    let value = req.body;
+    console.log(value);
+    let data = await Receipts.updateOne(
+      { receipt_number: value.receipt_number },
+      value
+    );
+    if (data.acknowledged) {
+      res.json({
+        success: true,
+        result: data,
+      });
+    } else
+      res.status(404).json({
+        success: false,
+        result: data,
+      });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.put("/putReceiptUPIStatus", async (req, res) => {
   try {
     let value = req.body;
@@ -165,33 +201,33 @@ router.get("/getReceipt", async (req, res) => {
 });
 router.put("/putRemarks", async (req, res) => {
   try {
-  let value = req.body;
-  console.log(value);
-  let orderData = await Receipts.findOne({
-    invoice_number: value.invoice_number,
-  });
-  orderData = JSON.parse(JSON.stringify(orderData));
-  let modes = orderData.modes.map((a) =>
-    a.mode_uuid === value.mode_uuid ? { ...a, remarks: value.remarks } : a
-  );
-
-  console.log(modes);
-  let data = await Receipts.updateOne(
-    {
+    let value = req.body;
+    console.log(value);
+    let orderData = await Receipts.findOne({
       invoice_number: value.invoice_number,
-    },
-    { modes }
-  );
-  if (data.acknowledged) {
-    res.json({
-      success: true,
-      result: data,
     });
-  } else
-    res.status(404).json({
-      success: false,
-      result: data,
-    });
+    orderData = JSON.parse(JSON.stringify(orderData));
+    let modes = orderData.modes.map((a) =>
+      a.mode_uuid === value.mode_uuid ? { ...a, remarks: value.remarks } : a
+    );
+
+    console.log(modes);
+    let data = await Receipts.updateOne(
+      {
+        invoice_number: value.invoice_number,
+      },
+      { modes }
+    );
+    if (data.acknowledged) {
+      res.json({
+        success: true,
+        result: data,
+      });
+    } else
+      res.status(404).json({
+        success: false,
+        result: data,
+      });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }

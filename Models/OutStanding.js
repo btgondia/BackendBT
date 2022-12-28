@@ -26,7 +26,7 @@ const OutstandingSchema = new mongoose.Schema({
     type: Number,
   },
   invoice_number: {
-    type: Number,
+    type: String,
   },
   amount: { type: Number },
 });

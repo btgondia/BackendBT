@@ -22,6 +22,9 @@ const ReceiptsSchema = new mongoose.Schema({
   time: {
     type: Number,
   },
+  entry: {
+    type: Number,
+  },
   modes: [
     {
       mode_uuid: { type: String },
