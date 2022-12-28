@@ -127,5 +127,22 @@ router.put("/putOutstandingReminder", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.put("/putOutstandingType", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let { order_uuid, counter_uuid, type } = value;
+    let response = await Outstanding.updateOne(
+      { order_uuid, counter_uuid },
+      { type }
+    );
+
+    if (response.acknowledged) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 module.exports = router;

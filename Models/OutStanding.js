@@ -19,6 +19,9 @@ const OutstandingSchema = new mongoose.Schema({
   time: {
     type: Number,
   },
+  type: {
+    type: Number,
+  },
   reminder: {
     type: Number,
   },
