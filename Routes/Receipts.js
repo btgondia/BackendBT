@@ -12,10 +12,10 @@ const { format } = require("express/lib/response");
 router.get("/getPendingEntry", async (req, res) => {
   try {
     let receiptData = await Receipts.find({
-   entry:0
+      entry: 0,
     });
     receiptData = JSON.parse(JSON.stringify(receiptData));
-console.log(receiptData)
+    console.log(receiptData);
     res.json({
       success: true,
       result: receiptData,
@@ -34,6 +34,7 @@ router.post("/postReceipt", async (req, res) => {
     let response = await Receipts.create({
       ...value,
       receipt_number: next_receipt_number,
+      time: new Date().getTime(),
     });
     next_receipt_number = "R" + (+next_receipt_number.match(/\d+/)[0] + 1);
     await Details.updateMany({}, { next_receipt_number });
@@ -62,10 +63,10 @@ router.put("/putReceipt", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    let { order_uuid, counter_uuid, modes,entry=1 } = value;
+    let { order_uuid, counter_uuid, modes, entry = 1 } = value;
     let response = await Receipts.updateOne(
       { order_uuid, counter_uuid },
-      { modes,entry }
+      { modes, entry }
     );
 
     if (response.acknowledged) {

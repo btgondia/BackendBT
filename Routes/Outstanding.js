@@ -78,10 +78,6 @@ router.put("/putOutstanding", async (req, res) => {
     let data = await Outstanding.findOne({ order_uuid, counter_uuid });
     let response;
     if (data) {
-      response = await Outstanding.updateOne(
-        { order_uuid, counter_uuid },
-        { amount }
-      );
       await SignedBills.updateMany(
         {
           order_uuid,
@@ -90,6 +86,14 @@ router.put("/putOutstanding", async (req, res) => {
           amount,
         }
       );
+      if (amount) {
+        response = await Outstanding.updateOne(
+          { order_uuid, counter_uuid },
+          { amount }
+        );
+      } else {
+        response = await Outstanding.deleteOne({ order_uuid, counter_uuid });
+      }
     } else {
       console.log(value);
       let time = new Date();
@@ -131,9 +135,9 @@ router.put("/putOutstandingType", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    let { order_uuid, counter_uuid, type } = value;
+    let { invoice_number, counter_uuid, type } = value;
     let response = await Outstanding.updateOne(
-      { order_uuid, counter_uuid },
+      { invoice_number, counter_uuid },
       { type }
     );
 
