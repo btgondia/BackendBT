@@ -28,6 +28,9 @@ const OutstandingSchema = new mongoose.Schema({
   invoice_number: {
     type: String,
   },
+  outstanding_uuid: {
+    type: String,
+  },
   amount: { type: Number },
 });
 

@@ -2,12 +2,12 @@ const express = require("express");
 const router = express.Router();
 const Outstanding = require("../Models/OutStanding");
 const SignedBills = require("../Models/SignedBills");
-
+const { v4: uuid } = require("uuid");
 router.post("/postOutstanding", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-
+    value = { outstanding_uuid: uuid(), ...value };
     console.log(value);
     let time = new Date();
     let response = await Outstanding.create(value);
@@ -27,20 +27,20 @@ router.post("/postOutstanding", async (req, res) => {
   }
 });
 router.post("/postMenualOutstanding", async (req, res) => {
-  // try {
-  let value = req.body;
-  if (!value) res.json({ success: false, message: "Invalid Data" });
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    value = { ...value, outstanding_uuid: uuid() };
+    console.log(value);
+    let time = new Date();
+    let response = await Outstanding.create({ ...value, time: time.getTime() });
 
-  console.log(value);
-  let time = new Date();
-  let response = await Outstanding.create({ ...value, time: time.getTime() });
-
-  if (response) {
-    res.json({ success: true, result: response });
-  } else res.json({ success: false, message: "Outstanding Not created" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Outstanding Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 
 router.get("/getOutstanding", async (req, res) => {
@@ -48,7 +48,6 @@ router.get("/getOutstanding", async (req, res) => {
     let response = await Outstanding.find({});
     response = JSON.parse(JSON.stringify(response));
 
-    console.log(response);
     if (response.length) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Outstanding Not created" });
@@ -97,6 +96,7 @@ router.put("/putOutstanding", async (req, res) => {
     } else {
       console.log(value);
       let time = new Date();
+      value={...value,outstanding_uuid:uuid()}
       response = await Outstanding.create(value);
       result = await SignedBills.create({
         time_stamp: time.getTime(),
@@ -135,11 +135,9 @@ router.put("/putOutstandingType", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    let { invoice_number, counter_uuid, type, order_uuid } = value;
-    let response = await Outstanding.updateOne(
-      { $or: [{ invoice_number }, { order_uuid }], counter_uuid },
-      { type }
-    );
+    let { invoice_number, counter_uuid, type, outstanding_uuid } = value;
+
+    let response = await Outstanding.updateOne({ outstanding_uuid }, { type });
 
     if (response.acknowledged) {
       res.json({ success: true, result: response });
