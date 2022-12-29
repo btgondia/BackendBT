@@ -135,9 +135,9 @@ router.put("/putOutstandingType", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    let { invoice_number, counter_uuid, type } = value;
+    let { invoice_number, counter_uuid, type, order_uuid } = value;
     let response = await Outstanding.updateOne(
-      { invoice_number, counter_uuid },
+      { $or: [{ invoice_number }, { order_uuid }], counter_uuid },
       { type }
     );
 

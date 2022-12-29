@@ -59,6 +59,24 @@ router.post("/getRecipt", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/getSingleRecipt", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let { order_uuid, counter_uuid, receipt_number } = value;
+    let response = await Receipts.findOne({
+      order_uuid,
+      counter_uuid,
+      receipt_number,
+    });
+
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.put("/putReceipt", async (req, res) => {
   try {
     let value = req.body;
@@ -66,6 +84,23 @@ router.put("/putReceipt", async (req, res) => {
     let { order_uuid, counter_uuid, modes, entry = 1 } = value;
     let response = await Receipts.updateOne(
       { order_uuid, counter_uuid },
+      { modes, entry }
+    );
+
+    if (response.acknowledged) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.put("/putSingleReceipt", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let { order_uuid, counter_uuid, modes, entry = 1, receipt_number } = value;
+    let response = await Receipts.updateOne(
+      { order_uuid, counter_uuid, receipt_number },
       { modes, entry }
     );
 
