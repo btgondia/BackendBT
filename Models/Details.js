@@ -7,6 +7,7 @@ const DetailsSchema = new mongoose.Schema({
   next_receipt_number: { type: String },
 
   timer_run_at: { type: Number },
+  next_collection_tag_number: { type: Number },
 });
 
 module.exports = mongoose.model("details", DetailsSchema);

@@ -43,6 +43,20 @@ router.post("/postMenualOutstanding", async (req, res) => {
   }
 });
 
+router.get("/getTagOutstanding/:collection_tag_uuid", async (req, res) => {
+  try {
+    let response = await Outstanding.find({
+      collection_tag_uuid: req.params.collection_tag_uuid,
+    });
+    response = JSON.parse(JSON.stringify(response));
+
+    if (response.length) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Outstanding Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.get("/getOutstanding", async (req, res) => {
   try {
     let response = await Outstanding.find({});
@@ -96,7 +110,7 @@ router.put("/putOutstanding", async (req, res) => {
     } else {
       console.log(value);
       let time = new Date();
-      value={...value,outstanding_uuid:uuid()}
+      value = { ...value, outstanding_uuid: uuid() };
       response = await Outstanding.create(value);
       result = await SignedBills.create({
         time_stamp: time.getTime(),
@@ -138,6 +152,28 @@ router.put("/putOutstandingType", async (req, res) => {
     let { invoice_number, counter_uuid, type, outstanding_uuid } = value;
 
     let response = await Outstanding.updateOne({ outstanding_uuid }, { type });
+
+    if (response.acknowledged) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.put("/putOutstandingTag", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let { selectedOrders, collection_tag_uuid } = value;
+    console.log(collection_tag_uuid, selectedOrders);
+    let response = await Outstanding.updateOne(
+      {
+        outstanding_uuid: {
+          $in: selectedOrders.map((a) => a.outstanding_uuid),
+        },
+      },
+      { collection_tag_uuid }
+    );
 
     if (response.acknowledged) {
       res.json({ success: true, result: response });

@@ -32,6 +32,7 @@ const OrderCompleted = require("./Models/OrderCompleted");
 const CancelOrders = require("./Routes/CancelOrder");
 const CancelOrdersModel = require("./Models/CancelOrders");
 const Vochers = require("./Models/Vochers");
+const CollectionTags = require("./Routes/collectionTag");
 connectDB();
 app = express();
 app.use(
@@ -74,6 +75,7 @@ app.use("/Outstanding", Outstanding);
 app.use("/details", Details);
 app.use("/incentiveStatment", IncentiveStatment);
 app.use("/cancelOrders", CancelOrders);
+app.use("/collectionTags", CollectionTags);
 app.get("/MinLevelUpdate", async (req, res, next) => {
   const response = await MinLevelUpdateAutomation();
   res.json({ success: true, message: "Updated", result: response });

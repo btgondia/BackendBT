@@ -19,6 +19,9 @@ const ReceiptsSchema = new mongoose.Schema({
   counter_uuid: {
     type: String,
   },
+  collection_tag_uuid: {
+    type: String,
+  },
   time: {
     type: Number,
   },

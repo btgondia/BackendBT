@@ -32,6 +32,7 @@ const OutstandingSchema = new mongoose.Schema({
     type: String,
   },
   amount: { type: Number },
+  collection_tag_uuid: { type: String },
 });
 
 module.exports = mongoose.model("outstanding", OutstandingSchema);

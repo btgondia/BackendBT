@@ -268,4 +268,25 @@ router.put("/putRemarks", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+
+router.put("/putReciptTag", async (req, res) => {
+  try {
+  let value = req.body;
+  if (!value) res.json({ success: false, message: "Invalid Data" });
+  let { selectedOrders, collection_tag_uuid } = value;
+  console.log(collection_tag_uuid, selectedOrders);
+  let response = await Receipts.updateOne(
+    {
+      receipt_number: { $in: selectedOrders.map((a) => a.receipt_number) },
+    },
+    { collection_tag_uuid }
+  );
+
+  if (response.acknowledged) {
+    res.json({ success: true, result: response });
+  } else res.json({ success: false, message: "Receipts Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 module.exports = router;
