@@ -7,7 +7,7 @@ router.post("/postOutstanding", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    value = { outstanding_uuid: uuid(), ...value };
+    value = { outstanding_uuid: uuid(), ...value, status: 1 };
     console.log(value);
     let time = new Date();
     let response = await Outstanding.create(value);
@@ -33,7 +33,11 @@ router.post("/postMenualOutstanding", async (req, res) => {
     value = { ...value, outstanding_uuid: uuid() };
     console.log(value);
     let time = new Date();
-    let response = await Outstanding.create({ ...value, time: time.getTime() });
+    let response = await Outstanding.create({
+      ...value,
+      time: time.getTime(),
+      status: 1,
+    });
 
     if (response) {
       res.json({ success: true, result: response });
@@ -47,6 +51,7 @@ router.get("/getTagOutstanding/:collection_tag_uuid", async (req, res) => {
   try {
     let response = await Outstanding.find({
       collection_tag_uuid: req.params.collection_tag_uuid,
+      status:1
     });
     response = JSON.parse(JSON.stringify(response));
 
@@ -59,7 +64,7 @@ router.get("/getTagOutstanding/:collection_tag_uuid", async (req, res) => {
 });
 router.get("/getOutstanding", async (req, res) => {
   try {
-    let response = await Outstanding.find({});
+    let response = await Outstanding.find({   status:1});
     response = JSON.parse(JSON.stringify(response));
 
     if (response.length) {
@@ -74,7 +79,7 @@ router.post("/getOutstanding", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     let { order_uuid, counter_uuid } = value;
-    let response = await Outstanding.findOne({ order_uuid, counter_uuid });
+    let response = await Outstanding.findOne({ order_uuid, counter_uuid, });
 
     if (response) {
       res.json({ success: true, result: response });
@@ -87,8 +92,9 @@ router.put("/putOutstanding", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    let { order_uuid, counter_uuid, amount } = value;
+    let { order_uuid, counter_uuid, amount, outstanding_uuid } = value;
     let data = await Outstanding.findOne({ order_uuid, counter_uuid });
+    console.log(data);
     let response;
     if (data) {
       await SignedBills.updateMany(
@@ -101,16 +107,19 @@ router.put("/putOutstanding", async (req, res) => {
       );
       if (amount) {
         response = await Outstanding.updateOne(
-          { order_uuid, counter_uuid },
+          { outstanding_uuid },
           { amount }
         );
       } else {
-        response = await Outstanding.deleteOne({ order_uuid, counter_uuid });
+        response = await Outstanding.updateOne(
+          { outstanding_uuid },
+          { status: 0 }
+        );
       }
     } else {
       console.log(value);
       let time = new Date();
-      value = { ...value, outstanding_uuid: uuid() };
+      value = { ...value, outstanding_uuid: uuid(), status: 1 };
       response = await Outstanding.create(value);
       result = await SignedBills.create({
         time_stamp: time.getTime(),
@@ -132,9 +141,9 @@ router.put("/putOutstandingReminder", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    let { order_uuid, counter_uuid, reminder } = value;
+    let { order_uuid, counter_uuid, reminder, outstanding_uuid } = value;
     let response = await Outstanding.updateOne(
-      { order_uuid, counter_uuid },
+      { outstanding_uuid },
       { reminder }
     );
 
@@ -166,10 +175,10 @@ router.put("/putOutstandingTag", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
     let { selectedOrders, collection_tag_uuid } = value;
     console.log(collection_tag_uuid, selectedOrders);
-    let response = await Outstanding.updateOne(
+    let response = await Outstanding.updateMany(
       {
         outstanding_uuid: {
-          $in: selectedOrders.map((a) => a.outstanding_uuid),
+          $in: selectedOrders,
         },
       },
       { collection_tag_uuid }
@@ -182,5 +191,6 @@ router.put("/putOutstandingTag", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+
 
 module.exports = router;

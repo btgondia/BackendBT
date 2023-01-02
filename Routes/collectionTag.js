@@ -4,6 +4,7 @@ const router = express.Router();
 const { v4: uuid } = require("uuid");
 
 const collectionTags = require("../Models/collectionTags");
+const Counters = require("../Models/Counters");
 const Details = require("../Models/Details");
 const OutStanding = require("../Models/OutStanding");
 const Receipts = require("../Models/Receipts");
@@ -26,7 +27,7 @@ router.post("/postTag", async (req, res) => {
     if (response) {
       await Details.updateMany(
         {},
-        { next_receipt_number: +invoice_number?.next_collection_tag_number + 1 }
+        { next_collection_tag_number: +invoice_number?.next_collection_tag_number + 1 }
       );
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Tag Not created" });
@@ -56,6 +57,7 @@ router.get("/getUserActiveTag/:user_uuid", async (req, res) => {
       for (let a of data) {
         let ordersData = await OutStanding.find({
           collection_tag_uuid: a.collection_tag_uuid,
+          status:1
         });
         console.log(ordersData);
         ordersData = JSON.parse(JSON.stringify(ordersData));
@@ -82,8 +84,9 @@ router.get("/getTag", async (req, res) => {
       let result = [];
 
       for (let a of data) {
-        let ordersData = await Receipts.find({
+        let ordersData = await OutStanding.find({
           collection_tag_uuid: a.collection_tag_uuid,
+          status:1
         });
         console.log(ordersData);
         ordersData = JSON.parse(JSON.stringify(ordersData));
@@ -123,6 +126,59 @@ router.put("/putTags", async (req, res) => {
     if (response.acknowledged) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Trips Not updated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.get("/GetTagSummaryDetails/:collection_tag_uuid", async (req, res) => {
+  try {
+    let a = await collectionTags.findOne({
+      collection_tag_uuid: req.params.collection_tag_uuid,
+    });
+    a = JSON.parse(JSON.stringify(a));
+
+    let CounterData = await Counters.find({});
+    CounterData = JSON.parse(JSON.stringify(CounterData));
+
+    if (a) {
+      let receiptsData = await Receipts.find({
+        collection_tag_uuid: a.collection_tag_uuid,
+      });
+
+      receiptsData = JSON.parse(JSON.stringify(receiptsData));
+      let receipts = [];
+      for (let item of receiptsData) {
+        let obj = {
+          ...item,
+          counter_title: CounterData.find(
+            (c) => c.counter_uuid === item.counter_uuid
+          )?.counter_title,
+          cash:
+            item.modes.find(
+              (a) => a.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002"
+            )?.amt || 0,
+          cheque:
+            item.modes.find(
+              (a) => a.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002"
+            )?.amt || 0,
+          upi:
+            item.modes.find(
+              (a) => a.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002"
+            )?.amt || 0,
+        };
+        receipts.push(obj);
+      }
+
+      let data = {
+        ...a,
+        receipts,
+      };
+
+      res.json({
+        success: true,
+        result: data,
+      });
+    } else res.json({ success: false, message: "Trips Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }

@@ -82,7 +82,7 @@ router.get("/GetTripListSummary/:user_uuid", async (req, res) => {
     userData = JSON.parse(JSON.stringify(userData));
     let data = await Trips.find({ status: 1 });
     data = JSON.parse(JSON.stringify(data));
-  
+
     let CounterData = await Counters.find({});
     CounterData = JSON.parse(JSON.stringify(CounterData));
     data = data.filter(
@@ -92,7 +92,7 @@ router.get("/GetTripListSummary/:user_uuid", async (req, res) => {
     );
     if (data.length) {
       let result = [];
-  
+
       for (let a of data) {
         let ordersData = await Orders.find({ trip_uuid: a.trip_uuid });
         let warehouseData = await Warehouse.findOne({
@@ -107,7 +107,7 @@ router.get("/GetTripListSummary/:user_uuid", async (req, res) => {
           warehouse_title: warehouseData?.warehouse_title || "",
         });
       }
-  
+
       res.json({
         success: true,
         result,
@@ -116,15 +116,15 @@ router.get("/GetTripListSummary/:user_uuid", async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
-  });
-  router.get("/GetTripSummaryDetails/:trip_uuid", async (req, res) => {
+});
+router.get("/GetTripSummaryDetails/:trip_uuid", async (req, res) => {
   try {
     let a = await Trips.findOne({ trip_uuid: req.params.trip_uuid });
     a = JSON.parse(JSON.stringify(a));
-  
+
     let CounterData = await Counters.find({});
     CounterData = JSON.parse(JSON.stringify(CounterData));
-  
+
     if (a) {
       let receiptItems = await CompleteOrder.find({ trip_uuid: a.trip_uuid });
       receiptItems = JSON.parse(JSON.stringify(receiptItems));
@@ -143,6 +143,7 @@ router.get("/GetTripListSummary/:user_uuid", async (req, res) => {
 
       let OutstandingData = await OutStanding.find({
         trip_uuid: a.trip_uuid,
+        status: 1,
       });
       OutstandingData = JSON.parse(JSON.stringify(OutstandingData));
       let unpaid_invoice = OutstandingData.map((b) => ({
@@ -280,7 +281,7 @@ router.post("/GetTripItemSummary", async (req, res) => {
     data = JSON.parse(JSON.stringify(data));
     let CounterData = await Counters.find({});
     CounterData = JSON.parse(JSON.stringify(CounterData));
-    let OutstandingData = await OutStanding.find({});
+    let OutstandingData = await OutStanding.find({ status: 1 });
     OutstandingData = JSON.parse(JSON.stringify(OutstandingData));
 
     let CompleteOrdersData = await CompleteOrder.find({});

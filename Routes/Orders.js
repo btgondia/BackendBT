@@ -727,6 +727,7 @@ router.get("/getPendingEntry", async (req, res) => {
     receiptData = JSON.parse(JSON.stringify(receiptData));
     let outstandindData = await OutStanding.find({
       order_uuid: { $in: data.map((a) => a.order_uuid) },
+      status:1
     });
     outstandindData = JSON.parse(JSON.stringify(outstandindData));
     res.json({
@@ -1276,6 +1277,7 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
     receiptData = JSON.parse(JSON.stringify(receiptData));
     let outstandindData = await OutStanding.find({
       order_uuid: response.map((a) => a.order_uuid),
+      status:1
     });
 
     outstandindData = JSON.parse(JSON.stringify(outstandindData));

@@ -8,7 +8,7 @@ const ReceiptsSchema = new mongoose.Schema({
     type: String,
   },
   invoice_number: {
-    type: Number,
+    type: String,
   },
   receipt_number: {
     type: String,

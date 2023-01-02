@@ -8,6 +8,7 @@ const router = express.Router();
 const Receipts = require("../Models/Receipts");
 const Details = require("../Models/Details");
 const { format } = require("express/lib/response");
+const OutStanding = require("../Models/OutStanding");
 
 router.get("/getPendingEntry", async (req, res) => {
   try {
@@ -275,9 +276,9 @@ router.put("/putReciptTag", async (req, res) => {
   if (!value) res.json({ success: false, message: "Invalid Data" });
   let { selectedOrders, collection_tag_uuid } = value;
   console.log(collection_tag_uuid, selectedOrders);
-  let response = await Receipts.updateOne(
+  let response = await OutStanding.updateMany(
     {
-      receipt_number: { $in: selectedOrders.map((a) => a.receipt_number) },
+      outstanding_uuid: { $in: selectedOrders },
     },
     { collection_tag_uuid }
   );
