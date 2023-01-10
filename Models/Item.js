@@ -7,7 +7,9 @@ const itemSchema = new mongoose.Schema({
   item_discount: {
     type: Number,
   },
-
+  exclude_discount: {
+    type: Number,
+},
   status: {
     type: Number,
   },

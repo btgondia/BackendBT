@@ -192,5 +192,8 @@ router.put("/flushWarehouse", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-
+const update=async()=>{
+  await Item.updateMany({},{exclude_discount:0})
+}
+setTimeout(update,5000)
 module.exports = router;
