@@ -201,7 +201,9 @@ router.put("/CalculateLines", async (req, res) => {
       new Date().setDate(today.getDate() - (days || 0))
     ).getTime();
 
-    let orderData = await Orders.find({ "status.time": { $gt: priorDate } });
+    let orderData = await OrderCompleted.find({
+      "status.time": { $gt: priorDate },
+    });
     orderData = JSON.parse(JSON.stringify(orderData));
     orderData = orderData.filter((a) =>
       a.status.find((b) => +b.stage === 1 && +b.time > priorDate)
@@ -219,53 +221,68 @@ router.put("/CalculateLines", async (req, res) => {
     counterData = JSON.parse(JSON.stringify(counterData));
     let CompaniesData = await Companies.find({});
     CompaniesData = JSON.parse(JSON.stringify(CompaniesData));
+    let index = 0;
     for (let counter of counterData) {
       let counterorder = orderData.filter(
         (a) => a.counter_uuid === counter.counter_uuid
       );
-      if (counterorder.length) {
-        let average_lines = [];
-        for (let company of CompaniesData) {
-          let data = [];
-          for (let order of counterorder) {
-            let count = 0;
-            for (let item of order.item_details) {
-              let ItemData = ItemsData.find(
-                (a) =>
-                  a.item_uuid === item.item_uuid &&
-                  a.company_uuid === company.company_uuid
-              );
 
-              if (ItemData) {
-                count = count + 1;
-              }
-            }
-            if (count) {
-              data = [...data, count];
+      let average_lines = [];
+      for (let company of CompaniesData) {
+        let data = [];
+        for (let order of counterorder) {
+          let count = 0;
+          for (let item of order.item_details) {
+            let ItemData = ItemsData.find(
+              (a) =>
+                a.item_uuid === item.item_uuid &&
+                a.company_uuid === company.company_uuid
+            );
+
+            if (ItemData) {
+              count = count + 1;
             }
           }
-          if (data.length) {
-            average_lines = [
-              ...average_lines,
-              {
-                company_uuid: company.company_uuid,
-                lines:
-                  data.length > 1
-                    ? data.reduce((a, b) => a + b) / data.length
-                    : data[0],
-              },
-            ];
+          if (count) {
+            data = [...data, count];
           }
         }
-        if (average_lines.length) {
-          await Counter.updateMany(
-            { counter_uuid: counter.counter_uuid },
-            { average_lines }
-          );
+        if (data.length) {
+          average_lines = [
+            ...average_lines,
+            {
+              company_uuid: company.company_uuid,
+              lines:
+                data.length > 1
+                  ? data.reduce((a, b) => a + b) / data.length
+                  : data[0],
+            },
+          ];
+        } else {
+          average_lines = [
+            ...average_lines,
+            {
+              company_uuid: company.company_uuid,
+              lines: 0,
+            },
+          ];
         }
       }
+      if (average_lines.length) {
+        await Counter.updateMany(
+          { counter_uuid: counter.counter_uuid },
+          { average_lines }
+        );
+      }
+      if (counter.counter_code === "5043.2") {
+        console.log(counterorder.length);
+      }
+      index = index + 1;
+      console.log(index, counterData.length);
+      if (index === counterData.length) {
+        res.json({ success: true, result: "" });
+      }
     }
-    res.json({ success: true, result: "" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
