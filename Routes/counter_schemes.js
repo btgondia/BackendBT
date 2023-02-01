@@ -57,7 +57,7 @@ router.put("/UpdateCounter_scheme", async (req, res) => {
 router.get("/getRangeOrderDisount", async (req, res) => {
   try {
   
-    let response = await Counter_schemes.find( {type:"range-discount"} );
+    let response = await Counter_schemes.find( {type:{$in:["range-discount-company","range-discount-category"]}} );
     if (response.length) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Incentive Not found" });

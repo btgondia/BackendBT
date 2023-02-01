@@ -10,13 +10,16 @@ const IncentiveSchema = new mongoose.Schema({
   growth_percent: {
     type: Number,
   },
+  discount_percent: {
+    type: Number,
+  },
   discount_title: {
     type: String,
   },
   counter_scheme_uuid: {
     type: String,
   },
-  items: [
+  company: [
     {
       type: String,
     },
@@ -26,7 +29,7 @@ const IncentiveSchema = new mongoose.Schema({
       type: String,
     },
   ],
-  item_groups: [
+  category: [
     {
       type: String,
     },

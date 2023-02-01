@@ -8,6 +8,7 @@ const Orders = require("../Models/Orders");
 const Routes = require("../Models/Routes");
 const Companies = require("../Models/Companies");
 const Item = require("../Models/Item");
+const ItemCategories = require("../Models/ItemCategories");
 
 router.post("/postCounter", async (req, res) => {
   try {
@@ -195,7 +196,7 @@ router.put("/putCounter", async (req, res) => {
 });
 router.put("/CalculateLines", async (req, res) => {
   try {
-    let { days } = req.body;
+    let { days, type } = req.body;
     var today = new Date();
     var priorDate = new Date(
       new Date().setDate(today.getDate() - (days || 0))
@@ -219,7 +220,10 @@ router.put("/CalculateLines", async (req, res) => {
 
     let counterData = await Counter.find({});
     counterData = JSON.parse(JSON.stringify(counterData));
-    let CompaniesData = await Companies.find({});
+    let CompaniesData =
+      type === "company"
+        ? await Companies.find({})
+        : await ItemCategories.find({});
     CompaniesData = JSON.parse(JSON.stringify(CompaniesData));
     let index = 0;
     for (let counter of counterData) {
@@ -236,7 +240,9 @@ router.put("/CalculateLines", async (req, res) => {
             let ItemData = ItemsData.find(
               (a) =>
                 a.item_uuid === item.item_uuid &&
-                a.company_uuid === company.company_uuid
+                (type === "company"
+                  ? a.company_uuid === company.company_uuid
+                  : a.category_uuid === company.category_uuid)
             );
 
             if (ItemData) {
@@ -271,7 +277,11 @@ router.put("/CalculateLines", async (req, res) => {
       if (average_lines.length) {
         await Counter.updateMany(
           { counter_uuid: counter.counter_uuid },
-          { average_lines }
+          {
+            [type === "company"
+              ? "average_lines_company"
+              : "average_lines_category"]: average_lines,
+          }
         );
       }
       if (counter.counter_code === "5043.2") {
