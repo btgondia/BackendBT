@@ -18,8 +18,10 @@ const CancelOrders = require("../Models/CancelOrders");
 const Voucher = require("../Models/Vochers");
 const WarehouseModel = require("../Models/Warehouse");
 const Vochers = require("../Models/Vochers");
+const whatsapp_notifications = require("../Models/whatsapp_notifications");
+const axios = require("axios");
 router.post("/postOrder", async (req, res) => {
-  // try {
+  try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
@@ -226,11 +228,69 @@ router.post("/postOrder", async (req, res) => {
         {},
         { next_invoice_number: +invoice_number.next_invoice_number + 1 }
       );
+      if (+orderStage === 2) {
+        let WhatsappNotification = await whatsapp_notifications.findOne({
+          type: "out-for-delivery",
+        });
+        let counterData = await Counters.findOne({
+          counter_uuid: value.counter_uuid,
+        });
+
+        let message = WhatsappNotification.message
+          ?.replace(/{invoice_number}/g, value.invoice_number)
+          ?.replace(/{amount}/g, value.order_grandtotal);
+        console.log(message);
+        if (WhatsappNotification?.status && counterData.mobile.length) {
+          let msgResponse = await axios({
+            url: "http://15.207.39.69:2000/sendMessage",
+            method: "post",
+            data: {
+              contact: counterData.mobile[0],
+              message,
+            },
+          });
+          console.log(msgResponse);
+        }
+      }
       res.json({ success: true, result: response, incentives });
     } else res.json({ success: false, message: "Order Not created" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.post("/sendMsg", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    console.log(value);
+
+    let WhatsappNotification = await whatsapp_notifications.findOne({
+      type: "out-for-delivery",
+    });
+    let counterData = await Counters.findOne({
+      counter_uuid: value.counter_uuid,
+    });
+
+    let message = WhatsappNotification.message
+      ?.replace(/{invoice_number}/g, value.invoice_number)
+      ?.replace(/{amount}/g, value.amt);
+    console.log(message);
+    if (WhatsappNotification?.status && counterData?.mobile?.length) {
+      let msgResponse = await axios({
+        url: "http://15.207.39.69:2000/sendMessage",
+        method: "post",
+        data: {
+          contact: counterData.mobile[0],
+          message,
+        },
+      });
+      console.log(msgResponse);
+    }
+
+    res.json({ success: true, message: "message sent" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 // router.put("/putOrder", async (req, res) => {
 //   try {
@@ -318,11 +378,11 @@ router.put("/putOrders", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-      let orderStage = value.status
-        ? value?.status?.length > 1
-          ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
-          : +value?.status[0]?.stage
-        : "";
+      let orderStage = Math.max.apply(
+        null,
+        value?.status?.map((a) => +a.stage)
+      );
+
       let tripData = {};
       if (value.trip_uuid) {
         tripData = await Trips.findOne({ trip_uuid: value.trip_uuid });
@@ -650,6 +710,30 @@ router.put("/putOrders", async (req, res) => {
           if (data.acknowledged) response.push(value);
         }
       }
+      if (+orderStage === 2) {
+        let WhatsappNotification = await whatsapp_notifications.findOne({
+          type: "out-for-delivery",
+        });
+        let counterData = await Counters.findOne({
+          counter_uuid: value.counter_uuid,
+        });
+
+        let message = WhatsappNotification.message
+          ?.replace(/{invoice_number}/g, value.invoice_number)
+          ?.replace(/{amount}/g, value.order_grandtotal);
+        console.log(message);
+        if (WhatsappNotification?.status && counterData.mobile.length) {
+          let msgResponse = await axios({
+            url: "http://15.207.39.69:2000/sendMessage",
+            method: "post",
+            data: {
+              contact: counterData.mobile[0],
+              message,
+            },
+          });
+          console.log(msgResponse);
+        }
+      }
     }
     if (response.length) {
       res.json({ success: true, result: response });
@@ -727,7 +811,7 @@ router.get("/getPendingEntry", async (req, res) => {
     receiptData = JSON.parse(JSON.stringify(receiptData));
     let outstandindData = await OutStanding.find({
       order_uuid: { $in: data.map((a) => a.order_uuid) },
-      status:1
+      status: 1,
     });
     outstandindData = JSON.parse(JSON.stringify(outstandindData));
     res.json({
@@ -894,7 +978,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
         },
       });
     }
-    console.log(data);
+
     data = data.filter((a) => {
       return (
         a.order_uuid &&
@@ -906,7 +990,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
           userData?.warehouse?.find((b) => b === a.warehouse_uuid))
       );
     });
-    console.log(data.length);
+
     res.json({
       success: true,
       result: data
@@ -1277,7 +1361,7 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
     receiptData = JSON.parse(JSON.stringify(receiptData));
     let outstandindData = await OutStanding.find({
       order_uuid: response.map((a) => a.order_uuid),
-      status:1
+      status: 1,
     });
 
     outstandindData = JSON.parse(JSON.stringify(outstandindData));
