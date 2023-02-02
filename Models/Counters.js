@@ -65,7 +65,7 @@ const CounterSchema = new mongoose.Schema({
   ],
   average_lines_category: [
     {
-      company_uuid: {
+      category_uuid: {
         type: String,
       },
       lines: {

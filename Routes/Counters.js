@@ -257,7 +257,8 @@ router.put("/CalculateLines", async (req, res) => {
           average_lines = [
             ...average_lines,
             {
-              company_uuid: company.company_uuid,
+              [type === "company" ? "company_uuid" : "category_uuid"]:
+                company[type === "company" ? "company_uuid" : "category_uuid"],
               lines:
                 data.length > 1
                   ? data.reduce((a, b) => a + b) / data.length
@@ -268,7 +269,8 @@ router.put("/CalculateLines", async (req, res) => {
           average_lines = [
             ...average_lines,
             {
-              company_uuid: company.company_uuid,
+              [type === "company" ? "company_uuid" : "category_uuid"]:
+                company[type === "company" ? "company_uuid" : "category_uuid"],
               lines: 0,
             },
           ];
