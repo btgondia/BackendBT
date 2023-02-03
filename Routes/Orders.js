@@ -262,7 +262,6 @@ router.post("/sendMsg", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    console.log(value);
 
     let WhatsappNotification = await whatsapp_notifications.findOne({
       type: "out-for-delivery",
@@ -274,7 +273,7 @@ router.post("/sendMsg", async (req, res) => {
     let message = WhatsappNotification.message
       ?.replace(/{invoice_number}/g, value.invoice_number)
       ?.replace(/{amount}/g, value.amt);
-    console.log(message);
+
     if (WhatsappNotification?.status && counterData?.mobile?.length) {
       let msgResponse = await axios({
         url: "http://15.207.39.69:2000/sendMessage",

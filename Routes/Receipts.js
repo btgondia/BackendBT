@@ -217,6 +217,7 @@ router.get("/getReceipt", async (req, res) => {
                   : "Cheque",
               mode_uuid: item1.mode_uuid,
               counter_title: counterData?.counter_title || "",
+              counter_uuid: counterData?.counter_uuid || "",
               invoice_number: orderData?.invoice_number || "",
               order_date: orderData?.status?.find((a) => +a?.stage === 1)?.time,
               payment_date: item?.time,
@@ -272,20 +273,20 @@ router.put("/putRemarks", async (req, res) => {
 
 router.put("/putReciptTag", async (req, res) => {
   try {
-  let value = req.body;
-  if (!value) res.json({ success: false, message: "Invalid Data" });
-  let { selectedOrders, collection_tag_uuid } = value;
-  console.log(collection_tag_uuid, selectedOrders);
-  let response = await OutStanding.updateMany(
-    {
-      outstanding_uuid: { $in: selectedOrders },
-    },
-    { collection_tag_uuid }
-  );
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let { selectedOrders, collection_tag_uuid } = value;
+    console.log(collection_tag_uuid, selectedOrders);
+    let response = await OutStanding.updateMany(
+      {
+        outstanding_uuid: { $in: selectedOrders },
+      },
+      { collection_tag_uuid }
+    );
 
-  if (response.acknowledged) {
-    res.json({ success: true, result: response });
-  } else res.json({ success: false, message: "Receipts Not created" });
+    if (response.acknowledged) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
