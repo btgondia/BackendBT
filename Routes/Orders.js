@@ -19,6 +19,7 @@ const Voucher = require("../Models/Vochers");
 const WarehouseModel = require("../Models/Warehouse");
 const Vochers = require("../Models/Vochers");
 const whatsapp_notifications = require("../Models/whatsapp_notifications");
+const Notification_logs = require("../Models/notification_log");
 const axios = require("axios");
 router.post("/postOrder", async (req, res) => {
   try {
@@ -249,6 +250,13 @@ router.post("/postOrder", async (req, res) => {
               message,
             },
           });
+          await Notification_logs.create({
+            contact: counterData.mobile[0],
+            notification_uuid: value.notifiacation_uuid,
+            message,
+            invoice_number: value.invoice_number,
+            created_at: new Date().getTime(),
+          });
           console.log(msgResponse);
         }
       }
@@ -282,6 +290,13 @@ router.post("/sendMsg", async (req, res) => {
           contact: counterData.mobile[0],
           message,
         },
+      });
+      await Notification_logs.create({
+        contact: counterData.mobile[0],
+        notification_uuid: value.notifiacation_uuid,
+        message,
+        invoice_number: value.invoice_number,
+        created_at: new Date().getTime(),
       });
       console.count(message);
       res.json({ success: true, message: "Message Sent Successfully" });
@@ -730,6 +745,13 @@ router.put("/putOrders", async (req, res) => {
               contact: counterData.mobile[0],
               message,
             },
+          });
+          await Notification_logs.create({
+            contact: counterData.mobile[0],
+            notification_uuid: value.notifiacation_uuid,
+            message,
+            invoice_number: value.invoice_number,
+            created_at: new Date().getTime(),
           });
           console.log(msgResponse);
         }
