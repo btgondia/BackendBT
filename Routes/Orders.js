@@ -230,7 +230,7 @@ router.post("/postOrder", async (req, res) => {
       );
       if (+orderStage === 2) {
         let WhatsappNotification = await whatsapp_notifications.findOne({
-          type: "out-for-delivery",
+          notification_uuid: "out-for-delivery",
         });
         let counterData = await Counters.findOne({
           counter_uuid: value.counter_uuid,
@@ -264,7 +264,7 @@ router.post("/sendMsg", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
     let WhatsappNotification = await whatsapp_notifications.findOne({
-      type: "payment-reminder-manual",
+      notification_uuid: value.notification_uuid,
     });
     let counterData = await Counters.findOne({
       counter_uuid: value.counter_uuid,
@@ -272,7 +272,7 @@ router.post("/sendMsg", async (req, res) => {
 
     let message = WhatsappNotification.message
       ?.replace(/{invoice_number}/g, value.invoice_number)
-      ?.replace(/{amount}/g, value.amt);
+      ?.replace(/{amount}/g, value?.amt || value?.amount);
 
     if (WhatsappNotification?.status && counterData?.mobile?.length) {
       let msgResponse = await axios({
@@ -283,10 +283,11 @@ router.post("/sendMsg", async (req, res) => {
           message,
         },
       });
-      console.log(msgResponse);
+      console.count(message);
+      res.json({ success: true, message: "Message Sent Successfully" });
+    } else {
+      res.json({ success: false, message: "Mobile Number Missing " });
     }
-
-    res.json({ success: true, message: "message sent" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -711,7 +712,7 @@ router.put("/putOrders", async (req, res) => {
       }
       if (+orderStage === 2) {
         let WhatsappNotification = await whatsapp_notifications.findOne({
-          type: "out-for-delivery",
+          notification_uuid: "out-for-delivery",
         });
         let counterData = await Counters.findOne({
           counter_uuid: value.counter_uuid,
