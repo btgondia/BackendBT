@@ -264,7 +264,7 @@ router.post("/sendMsg", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
     let WhatsappNotification = await whatsapp_notifications.findOne({
-      type: "out-for-delivery",
+      type: "payment-reminder-manual",
     });
     let counterData = await Counters.findOne({
       counter_uuid: value.counter_uuid,
