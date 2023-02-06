@@ -294,8 +294,11 @@ router.post("/sendMsg", async (req, res) => {
             message,
           },
         });
-        if (WhatsappNotification.notification_uuid === "outstanding-manual-reminder") {
-          let response=await OutStanding.updateOne(
+        if (
+          WhatsappNotification.notification_uuid ===
+          "outstanding-manual-reminder"
+        ) {
+          let response = await OutStanding.updateOne(
             { outstanding_uuid: value.outstanding_uuid },
             {
               $push: {
@@ -307,7 +310,7 @@ router.post("/sendMsg", async (req, res) => {
               },
             }
           );
-          console.log(response)
+          console.log(response);
         }
         await Notification_logs.create({
           contact,
@@ -406,13 +409,23 @@ router.put("/putOrders", async (req, res) => {
     let response = [];
     for (let value of req.body) {
       if (!value) res.json({ success: false, message: "Invalid Data" });
+      let prevData = await Orders.findOne({
+        invoice_number: value.invoice_number,
+      });
       value = Object.keys(value)
         .filter((key) => key !== "_id")
         .reduce((obj, key) => {
           obj[key] = value[key];
           return obj;
         }, {});
-      let orderStage = Math.max.apply(
+
+      let prevorderStage = prevData
+        ? +Math.max.apply(
+            null,
+            value?.status?.map((a) => +a.stage)
+          )
+        : 0;
+      let orderStage = +Math.max.apply(
         null,
         value?.status?.map((a) => +a.stage)
       );
@@ -744,7 +757,7 @@ router.put("/putOrders", async (req, res) => {
           if (data.acknowledged) response.push(value);
         }
       }
-      if (+orderStage === 2) {
+      if (+orderStage === 2 && prevorderStage === 1) {
         let WhatsappNotification = await whatsapp_notifications.findOne({
           notification_uuid: "out-for-delivery",
         });
@@ -756,7 +769,7 @@ router.put("/putOrders", async (req, res) => {
           ?.replace(/{invoice_number}/g, value.invoice_number)
           ?.replace(/{amount}/g, value.order_grandtotal);
         console.log(message);
-        if (WhatsappNotification?.status && counterData.mobile.length) {
+        if (WhatsappNotification?.status && counterData?.mobile?.length) {
           for (let contact of counterData?.mobile) {
             let msgResponse = await axios({
               url: "http://15.207.39.69:2000/sendMessage",
