@@ -34,6 +34,13 @@ const OutstandingSchema = new mongoose.Schema({
   amount: { type: Number },
   status: { type: Number },
   collection_tag_uuid: { type: String },
+  logs: [
+    {
+      timestamp: { type: Number },
+      contact: { type: Number },
+      user_uuid: { type: String },
+    },
+  ],
 });
 
 module.exports = mongoose.model("outstanding", OutstandingSchema);
