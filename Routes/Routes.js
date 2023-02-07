@@ -63,14 +63,21 @@ router.get("/GetRouteList", async (req, res) => {
 });
 router.get("/GetOrderRouteList", async (req, res) => {
   try {
+    console.time('routes')
     let data = await Routes.find({});
     data = JSON.parse(JSON.stringify(data));
-    let counter = await Counters.find({});
+    console.timeEnd('routes')
+    console.time('counter')
+    let counter = await Counters.aggregate([{ "$project": { "route_uuid": 1, "counter_uuid": 1 } }])
     counter = JSON.parse(JSON.stringify(counter));
+    console.timeEnd('counter')
 
+    console.time('ordersData')
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
-
+    console.timeEnd('ordersData')
+    
+    console.time('process')
     if (ordersData.length) {
       let result = [
         // {
@@ -145,8 +152,8 @@ router.get("/GetOrderRouteList", async (req, res) => {
                 ).length &&
                 (b.status.length > 1
                   ? +b.status
-                      .map((x) => +x.stage || 0)
-                      .reduce((c, d) => Math.max(c, d)) === 1
+                    .map((x) => +x.stage || 0)
+                    .reduce((c, d) => Math.max(c, d)) === 1
                   : +b?.status[0]?.stage === 1)
             ).length,
             checkingLength: ordersData.filter(
@@ -158,8 +165,8 @@ router.get("/GetOrderRouteList", async (req, res) => {
                 ).length &&
                 (b.status.length > 1
                   ? +b.status
-                      .map((x) => +x.stage || 0)
-                      .reduce((c, d) => Math.max(c, d)) === 2
+                    .map((x) => +x.stage || 0)
+                    .reduce((c, d) => Math.max(c, d)) === 2
                   : +b?.status[0]?.stage === 2)
             ).length,
             deliveryLength: ordersData.filter(
@@ -171,18 +178,32 @@ router.get("/GetOrderRouteList", async (req, res) => {
                 ).length &&
                 (b.status.length > 1
                   ? +b.status
-                      .map((x) => +x.stage || 0)
-                      .reduce((c, d) => Math.max(c, d)) === 3
+                    .map((x) => +x.stage || 0)
+                    .reduce((c, d) => Math.max(c, d)) === 3
                   : +b?.status[0]?.stage === 3)
             ).length,
           };
         }),
       ].filter((a) => a.orderLength);
+
+      console.timeEnd('process')
       res.json({ success: true, result });
     } else res.json({ success: false, message: "Routes Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
+
+router.get('/test', async (req, res) => {
+  try {
+    console.time('counter')
+    let counter = await Counters.aggregate([{ "$project": { "route_uuid": 1, "counter_uuid": 1 } }])
+    counter = JSON.parse(JSON.stringify(counter));
+    console.timeEnd('counter')
+    res.json(counter)
+  } catch (error) {
+    res.status(500).json({ error: error?.message })
+  }
+})
 
 module.exports = router;
