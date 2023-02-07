@@ -242,15 +242,9 @@ router.post("/postOrder", async (req, res) => {
           ?.replace(/{amount}/g, value.order_grandtotal);
         console.log(message);
         if (WhatsappNotification?.status && counterData.mobile.length) {
+          let data = [];
           for (let contact of counterData?.mobile) {
-            let msgResponse = await axios({
-              url: "http://15.207.39.69:2000/sendMessage",
-              method: "post",
-              data: {
-                contact,
-                message,
-              },
-            });
+            data.push({ contact, messages: [message] });
             await Notification_logs.create({
               contact,
               notification_uuid: value.notifiacation_uuid,
@@ -258,8 +252,13 @@ router.post("/postOrder", async (req, res) => {
               invoice_number: value.invoice_number,
               created_at: new Date().getTime(),
             });
-            console.log(msgResponse);
           }
+          let msgResponse = await axios({
+            url: "http://15.207.39.69:2000/sendMessage",
+            method: "post",
+            data,
+          });
+          console.log(msgResponse);
         }
       }
       res.json({ success: true, result: response, incentives });
@@ -285,14 +284,15 @@ router.post("/sendMsg", async (req, res) => {
       ?.replace(/{amount}/g, value?.amt || value?.amount);
 
     if (WhatsappNotification?.status && counterData?.mobile?.length) {
+      let data = [];
       for (let contact of counterData?.mobile) {
-        let msgResponse = await axios({
-          url: "http://15.207.39.69:2000/sendMessage",
-          method: "post",
-          data: {
-            contact,
-            message,
-          },
+        data.push({ contact, messages: [message] });
+        await Notification_logs.create({
+          contact,
+          notification_uuid: WhatsappNotification.notification_uuid,
+          message,
+          invoice_number: value.invoice_number,
+          created_at: new Date().getTime(),
         });
         if (
           WhatsappNotification.notification_uuid ===
@@ -312,15 +312,14 @@ router.post("/sendMsg", async (req, res) => {
           );
           console.log(response);
         }
-        await Notification_logs.create({
-          contact,
-          notification_uuid: WhatsappNotification.notification_uuid,
-          message,
-          invoice_number: value.invoice_number,
-          created_at: new Date().getTime(),
-        });
         console.count(message);
       }
+      let msgResponse = await axios({
+        url: "http://15.207.39.69:2000/sendMessage",
+        method: "post",
+        data,
+      });
+
       res.json({ success: true, message: "Message Sent Successfully" });
     } else {
       res.json({ success: false, message: "Mobile Number Missing " });
@@ -770,15 +769,10 @@ router.put("/putOrders", async (req, res) => {
           ?.replace(/{amount}/g, value.order_grandtotal);
         console.log(message);
         if (WhatsappNotification?.status && counterData?.mobile?.length) {
+          let data = [];
           for (let contact of counterData?.mobile) {
-            let msgResponse = await axios({
-              url: "http://15.207.39.69:2000/sendMessage",
-              method: "post",
-              data: {
-                contact,
-                message,
-              },
-            });
+            data.push({ contact, messages: [message] });
+
             await Notification_logs.create({
               contact,
               notification_uuid: value.notifiacation_uuid,
@@ -788,6 +782,11 @@ router.put("/putOrders", async (req, res) => {
             });
             console.log(msgResponse);
           }
+          let msgResponse = await axios({
+            url: "http://15.207.39.69:2000/sendMessage",
+            method: "post",
+            data,
+          });
         }
       }
     }
