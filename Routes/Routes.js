@@ -194,16 +194,4 @@ router.get("/GetOrderRouteList", async (req, res) => {
   }
 });
 
-router.get('/test', async (req, res) => {
-  try {
-    console.time('counter')
-    let counter = await Counters.aggregate([{ "$project": { "route_uuid": 1, "counter_uuid": 1 } }])
-    counter = JSON.parse(JSON.stringify(counter));
-    console.timeEnd('counter')
-    res.json(counter)
-  } catch (error) {
-    res.status(500).json({ error: error?.message })
-  }
-})
-
 module.exports = router;
