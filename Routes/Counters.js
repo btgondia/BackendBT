@@ -71,6 +71,16 @@ router.get("/GetCounterList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.get("/GetCounterData", async (req, res) => {
+  try {
+    let data = await Counter.find({});
+   
+    if (data.length) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Counters Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.get("/getCounterSales/:days", async (req, res) => {
   try {
     let days = req.params.days;
