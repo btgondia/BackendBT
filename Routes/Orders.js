@@ -244,9 +244,9 @@ router.post("/postOrder", async (req, res) => {
         if (WhatsappNotification?.status && counterData.mobile.length) {
           let data = [];
           for (let contact of counterData?.mobile) {
-            data.push({ contact, messages: [message] });
+            data.push({  contact:contact.mobile, messages: [message] });
             await Notification_logs.create({
-              contact,
+               contact:contact.mobile,
               notification_uuid: value.notifiacation_uuid,
               message,
               invoice_number: value.invoice_number,
@@ -286,9 +286,10 @@ router.post("/sendMsg", async (req, res) => {
     if (WhatsappNotification?.status && counterData?.mobile?.length) {
       let data = [];
       for (let contact of counterData?.mobile) {
-        data.push({ contact, messages: [message] });
+        console.count(message);
+        data.push({  contact:contact.mobile, messages: [message] });
         await Notification_logs.create({
-          contact,
+          contact:contact.mobile,
           notification_uuid: WhatsappNotification.notification_uuid,
           message,
           invoice_number: value.invoice_number,
@@ -305,21 +306,21 @@ router.post("/sendMsg", async (req, res) => {
                 logs: {
                   user_uuid: value.user_uuid,
                   timestamp: new Date().getTime(),
-                  contact,
+                  contact:contact.mobile,
                 },
               },
             }
           );
           console.log(response);
         }
-        console.count(message);
+       
       }
       let msgResponse = await axios({
         url: "http://15.207.39.69:2000/sendMessage",
         method: "post",
         data,
       });
-
+      console.log(data, msgResponse);
       res.json({ success: true, message: "Message Sent Successfully" });
     } else {
       res.json({ success: false, message: "Mobile Number Missing " });
@@ -756,7 +757,7 @@ router.put("/putOrders", async (req, res) => {
           if (data.acknowledged) response.push(value);
         }
       }
-      console.log(orderStage, prevorderStage)
+      console.log(orderStage, prevorderStage);
       if (+orderStage === 2 && prevorderStage === 1) {
         let WhatsappNotification = await whatsapp_notifications.findOne({
           notification_uuid: "out-for-delivery",
@@ -772,10 +773,10 @@ router.put("/putOrders", async (req, res) => {
         if (WhatsappNotification?.status && counterData?.mobile?.length) {
           let data = [];
           for (let contact of counterData?.mobile) {
-            data.push({ contact, messages: [message] });
+            data.push({  contact:contact.mobile, messages: [message] });
 
             await Notification_logs.create({
-              contact,
+              contact:contact.mobile,
               notification_uuid: value.notifiacation_uuid,
               message,
               invoice_number: value.invoice_number,
@@ -787,7 +788,7 @@ router.put("/putOrders", async (req, res) => {
             method: "post",
             data,
           });
-          console.log(data,msgResponse);
+          console.log(data, msgResponse);
         }
       }
     }
