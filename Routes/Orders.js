@@ -421,7 +421,7 @@ router.put("/putOrders", async (req, res) => {
       let prevorderStage = prevData
         ? +Math.max.apply(
             null,
-            value?.status?.map((a) => +a.stage)
+            prevData?.status?.map((a) => +a.stage)
           )
         : 0;
       let orderStage = +Math.max.apply(
@@ -756,6 +756,7 @@ router.put("/putOrders", async (req, res) => {
           if (data.acknowledged) response.push(value);
         }
       }
+      console.log(orderStage, prevorderStage)
       if (+orderStage === 2 && prevorderStage === 1) {
         let WhatsappNotification = await whatsapp_notifications.findOne({
           notification_uuid: "out-for-delivery",
@@ -780,13 +781,13 @@ router.put("/putOrders", async (req, res) => {
               invoice_number: value.invoice_number,
               created_at: new Date().getTime(),
             });
-            console.log(msgResponse);
           }
           let msgResponse = await axios({
             url: "http://15.207.39.69:2000/sendMessage",
             method: "post",
             data,
           });
+          console.log(data,msgResponse);
         }
       }
     }
