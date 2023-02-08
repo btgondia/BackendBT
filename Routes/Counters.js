@@ -74,7 +74,7 @@ router.get("/GetCounterList", async (req, res) => {
 router.get("/GetCounterData", async (req, res) => {
   try {
     let data = await Counter.find({});
-   
+
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
@@ -339,6 +339,39 @@ router.put("/putCounter/sortOrder", async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+router.post("/sendWhatsappOtp", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
+      .toString()
+      .slice(0, 6);
+    let otp = await generatedOTP;
+
+    if (value?.mobile) {
+      let data = [{ contact: value.mobile, messages: [otp] }];
+      await Notification_logs.create({
+        contact: value.mobile,
+        notification_uuid: "Whatsapp Otp",
+        message: otp,
+        // invoice_number: value.invoice_number,
+        created_at: new Date().getTime(),
+      });
+
+      let msgResponse = await axios({
+        url: "http://15.207.39.69:2000/sendMessage",
+        method: "post",
+        data,
+      });
+      console.log(data, msgResponse);
+      res.json({ success: true, message: "Message Sent Successfully" });
+    } else {
+      res.json({ success: false, message: "Mobile Number Missing " });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
   }
 });
 
