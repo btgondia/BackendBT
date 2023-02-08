@@ -244,9 +244,9 @@ router.post("/postOrder", async (req, res) => {
         if (WhatsappNotification?.status && counterData.mobile.length) {
           let data = [];
           for (let contact of counterData?.mobile) {
-            data.push({  contact:contact.mobile, messages: [message] });
+            data.push({ contact: contact.mobile, messages: [message] });
             await Notification_logs.create({
-               contact:contact.mobile,
+              contact: contact.mobile,
               notification_uuid: value.notifiacation_uuid,
               message,
               invoice_number: value.invoice_number,
@@ -287,9 +287,9 @@ router.post("/sendMsg", async (req, res) => {
       let data = [];
       for (let contact of counterData?.mobile) {
         console.count(message);
-        data.push({  contact:contact.mobile, messages: [message] });
+        data.push({ contact: contact.mobile, messages: [message] });
         await Notification_logs.create({
-          contact:contact.mobile,
+          contact: contact.mobile,
           notification_uuid: WhatsappNotification.notification_uuid,
           message,
           invoice_number: value.invoice_number,
@@ -306,14 +306,13 @@ router.post("/sendMsg", async (req, res) => {
                 logs: {
                   user_uuid: value.user_uuid,
                   timestamp: new Date().getTime(),
-                  contact:contact.mobile,
+                  contact: contact.mobile,
                 },
               },
             }
           );
           console.log(response);
         }
-       
       }
       let msgResponse = await axios({
         url: "http://15.207.39.69:2000/sendMessage",
@@ -773,10 +772,10 @@ router.put("/putOrders", async (req, res) => {
         if (WhatsappNotification?.status && counterData?.mobile?.length) {
           let data = [];
           for (let contact of counterData?.mobile) {
-            data.push({  contact:contact.mobile, messages: [message] });
+            data.push({ contact: contact.mobile, messages: [message] });
 
             await Notification_logs.create({
-              contact:contact.mobile,
+              contact: contact.mobile,
               notification_uuid: value.notifiacation_uuid,
               message,
               invoice_number: value.invoice_number,
@@ -1001,7 +1000,10 @@ router.get("/GetOrderRunningList", async (req, res) => {
 });
 router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
   try {
-    let userData = await Users.findOne({ user_uuid: req.params.user_uuid });
+    let userData = await Users.findOne(
+      { user_uuid: req.params.user_uuid },
+      { routes: 1, warehouse: 1 }
+    );
     userData = JSON.parse(JSON.stringify(userData));
 
     let data = [];
@@ -1010,7 +1012,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
       userData.routes.length &&
       !userData.routes.filter((a) => +a === 1).length
     ) {
-      counterData = await Counters.find({});
+      counterData = await Counters.find({},{counter_title:1,counter_uuid:1});
       counterData = JSON.parse(JSON.stringify(counterData));
       counterData = counterData.filter(
         (a) =>
@@ -1033,7 +1035,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
         counter_uuid: {
           $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
         },
-      });
+      },{counter_title:1,counter_uuid:1});
     }
 
     data = data.filter((a) => {
