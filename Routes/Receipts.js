@@ -179,11 +179,14 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
 // updateStetus()
 router.get("/getReceipt", async (req, res) => {
   try {
-    let response = await Receipts.find({});
+    let response = await Receipts.find({"modes.status":0});
     response = JSON.parse(JSON.stringify(response));
-    let usersData = await Users.find({
-      user_uuid: { $in: response.map((a) => a.user_uuid).filter((a) => a) },
-    });
+    let usersData = await Users.find(
+      {
+        user_uuid: { $in: response.map((a) => a.user_uuid).filter((a) => a) },
+      },
+      { user_uuid: 1, user_title: 1 }
+    );
     console.log(response.length);
     response = response.filter(
       (a) => a.modes.filter((b) => b.status === 0 && b.amt).length
@@ -199,16 +202,25 @@ router.get("/getReceipt", async (req, res) => {
             a.amt &&
             a.status === 0
         );
-        let orderData = await OrderCompleted.findOne({
-          order_uuid: item.order_uuid,
-        });
+        let orderData = await OrderCompleted.findOne(
+          {
+            order_uuid: item.order_uuid,
+          },
+          { counter_uuid: 1, invoice_number: 1, status: 1 }
+        );
         if (!orderData)
-          orderData = await Orders.findOne({ order_uuid: item.order_uuid });
+          orderData = await Orders.findOne(
+            { order_uuid: item.order_uuid },
+            { counter_uuid: 1, invoice_number: 1, status: 1 }
+          );
 
         if (orderData) {
-          let counterData = await Counters.findOne({
-            counter_uuid: orderData.counter_uuid,
-          });
+          let counterData = await Counters.findOne(
+            {
+              counter_uuid: orderData.counter_uuid,
+            },
+            { counter_title: 1, counter_uuid: 1 }
+          );
           for (let item1 of modes) {
             let obj = {
               mode_title:
