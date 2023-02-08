@@ -40,9 +40,9 @@ const CounterSchema = new mongoose.Schema({
   address: {
     type: String,
   },
-  mobile: {
+  mobile: [{
     type: String,
-  },
+  }],
   company_discount: [
     {
       company_uuid: {
