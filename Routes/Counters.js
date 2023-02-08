@@ -54,7 +54,32 @@ router.delete("/deleteCounter", async (req, res) => {
 });
 router.get("/GetCounterList", async (req, res) => {
   try {
-    let data = await Counter.find({});
+    let data = await Counter.find(
+      {},
+      {
+        counter_title: 1,
+        counter_code: 1,
+        sort_order: 1,
+        payment_reminder_days: 1,
+        outstanding_type: 1,
+        credit_allowed: 1,
+        gst: 1,
+        food_license: 1,
+        counter_uuid: 1,
+        remarks: 1,
+        status: 1,
+        route_uuid: 1,
+        address: 1,
+        mobile: 1,
+        company_discount: 1,
+        // average_lines_company: 1,
+        // average_lines_category: 1,
+        item_special_price: 1,
+        item_special_discount: 1,
+        counter_group_uuid: 1,
+        payment_modes: 1,
+      }
+    );
     data = JSON.parse(JSON.stringify(data));
     let RoutesData = await Routes.find({
       route_uuid: { $in: data.map((a) => a.route_uuid) },
@@ -73,7 +98,32 @@ router.get("/GetCounterList", async (req, res) => {
 });
 router.get("/GetCounterData", async (req, res) => {
   try {
-    let data = await Counter.find({});
+    let data = await Counter.find(
+      {},
+      {
+        counter_title: 1,
+        counter_code: 1,
+        sort_order: 1,
+        payment_reminder_days: 1,
+        outstanding_type: 1,
+        credit_allowed: 1,
+        gst: 1,
+        food_license: 1,
+        counter_uuid: 1,
+        remarks: 1,
+        status: 1,
+        route_uuid: 1,
+        address: 1,
+        mobile: 1,
+        company_discount: 1,
+        // average_lines_company: 1,
+        // average_lines_category: 1,
+        item_special_price: 1,
+        item_special_discount: 1,
+        counter_group_uuid: 1,
+        payment_modes: 1,
+      }
+    );
 
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Counters Not found" });
