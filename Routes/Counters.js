@@ -8,8 +8,10 @@ const Orders = require("../Models/Orders");
 const Routes = require("../Models/Routes");
 const Companies = require("../Models/Companies");
 const Item = require("../Models/Item");
+const Otp = require("../Models/otp");
 const ItemCategories = require("../Models/ItemCategories");
-
+const notification_log = require("../Models/notification_log");
+const axios = require("axios");
 router.post("/postCounter", async (req, res) => {
   try {
     let value = req.body;
@@ -417,37 +419,82 @@ router.put("/putCounter/sortOrder", async (req, res) => {
   }
 });
 router.post("/sendWhatsappOtp", async (req, res) => {
-  try {
-    let value = req.body;
-    if (!value) res.json({ success: false, message: "Invalid Data" });
-    const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
-      .toString()
-      .slice(0, 6);
-    let otp = await generatedOTP;
+  // try {
+  let value = req.body;
+  if (!value) res.json({ success: false, message: "Invalid Data" });
+  const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
+    .toString()
+    .slice(0, 6);
+  let otp = await generatedOTP;
+  let message = "Your OTP for Mobile Number Verification is " + otp;
+  if (value?.mobile) {
+    let data = [{ contact: value.mobile, messages: [{ text: message }] }];
+    await Otp.create({
+      mobile: value.mobile,
+      counter_uuid: value.counter_uuid,
+      otp,
+    });
+    await notification_log.create({
+      contact: value.mobile,
+      notification_uuid: "Whatsapp Otp",
+      message,
+      // invoice_number: value.invoice_number,
+      created_at: new Date().getTime(),
+    });
 
-    if (value?.mobile) {
-      let data = [{ contact: value.mobile, messages: [otp] }];
-      await Notification_logs.create({
-        contact: value.mobile,
-        notification_uuid: "Whatsapp Otp",
-        message: otp,
-        // invoice_number: value.invoice_number,
-        created_at: new Date().getTime(),
-      });
-
-      let msgResponse = await axios({
-        url: "http://15.207.39.69:2000/sendMessage",
-        method: "post",
-        data,
-      });
-      console.log(data, msgResponse);
-      res.json({ success: true, message: "Message Sent Successfully" });
-    } else {
-      res.json({ success: false, message: "Mobile Number Missing " });
-    }
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
+    let msgResponse = await axios({
+      url: "http://15.207.39.69:2000/sendMessage",
+      method: "post",
+      data,
+    });
+    console.log(data, msgResponse);
+    res.json({ success: true, message: "Message Sent Successfully" });
+  } else {
+    res.json({ success: false, message: "Mobile Number Missing " });
   }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
+});
+router.post("/verifyWhatsappOtp", async (req, res) => {
+  // try {
+  let value = req.body;
+  if (!value) res.json({ success: false, message: "Invalid Data" });
+
+  let otpJson = await Otp.findOne({ otp: value.otp, mobile: value.mobile });
+  if (otpJson) {
+    let counterData = await Counter.findOne(
+      { counter_uuid: value.counter_uuid },
+      { mobile: 1 }
+    );
+    let mobile = JSON.parse(JSON.stringify(counterData.mobile));
+    mobile = mobile.map((a) =>
+      a.mobile === value.mobile
+        ? {
+            ...a,
+            lable: a.lable.find((b) => b.type === "wa")
+              ? a.lable.map((b) =>
+                  b.type === "wa" ? { ...b, varification: 1 } : b
+                )
+              : [...(a.lable || []), { type: "wa", varification: 1 }],
+          }
+        : a
+    );
+    let response = await Counter.updateOne(
+      { counter_uuid: value.counter_uuid },
+      { mobile }
+    );
+    await Otp.deleteMany({ mobile: value.mobile });
+    console.log(mobile);
+    if (response.acknowledged)
+      res.json({ success: true, message: "Number Verified" });
+    else res.json({ success: false, message: "Number Not Verified" });
+  } else {
+    res.json({ success: false, message: "Invalid Otp " });
+  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 
 module.exports = router;
