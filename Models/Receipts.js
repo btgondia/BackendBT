@@ -28,6 +28,9 @@ const ReceiptsSchema = new mongoose.Schema({
   entry: {
     type: Number,
   },
+  pending: {
+    type: Number,
+  },
   modes: [
     {
       mode_uuid: { type: String },

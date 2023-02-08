@@ -442,7 +442,7 @@ router.put("/putOrders", async (req, res) => {
         let data = await OrderCompleted.findOne({
           order_uuid: value.order_uuid,
         });
-        console.log(orderStage);
+        // console.log(orderStage);
         if (+orderStage === 5 || value?.item_details?.length === 0) {
           data = await CancelOrders.create(value);
 
@@ -465,7 +465,7 @@ router.put("/putOrders", async (req, res) => {
               });
               itemData = JSON.parse(JSON.stringify(itemData));
               let stock = itemData.stock;
-              console.log("Stock", stock);
+              // console.log("Stock", stock);
               let qty =
                 +item.b * +itemData.conversion + +item.p + (+item.free || 0);
               stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)
@@ -491,7 +491,7 @@ router.put("/putOrders", async (req, res) => {
                       qty: -qty,
                     },
                   ];
-              console.log("Stock", stock);
+              // console.log("Stock", stock);
               await Item.updateOne(
                 {
                   item_uuid: item.item_uuid,

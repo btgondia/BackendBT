@@ -30,12 +30,15 @@ router.post("/postReceipt", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     let next_receipt_number = await Details.find({});
-    console.log(next_receipt_number[0].next_receipt_number);
+
     next_receipt_number = next_receipt_number[0].next_receipt_number;
+
+    let pending=value.modes.filter((b) => +b.status === 0 && b.amt)?.length?0:1
     let response = await Receipts.create({
       ...value,
       receipt_number: next_receipt_number,
       time: new Date().getTime(),
+      pending
     });
     next_receipt_number = "R" + (+next_receipt_number.match(/\d+/)[0] + 1);
     await Details.updateMany({}, { next_receipt_number });
@@ -116,9 +119,10 @@ router.put("/putCompleteOrder", async (req, res) => {
   try {
     let value = req.body;
     console.log(value);
+    let pending=value.modes.find((b) => b.status === 0 && b.amt)?0:1
     let data = await Receipts.updateOne(
       { receipt_number: value.receipt_number },
-      value
+      {...value,pending}
     );
     if (data.acknowledged) {
       res.json({
@@ -152,9 +156,10 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
       a.mode_uuid === value.mode_uuid ? { ...a, status: value.status } : a
     );
     console.log(response);
+    let pending=response.modes.find((b) => b.status === 0 && b.amt)?0:1
     let data = await Receipts.updateMany(
       { order_uuid: value.order_uuid },
-      { modes: response }
+      { modes: response,pending }
     );
     if (data.acknowledged) {
       res.json({ success: true, result: response });
@@ -179,7 +184,7 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
 // updateStetus()
 router.get("/getReceipt", async (req, res) => {
   try {
-    let response = await Receipts.find({"modes.status":0});
+    let response = await Receipts.find({pending:0});
     response = JSON.parse(JSON.stringify(response));
     let usersData = await Users.find(
       {
@@ -283,24 +288,6 @@ router.put("/putRemarks", async (req, res) => {
   }
 });
 
-router.put("/putReciptTag", async (req, res) => {
-  try {
-    let value = req.body;
-    if (!value) res.json({ success: false, message: "Invalid Data" });
-    let { selectedOrders, collection_tag_uuid } = value;
-    console.log(collection_tag_uuid, selectedOrders);
-    let response = await OutStanding.updateMany(
-      {
-        outstanding_uuid: { $in: selectedOrders },
-      },
-      { collection_tag_uuid }
-    );
 
-    if (response.acknowledged) {
-      res.json({ success: true, result: response });
-    } else res.json({ success: false, message: "Receipts Not created" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
-});
+
 module.exports = router;
