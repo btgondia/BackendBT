@@ -139,7 +139,31 @@ router.get("/getDetails", async (req, res) => {
     counter = counter.filter((a) => a.counter_uuid);
     let item_category = await ItemCategories.find({});
     item_category = item_category.filter((a) => a.category_uuid);
-    let items = await Item.find({});
+    let items = await Item.find(
+      { status: 1 },
+      {
+        item_title: 1,
+        item_discount: 1,
+        exclude_discount: 1,
+        status: 1,
+        sort_order: 1,
+        item_code: 1,
+        free_issue: 1,
+        item_uuid: 1,
+        one_pack: 1,
+        company_uuid: 1,
+        category_uuid: 1,
+        pronounce: 1,
+        mrp: 1,
+        item_price: 1,
+        item_gst: 1,
+        conversion: 1,
+        barcode: 1,
+        item_group_uuid: 1,
+        // stock: 1,
+        created_at: 1,
+      }
+    );
     items = items.filter((a) => a.item_uuid);
     let routes = await Routes.find({});
     routes = routes.filter((a) => a.route_uuid);
