@@ -83,7 +83,32 @@ router.get("/GetTripListSummary/:user_uuid", async (req, res) => {
     let data = await Trips.find({ status: 1 });
     data = JSON.parse(JSON.stringify(data));
 
-    let CounterData = await Counters.find({});
+    let CounterData = await Counters.find(
+      {},
+      {
+        counter_title: 1,
+        counter_code: 1,
+        sort_order: 1,
+        payment_reminder_days: 1,
+        outstanding_type: 1,
+        credit_allowed: 1,
+        gst: 1,
+        food_license: 1,
+        counter_uuid: 1,
+        remarks: 1,
+        status: 1,
+        route_uuid: 1,
+        address: 1,
+        mobile: 1,
+        company_discount: 1,
+        // average_lines_company: 1,
+        // average_lines_category: 1,
+        item_special_price: 1,
+        item_special_discount: 1,
+        counter_group_uuid: 1,
+        payment_modes: 1,
+      }
+    );
     CounterData = JSON.parse(JSON.stringify(CounterData));
     data = data.filter(
       (a) =>
@@ -122,7 +147,32 @@ router.get("/GetTripSummaryDetails/:trip_uuid", async (req, res) => {
     let a = await Trips.findOne({ trip_uuid: req.params.trip_uuid });
     a = JSON.parse(JSON.stringify(a));
 
-    let CounterData = await Counters.find({});
+    let CounterData = await Counters.find(
+      {},
+      {
+        counter_title: 1,
+        counter_code: 1,
+        sort_order: 1,
+        payment_reminder_days: 1,
+        outstanding_type: 1,
+        credit_allowed: 1,
+        gst: 1,
+        food_license: 1,
+        counter_uuid: 1,
+        remarks: 1,
+        status: 1,
+        route_uuid: 1,
+        address: 1,
+        mobile: 1,
+        company_discount: 1,
+        // average_lines_company: 1,
+        // average_lines_category: 1,
+        item_special_price: 1,
+        item_special_discount: 1,
+        counter_group_uuid: 1,
+        payment_modes: 1,
+      }
+    );
     CounterData = JSON.parse(JSON.stringify(CounterData));
 
     if (a) {
@@ -279,7 +329,32 @@ router.post("/GetTripItemSummary", async (req, res) => {
     let value = req.body;
     let data = await Trips.findOne({ trip_uuid: value.trip_uuid });
     data = JSON.parse(JSON.stringify(data));
-    let CounterData = await Counters.find({});
+    let CounterData = await Counters.find(
+      {},
+      {
+        counter_title: 1,
+        counter_code: 1,
+        sort_order: 1,
+        payment_reminder_days: 1,
+        outstanding_type: 1,
+        credit_allowed: 1,
+        gst: 1,
+        food_license: 1,
+        counter_uuid: 1,
+        remarks: 1,
+        status: 1,
+        route_uuid: 1,
+        address: 1,
+        mobile: 1,
+        company_discount: 1,
+        // average_lines_company: 1,
+        // average_lines_category: 1,
+        item_special_price: 1,
+        item_special_discount: 1,
+        counter_group_uuid: 1,
+        payment_modes: 1,
+      }
+    );
     CounterData = JSON.parse(JSON.stringify(CounterData));
     let OutstandingData = await OutStanding.find({ status: 1 });
     OutstandingData = JSON.parse(JSON.stringify(OutstandingData));

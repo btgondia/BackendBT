@@ -63,7 +63,7 @@ router.delete("/deleteCounterGroup", async (req, res) => {
 
     let counterData = await Counters.find({
       counter_group_uuid,
-    });
+    },{counter_uuid:1,counter_group_uuid:1});
 
     if (counterData.length) {
       for (let counter of counterData) {

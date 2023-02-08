@@ -72,63 +72,71 @@ router.get("/getRangeOrderDisount", async (req, res) => {
   }
 });
 router.post("/getRangeOrderEligibleDiscounts", async (req, res) => {
-  // try {
-  let { items, counter_uuid, user_uuid } = req.body;
+  try {
+    let { items, counter_uuid, user_uuid } = req.body;
 
-  let counterSchemeData = await Counter_schemes.find({
-    $or: [
-      {
-        type: "range-discount-company",
-        company: { $in: items.map((a) => a.company_uuid) },
-      },
-      {
-        type: "range-discount-category",
-        category: { $in: items.map((a) => a.category_uuid) },
-      },
-    ],
-    user_uuid,
-    status: 1,
-  });
-  counterSchemeData = JSON.parse(JSON.stringify(counterSchemeData));
+    let counterSchemeData = await Counter_schemes.find({
+      $or: [
+        {
+          type: "range-discount-company",
+          company: { $in: items.map((a) => a.company_uuid) },
+        },
+        {
+          type: "range-discount-category",
+          category: { $in: items.map((a) => a.category_uuid) },
+        },
+      ],
+      user_uuid,
+      status: 1,
+    });
+    counterSchemeData = JSON.parse(JSON.stringify(counterSchemeData));
 
-  let counterData = await Counters.findOne({ counter_uuid });
-  counterData = JSON.parse(JSON.stringify(counterData));
-  let response = [];
-  for (let scheme of counterSchemeData) {
-    if (scheme.type === "range-discount-company") {
-      let { lines = 0 } = counterData.average_lines_company.find(
-        (a) => a.company_uuid === scheme.company_uuid
-      );
-      let itemsLength = items.filter(
-        (a) => a.company_uuid === scheme.company_uuid
-      )?.length;
-      let eligiablility = lines
-        ? (((itemsLength.length || 0) - lines) * 100) / lines
-        : 0;
-      if(eligiablility){
-        response=[...response,scheme]
+    let counterData = await Counters.findOne(
+      { counter_uuid },
+      {
+        counter_uuid: 1,
+
+        average_lines_company: 1,
+        average_lines_category: 1,
       }
-    } else if (scheme.type === "range-discount-category") {
-      let { lines = 0 } = counterData.average_lines_category.find(
-        (a) => a.category_uuid === scheme.category_uuid
-      );
-      let itemsLength = items.filter(
-        (a) => a.category_uuid === scheme.category_uuid
-      )?.length;
-      let eligiablility = lines
-        ? (((itemsLength.length || 0) - lines) * 100) / lines
-        : 0;
-        if(eligiablility){
-          response=[...response,scheme]
+    );
+    counterData = JSON.parse(JSON.stringify(counterData));
+    let response = [];
+    for (let scheme of counterSchemeData) {
+      if (scheme.type === "range-discount-company") {
+        let { lines = 0 } = counterData.average_lines_company.find(
+          (a) => a.company_uuid === scheme.company_uuid
+        );
+        let itemsLength = items.filter(
+          (a) => a.company_uuid === scheme.company_uuid
+        )?.length;
+        let eligiablility = lines
+          ? (((itemsLength.length || 0) - lines) * 100) / lines
+          : 0;
+        if (eligiablility) {
+          response = [...response, scheme];
         }
+      } else if (scheme.type === "range-discount-category") {
+        let { lines = 0 } = counterData.average_lines_category.find(
+          (a) => a.category_uuid === scheme.category_uuid
+        );
+        let itemsLength = items.filter(
+          (a) => a.category_uuid === scheme.category_uuid
+        )?.length;
+        let eligiablility = lines
+          ? (((itemsLength.length || 0) - lines) * 100) / lines
+          : 0;
+        if (eligiablility) {
+          response = [...response, scheme];
+        }
+      }
     }
+    if (response.length) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Incentive Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
   }
-  if (response.length) {
-    res.json({ success: true, result: response });
-  } else res.json({ success: false, message: "Incentive Not found" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
 });
 router.get("/getDeliveryCounter_scheme", async (req, res) => {
   try {

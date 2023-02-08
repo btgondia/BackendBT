@@ -30,7 +30,7 @@ router.post("/postOrder", async (req, res) => {
     if (!value.warehouse_uuid) {
       let counterData = await Counters.findOne({
         counter_uuid: value.counter_uuid,
-      });
+      },{route_uuid});
       if (counterData?.route_uuid) {
         let routeData = await Routes.findOne({ route_uuid: value.route_uuid });
         if (routeData?.warehouse_uuid) {
@@ -49,7 +49,7 @@ router.post("/postOrder", async (req, res) => {
     let incentives = 0;
     let counterGroupsData = await Counters.findOne({
       counter_uuid: value.counter_uuid,
-    });
+    },{counter_group_uuid:1});
     let itemsData = await Item.find({
       item_uuid: {
         $in: value.item_details.map((a) => a.item_uuid),
@@ -235,7 +235,7 @@ router.post("/postOrder", async (req, res) => {
         });
         let counterData = await Counters.findOne({
           counter_uuid: value.counter_uuid,
-        });
+        },{mobile});
 
         let message = WhatsappNotification.message
           ?.replace(/{invoice_number}/g, value.invoice_number)
@@ -277,7 +277,7 @@ router.post("/sendMsg", async (req, res) => {
     });
     let counterData = await Counters.findOne({
       counter_uuid: value.counter_uuid,
-    });
+    },{mobile:1});
 
     let message = WhatsappNotification.message
       ?.replace(/{invoice_number}/g, value.invoice_number)
@@ -511,7 +511,7 @@ router.put("/putOrders", async (req, res) => {
         if (+orderStage === 4) {
           let counterGroupsData = await Counters.findOne({
             counter_uuid: value.counter_uuid,
-          });
+          },{counter_group_uuid:1});
           let itemsData = await Item.find({
             item_uuid: {
               $in: value.item_details.map((a) => a.item_uuid),
@@ -763,6 +763,11 @@ router.put("/putOrders", async (req, res) => {
         });
         let counterData = await Counters.findOne({
           counter_uuid: value.counter_uuid,
+          
+        },{
+         
+          mobile: 1,
+          
         });
 
         let message = WhatsappNotification.message
@@ -816,9 +821,16 @@ router.get("/getSignedBills", async (req, res) => {
       });
       userData = JSON.parse(JSON.stringify(userData));
 
-      let counterData = await Counters.findOne({
-        counter_uuid: orderData?.counter_uuid || 0,
-      });
+      let counterData = await Counters.findOne(
+        {
+          counter_uuid: orderData?.counter_uuid || 0,
+        },
+        {
+          counter_title: 1,
+
+          counter_uuid: 1,
+        }
+      );
       counterData = JSON.parse(JSON.stringify(counterData));
 
       let user_title =
@@ -977,11 +989,18 @@ router.get("/GetOrderRunningList", async (req, res) => {
     let data = await Orders.find({ order_status: "R" });
     data = JSON.parse(JSON.stringify(data));
 
-    let counterData = await Counters.find({
-      counter_uuid: {
-        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+    let counterData = await Counters.find(
+      {
+        counter_uuid: {
+          $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+        },
       },
-    });
+      {
+        counter_title: 1,
+
+        counter_uuid: 1,
+      }
+    );
     res.json({
       success: true,
       result: data
@@ -1012,7 +1031,10 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
       userData.routes.length &&
       !userData.routes.filter((a) => +a === 1).length
     ) {
-      counterData = await Counters.find({},{counter_title:1,counter_uuid:1,route_uuid:1});
+      counterData = await Counters.find(
+        {},
+        { counter_title: 1, counter_uuid: 1, route_uuid: 1 }
+      );
       counterData = JSON.parse(JSON.stringify(counterData));
       counterData = counterData.filter(
         (a) =>
@@ -1031,11 +1053,14 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
     } else {
       data = await Orders.find({});
       data = JSON.parse(JSON.stringify(data));
-      counterData = await Counters.find({
-        counter_uuid: {
-          $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+      counterData = await Counters.find(
+        {
+          counter_uuid: {
+            $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+          },
         },
-      },{counter_title:1,counter_uuid:1});
+        { counter_title: 1, counter_uuid: 1 }
+      );
     }
 
     data = data.filter((a) => {
@@ -1077,7 +1102,14 @@ router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
       userData.routes.length &&
       !userData.routes.filter((a) => +a === 1).length
     ) {
-      counterData = await Counters.find({});
+      counterData = await Counters.find(
+        {},
+        {
+          counter_title: 1,
+
+          counter_uuid: 1,
+        }
+      );
       counterData = JSON.parse(JSON.stringify(counterData));
       counterData = counterData.filter(
         (a) =>
@@ -1095,11 +1127,18 @@ router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
     } else {
       data = await Orders.find({});
       data = JSON.parse(JSON.stringify(data));
-      counterData = await Counters.find({
-        counter_uuid: {
-          $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+      counterData = await Counters.find(
+        {
+          counter_uuid: {
+            $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+          },
         },
-      });
+        {
+          counter_title: 1,
+
+          counter_uuid: 1,
+        }
+      );
     }
     data = data.filter(
       (a) =>
@@ -1168,11 +1207,20 @@ router.post("/GetOrderProcessingList", async (req, res) => {
     data = JSON.parse(JSON.stringify(data));
     if (+trip_uuid === 0) data = data.filter((a) => !a.trip_uuid);
     else data = data.filter((a) => a.trip_uuid === trip_uuid);
-    let counterData = await Counters.find({
-      counter_uuid: {
-        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+    let counterData = await Counters.find(
+      {
+        counter_uuid: {
+          $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+        },
       },
-    });
+      {
+        counter_title: 1,
+
+        sort_order: 1,
+
+        counter_uuid: 1,
+      }
+    );
     result = data
       .map((a) => {
         let counter =
@@ -1206,11 +1254,20 @@ router.post("/GetOrderCheckingList", async (req, res) => {
     data = JSON.parse(JSON.stringify(data));
     if (+trip_uuid === 0) data = data.filter((a) => !a.trip_uuid);
     else data = data.filter((a) => a.trip_uuid === trip_uuid);
-    let counterData = await Counters.find({
-      counter_uuid: {
-        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+    let counterData = await Counters.find(
+      {
+        counter_uuid: {
+          $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+        },
       },
-    });
+      {
+        counter_title: 1,
+
+        sort_order: 1,
+
+        counter_uuid: 1,
+      }
+    );
     result = data
       .map((a) => {
         let counter =
@@ -1245,11 +1302,22 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
     data = JSON.parse(JSON.stringify(data));
     if (+trip_uuid === 0) data = data.filter((a) => !a.trip_uuid);
     else data = data.filter((a) => a.trip_uuid === trip_uuid);
-    let counterData = await Counters.find({
-      counter_uuid: {
-        $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+    let counterData = await Counters.find(
+      {
+        counter_uuid: {
+          $in: data.filter((a) => a.counter_uuid).map((a) => a.counter_uuid),
+        },
       },
-    });
+      {
+        counter_title: 1,
+
+        sort_order: 1,
+
+        credit_allowed: 1,
+
+        counter_uuid: 1,
+      }
+    );
     result = data
       .map((a) => {
         let counter =
@@ -1347,9 +1415,12 @@ router.post("/getStockDetails", async (req, res) => {
           (a) => +a.stage === 1 && a.time > value.startDate && a.time < endDate
         ).length
     );
-    const counterData = await Counters.find({
-      counter_uuid: { $in: response.map((a) => a.counter_uuid) },
-    });
+    const counterData = await Counters.find(
+      {
+        counter_uuid: { $in: response.map((a) => a.counter_uuid) },
+      },
+      { counter_uuid, counter_title }
+    );
     const warehouseData = await WarehouseModel.find({});
     responseVoucher = JSON.parse(JSON.stringify(responseVoucher));
     responseVoucher = responseVoucher?.filter(
@@ -1569,7 +1640,14 @@ router.post("/getOrderItemReport", async (req, res) => {
     console.log(value);
     let endDate = +value.endDate + 86400000;
     let response = await OrderCompleted.find({});
-    let counterData = await Counters.find({});
+    let counterData = await Counters.find(
+      {},
+      {
+        counter_uuid: 1,
+
+        counter_group_uuid: 1,
+      }
+    );
     response = JSON.parse(JSON.stringify(response));
     counterData = JSON.parse(JSON.stringify(counterData));
     response = response

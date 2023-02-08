@@ -62,7 +62,7 @@ router.get("/GetUserList", async (req, res) => {
 });
 router.get("/GetActiveUserList", async (req, res) => {
   try {
-    let data = await User.find({status:1});
+    let data = await User.find({ status: 1 });
 
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Users Not found" });
@@ -72,7 +72,7 @@ router.get("/GetActiveUserList", async (req, res) => {
 });
 router.get("/GetNormalUserList", async (req, res) => {
   try {
-    let data = await User.find({user_type:1});
+    let data = await User.find({ user_type: 1 });
 
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Users Not found" });
@@ -82,8 +82,8 @@ router.get("/GetNormalUserList", async (req, res) => {
 });
 router.get("/GetUser/:user_uuid", async (req, res) => {
   try {
-    let data = await User.findOne({user_uuid:req.params.user_uuid});
-console.log(req.params.user_uuid.data)
+    let data = await User.findOne({ user_uuid: req.params.user_uuid });
+    console.log(req.params.user_uuid.data);
     if (data) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Users Not found" });
   } catch (err) {
@@ -112,7 +112,30 @@ router.get("/getDetails", async (req, res) => {
     companies = companies.filter((a) => a.company_uuid);
     let counter_groups = await CounterGroup.find({});
     counter_groups = counter_groups.filter((a) => a.counter_group_uuid);
-    let counter = await Counters.find({});
+    let counter = await Counters.find(
+      {},
+      {
+        counter_title: 1,
+        counter_code: 1,
+        sort_order: 1,
+        payment_reminder_days: 1,
+        outstanding_type: 1,
+        credit_allowed: 1,
+        gst: 1,
+        food_license: 1,
+        counter_uuid: 1,
+        remarks: 1,
+        status: 1,
+        route_uuid: 1,
+        address: 1,
+        mobile: 1,
+        company_discount: 1,
+        item_special_price: 1,
+        item_special_discount: 1,
+        counter_group_uuid: 1,
+        payment_modes: 1,
+      }
+    );
     counter = counter.filter((a) => a.counter_uuid);
     let item_category = await ItemCategories.find({});
     item_category = item_category.filter((a) => a.category_uuid);
@@ -125,17 +148,17 @@ router.get("/getDetails", async (req, res) => {
     let warehouse = await Warehouse.find({});
     warehouse = warehouse.filter((a) => a.warehouse_uuid);
     // const payment_modes= await Item.find({  })
-let result= {
-  autobill,
-  companies,
-  counter_groups,
-  counter,
-  item_category,
-  items,
-  routes,
-  payment_modes,
-  warehouse
-}
+    let result = {
+      autobill,
+      companies,
+      counter_groups,
+      counter,
+      item_category,
+      items,
+      routes,
+      payment_modes,
+      warehouse,
+    };
     res.json({
       success: true,
       result,

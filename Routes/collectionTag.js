@@ -27,7 +27,10 @@ router.post("/postTag", async (req, res) => {
     if (response) {
       await Details.updateMany(
         {},
-        { next_collection_tag_number: +invoice_number?.next_collection_tag_number + 1 }
+        {
+          next_collection_tag_number:
+            +invoice_number?.next_collection_tag_number + 1,
+        }
       );
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Tag Not created" });
@@ -57,7 +60,7 @@ router.get("/getUserActiveTag/:user_uuid", async (req, res) => {
       for (let a of data) {
         let ordersData = await OutStanding.find({
           collection_tag_uuid: a.collection_tag_uuid,
-          status:1
+          status: 1,
         });
         console.log(ordersData);
         ordersData = JSON.parse(JSON.stringify(ordersData));
@@ -86,7 +89,7 @@ router.get("/getTag", async (req, res) => {
       for (let a of data) {
         let ordersData = await OutStanding.find({
           collection_tag_uuid: a.collection_tag_uuid,
-          status:1
+          status: 1,
         });
         console.log(ordersData);
         ordersData = JSON.parse(JSON.stringify(ordersData));
@@ -137,7 +140,32 @@ router.get("/GetTagSummaryDetails/:collection_tag_uuid", async (req, res) => {
     });
     a = JSON.parse(JSON.stringify(a));
 
-    let CounterData = await Counters.find({});
+    let CounterData = await Counters.find(
+      {},
+      {
+        counter_title: 1,
+        counter_code: 1,
+        sort_order: 1,
+        payment_reminder_days: 1,
+        outstanding_type: 1,
+        credit_allowed: 1,
+        gst: 1,
+        food_license: 1,
+        counter_uuid: 1,
+        remarks: 1,
+        status: 1,
+        route_uuid: 1,
+        address: 1,
+        mobile: 1,
+        company_discount: 1,
+        // average_lines_company: 1,
+        // average_lines_category: 1,
+        item_special_price: 1,
+        item_special_discount: 1,
+        counter_group_uuid: 1,
+        payment_modes: 1,
+      }
+    );
     CounterData = JSON.parse(JSON.stringify(CounterData));
 
     if (a) {
