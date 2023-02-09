@@ -468,18 +468,29 @@ router.post("/verifyWhatsappOtp", async (req, res) => {
       { mobile: 1 }
     );
     let mobile = JSON.parse(JSON.stringify(counterData.mobile));
-    mobile = mobile.map((a) =>
-      a.mobile === value.mobile
-        ? {
-            ...a,
-            lable: a.lable.find((b) => b.type === "wa")
-              ? a.lable.map((b) =>
-                  b.type === "wa" ? { ...b, varification: 1 } : b
-                )
-              : [...(a.lable || []), { type: "wa", varification: 1 }],
-          }
-        : a
-    );
+    mobile = mobile?.find((a) => a.uuid === value.uuid)
+      ? mobile.map((a) =>
+          a.uuid === value.uuid
+            ? {
+                ...a,
+                mobile:value.mobile,
+                lable: a.lable.find((b) => b.type === "wa")
+                  ? a.lable.map((b) =>
+                      b.type === "wa" ? { ...b, varification: 1 } : b
+                    )
+                  : [...(a.lable || []), { type: "wa", varification: 1 }],
+              }
+            : a
+        )
+      : [
+          ...(mobile || []),
+          {
+            mobile: value.mobile,
+            uuid: value.uuid||uuid(),
+            lable: [{ type: "wa", verification: 1 }],
+          },
+        ];
+        console.log(mobile)
     let response = await Counter.updateOne(
       { counter_uuid: value.counter_uuid },
       { mobile }
