@@ -25,6 +25,7 @@
     "gtts": "^0.2.1",
     "mongoose": "^6.3.3",
     "morgan": "^1.10.0",
+    "msg91-templateid": "^0.0.8",
     "nodemon": "^2.0.16",
     "uuid": "^8.3.2"
   }

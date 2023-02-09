@@ -12,6 +12,11 @@ const Otp = require("../Models/otp");
 const ItemCategories = require("../Models/ItemCategories");
 const notification_log = require("../Models/notification_log");
 const axios = require("axios");
+var msg91 = require("msg91-templateid")(
+  "312759AUCbnlpoZeD61714959P1",
+  "foodDo",
+  "4"
+);
 router.post("/postCounter", async (req, res) => {
   try {
     let value = req.body;
@@ -456,7 +461,48 @@ router.post("/sendWhatsappOtp", async (req, res) => {
   //   res.status(500).json({ success: false, message: err });
   // }
 });
-router.post("/verifyWhatsappOtp", async (req, res) => {
+router.post("/sendCallOtp", async (req, res) => {
+  // try {
+  let value = req.body;
+  if (!value) res.json({ success: false, message: "Invalid Data" });
+  const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
+    .toString()
+    .slice(0, 6);
+  let otp = await generatedOTP;
+  let message = `${otp} is your foodDo login OTP. dT0A1c4Hq0D - FOODDO`;
+  var mobileNo = +`${value.mobile}`.replace("91", "");
+  if (value?.mobile) {
+    await Otp.create({
+      mobile: value.mobile,
+      counter_uuid: value.counter_uuid,
+      otp,
+    });
+    await notification_log.create({
+      contact: value.mobile,
+      notification_uuid: "Whatsapp Otp",
+      message,
+      // invoice_number: value.invoice_number,
+      created_at: new Date().getTime(),
+    });
+
+    let msgResponse = await msg91.send(
+      mobileNo,
+      message,
+      "1307160922320559546",
+      function (err, response) {
+        if (err) throw err;
+      }
+    );
+
+    res.json({ success: true, message: "Message Sent Successfully" });
+  } else {
+    res.json({ success: false, message: "Mobile Number Missing " });
+  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
+});
+router.post("/verifyOtp", async (req, res) => {
   // try {
   let value = req.body;
   if (!value) res.json({ success: false, message: "Invalid Data" });
@@ -473,12 +519,12 @@ router.post("/verifyWhatsappOtp", async (req, res) => {
           a.uuid === value.uuid
             ? {
                 ...a,
-                mobile:value.mobile,
-                lable: a.lable.find((b) => b.type === "wa")
+                mobile: value.mobile,
+                lable: a.lable.find((b) => b.type === value.lable)
                   ? a.lable.map((b) =>
-                      b.type === "wa" ? { ...b, varification: 1 } : b
+                      b.type === value.lable ? { ...b, varification: 1 } : b
                     )
-                  : [...(a.lable || []), { type: "wa", varification: 1 }],
+                  : [...(a.lable || []), { type: value.lable, varification: 1 }],
               }
             : a
         )
@@ -486,11 +532,11 @@ router.post("/verifyWhatsappOtp", async (req, res) => {
           ...(mobile || []),
           {
             mobile: value.mobile,
-            uuid: value.uuid||uuid(),
+            uuid: value.uuid || uuid(),
             lable: [{ type: "wa", verification: 1 }],
           },
         ];
-        console.log(mobile)
+    console.log(mobile);
     let response = await Counter.updateOne(
       { counter_uuid: value.counter_uuid },
       { mobile }
