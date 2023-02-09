@@ -522,7 +522,7 @@ router.post("/verifyOtp", async (req, res) => {
                 mobile: value.mobile,
                 lable: a.lable.find((b) => b.type === value.lable)
                   ? a.lable.map((b) =>
-                      b.type === value.lable ? { ...b, varification: 1 } : b
+                      b.type === value.lable ? { ...b, type: value.lable, varification: 1 } : b
                     )
                   : [...(a.lable || []), { type: value.lable, varification: 1 }],
               }
