@@ -65,6 +65,45 @@ router.get("/GetItemList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/GetItemList", async (req, res) => {
+  try {
+    let { items = [] } = req.body;
+    let data = await Item.find(
+      items?.length ? { item_uuid: { $in: items } } : {},
+      {
+        item_title: 1,
+        item_discount: 1,
+        exclude_discount: 1,
+        status: 1,
+        sort_order: 1,
+        item_code: 1,
+        free_issue: 1,
+        item_uuid: 1,
+        one_pack: 1,
+        company_uuid: 1,
+        category_uuid: 1,
+        pronounce: 1,
+        mrp: 1,
+        item_price: 1,
+        item_gst: 1,
+        conversion: 1,
+        barcode: 1,
+        item_group_uuid: 1,
+        // stock: 1,
+        created_at: 1,
+      }
+    );
+
+    if (data.length)
+      res.json({
+        success: true,
+        result: data.filter((a) => a.item_uuid && a.item_title),
+      });
+    else res.json({ success: false, message: "Item Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.get("/GetItemData", async (req, res) => {
   try {
     let data = await Item.find(

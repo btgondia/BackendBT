@@ -22,6 +22,11 @@ const CampaignsSchema = new mongoose.Schema({
       type: String,
     },
   ],
+  mobile: [
+    {
+      type: String,
+    },
+  ],
   message: {
     type: String,
   },
