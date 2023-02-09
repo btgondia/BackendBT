@@ -533,7 +533,7 @@ router.post("/verifyOtp", async (req, res) => {
           {
             mobile: value.mobile,
             uuid: value.uuid || uuid(),
-            lable: [{ type: "wa", varification: 1 }],
+            lable: [{ type: value.lable, varification: 1 }],
           },
         ];
     console.log(mobile);
