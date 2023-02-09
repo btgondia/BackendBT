@@ -156,7 +156,7 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
       a.mode_uuid === value.mode_uuid ? { ...a, status: value.status } : a
     );
     console.log(response);
-    let pending=response.modes.find((b) => b.status === 0 && b.amt)?0:1
+    let pending=response.find((b) => b.status === 0 && b.amt)?0:1
     let data = await Receipts.updateMany(
       { order_uuid: value.order_uuid },
       { modes: response,pending }
