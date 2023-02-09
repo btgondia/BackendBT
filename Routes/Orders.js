@@ -255,7 +255,7 @@ router.post("/postOrder", async (req, res) => {
           for (let contact of counterData?.mobile) {
             if (
               contact.mobile &&
-              contact.find((a) => a.type === "wa" && +a.varification)
+              contact?.lable?.find((a) => a.type === "wa" && +a.varification)
             ) {
               data.push({
                 contact: contact.mobile,
@@ -808,7 +808,7 @@ router.put("/putOrders", async (req, res) => {
           for (let contact of counterData?.mobile) {
             if (
               contact.mobile &&
-              contact.find((a) => a.type === "wa" && +a.varification)
+              contact?.lable?.find((a) => a.type === "wa" && +a.varification)
             ) {
               data.push({
                 contact: contact.mobile,
