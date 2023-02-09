@@ -308,7 +308,7 @@ router.post("/sendMsg", async (req, res) => {
       for (let contact of counterData?.mobile) {
         if (
           contact.mobile &&
-          contact.find((a) => a.type === "wa" && +a.varification)
+          contact?.lable?.find((a) => a.type === "wa" && +a.varification)
         ) {
           console.count(message);
           data.push({ contact: contact.mobile, messages: [{ text: message }] });
@@ -339,6 +339,7 @@ router.post("/sendMsg", async (req, res) => {
           }
         }
       }
+      console.log(data)
       let msgResponse = await axios({
         url: "http://15.207.39.69:2000/sendMessage",
         method: "post",
