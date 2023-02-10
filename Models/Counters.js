@@ -7,6 +7,9 @@ const CounterSchema = new mongoose.Schema({
   counter_code: {
     type: String,
   },
+  short_link: {
+    type: String,
+  },
   sort_order: {
     type: Number,
   },

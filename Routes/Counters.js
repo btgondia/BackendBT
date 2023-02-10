@@ -21,7 +21,13 @@ router.post("/postCounter", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    value = { ...value, counter_uuid: uuid() };
+    let short_link = uuid().slice(0, 7);
+    let verirfyshort_link = await Counter.findOne({});
+    while (verirfyshort_link) {
+      short_link = uuid().slice(0, 7);
+      verirfyshort_link = await Counter.findOne({});
+    }
+    value = { ...value, counter_uuid: uuid(), short_link };
     if (!value.sort_order) {
       let response = await Counter.find({}, { counter_uuid: 1 });
       response = JSON.parse(JSON.stringify(response));
@@ -425,130 +431,135 @@ router.put("/putCounter/sortOrder", async (req, res) => {
 });
 router.post("/sendWhatsappOtp", async (req, res) => {
   try {
-  let value = req.body;
-  if (!value) res.json({ success: false, message: "Invalid Data" });
-  const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
-    .toString()
-    .slice(0, 6);
-  let otp = await generatedOTP;
-  let message = "Your OTP for Mobile Number Verification is " + otp;
-  if (value?.mobile) {
-    let data = [{ contact: value.mobile, messages: [{ text: message }] }];
-    await Otp.create({
-      mobile: value.mobile,
-      counter_uuid: value.counter_uuid,
-      otp,
-    });
-    await notification_log.create({
-      contact: value.mobile,
-      notification_uuid: "Whatsapp Otp",
-      message,
-      // invoice_number: value.invoice_number,
-      created_at: new Date().getTime(),
-    });
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
+      .toString()
+      .slice(0, 6);
+    let otp = await generatedOTP;
+    let message = "Your OTP for Mobile Number Verification is " + otp;
+    if (value?.mobile) {
+      let data = [{ contact: value.mobile, messages: [{ text: message }] }];
+      await Otp.create({
+        mobile: value.mobile,
+        counter_uuid: value.counter_uuid,
+        otp,
+      });
+      await notification_log.create({
+        contact: value.mobile,
+        notification_uuid: "Whatsapp Otp",
+        message,
+        // invoice_number: value.invoice_number,
+        created_at: new Date().getTime(),
+      });
 
-    let msgResponse = await axios({
-      url: "http://15.207.39.69:2000/sendMessage",
-      method: "post",
-      data,
-    });
-    console.log(data, msgResponse);
-    res.json({ success: true, message: "Message Sent Successfully" });
-  } else {
-    res.json({ success: false, message: "Mobile Number Missing " });
-  }
+      let msgResponse = await axios({
+        url: "http://15.207.39.69:2000/sendMessage",
+        method: "post",
+        data,
+      });
+      console.log(data, msgResponse);
+      res.json({ success: true, message: "Message Sent Successfully" });
+    } else {
+      res.json({ success: false, message: "Mobile Number Missing " });
+    }
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 router.post("/sendCallOtp", async (req, res) => {
   try {
-  let value = req.body;
-  if (!value) res.json({ success: false, message: "Invalid Data" });
-  const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
-    .toString()
-    .slice(0, 6);
-  let otp = await generatedOTP;
-  let message = `${otp} is your foodDo login OTP. dT0A1c4Hq0D - FOODDO`;
-  var mobileNo = +`${value.mobile}`.replace("91", "");
-  if (value?.mobile) {
-    await Otp.create({
-      mobile: value.mobile,
-      counter_uuid: value.counter_uuid,
-      otp,
-    });
-    await notification_log.create({
-      contact: value.mobile,
-      notification_uuid: "Whatsapp Otp",
-      message,
-      // invoice_number: value.invoice_number,
-      created_at: new Date().getTime(),
-    });
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
+      .toString()
+      .slice(0, 6);
+    let otp = await generatedOTP;
+    let message = `${otp} is your foodDo login OTP. dT0A1c4Hq0D - FOODDO`;
+    var mobileNo = +`${value.mobile}`.replace("91", "");
+    if (value?.mobile) {
+      await Otp.create({
+        mobile: value.mobile,
+        counter_uuid: value.counter_uuid,
+        otp,
+      });
+      await notification_log.create({
+        contact: value.mobile,
+        notification_uuid: "Whatsapp Otp",
+        message,
+        // invoice_number: value.invoice_number,
+        created_at: new Date().getTime(),
+      });
 
-    let msgResponse = await msg91.send(
-      mobileNo,
-      message,
-      "1307160922320559546",
-      function (err, response) {
-        if (err) throw err;
-      }
-    );
+      let msgResponse = await msg91.send(
+        mobileNo,
+        message,
+        "1307160922320559546",
+        function (err, response) {
+          if (err) throw err;
+        }
+      );
 
-    res.json({ success: true, message: "Message Sent Successfully" });
-  } else {
-    res.json({ success: false, message: "Mobile Number Missing " });
-  }
+      res.json({ success: true, message: "Message Sent Successfully" });
+    } else {
+      res.json({ success: false, message: "Mobile Number Missing " });
+    }
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 router.post("/verifyOtp", async (req, res) => {
   try {
-  let value = req.body;
-  if (!value) res.json({ success: false, message: "Invalid Data" });
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
 
-  let otpJson = await Otp.findOne({ otp: value.otp, mobile: value.mobile });
-  if (otpJson) {
-    let counterData = await Counter.findOne(
-      { counter_uuid: value.counter_uuid },
-      { mobile: 1 }
-    );
-    let mobile = JSON.parse(JSON.stringify(counterData.mobile));
-    mobile = mobile?.find((a) => a.uuid === value.uuid)
-      ? mobile.map((a) =>
-          a.uuid === value.uuid
-            ? {
-                ...a,
-                mobile: value.mobile,
-                lable: a.lable.find((b) => b.type === value.lable)
-                  ? a.lable.map((b) =>
-                      b.type === value.lable ? { ...b, type: value.lable, varification: 1 } : b
-                    )
-                  : [...(a.lable || []), { type: value.lable, varification: 1 }],
-              }
-            : a
-        )
-      : [
-          ...(mobile || []),
-          {
-            mobile: value.mobile,
-            uuid: value.uuid || uuid(),
-            lable: [{ type: value.lable, varification: 1 }],
-          },
-        ];
-    console.log(mobile);
-    let response = await Counter.updateOne(
-      { counter_uuid: value.counter_uuid },
-      { mobile }
-    );
-    await Otp.deleteMany({ mobile: value.mobile });
-    console.log(mobile);
-    if (response.acknowledged)
-      res.json({ success: true, message: "Number Verified" });
-    else res.json({ success: false, message: "Number Not Verified" });
-  } else {
-    res.json({ success: false, message: "Invalid Otp " });
-  }
+    let otpJson = await Otp.findOne({ otp: value.otp, mobile: value.mobile });
+    if (otpJson) {
+      let counterData = await Counter.findOne(
+        { counter_uuid: value.counter_uuid },
+        { mobile: 1 }
+      );
+      let mobile = JSON.parse(JSON.stringify(counterData.mobile));
+      mobile = mobile?.find((a) => a.uuid === value.uuid)
+        ? mobile.map((a) =>
+            a.uuid === value.uuid
+              ? {
+                  ...a,
+                  mobile: value.mobile,
+                  lable: a.lable.find((b) => b.type === value.lable)
+                    ? a.lable.map((b) =>
+                        b.type === value.lable
+                          ? { ...b, type: value.lable, varification: 1 }
+                          : b
+                      )
+                    : [
+                        ...(a.lable || []),
+                        { type: value.lable, varification: 1 },
+                      ],
+                }
+              : a
+          )
+        : [
+            ...(mobile || []),
+            {
+              mobile: value.mobile,
+              uuid: value.uuid || uuid(),
+              lable: [{ type: value.lable, varification: 1 }],
+            },
+          ];
+      console.log(mobile);
+      let response = await Counter.updateOne(
+        { counter_uuid: value.counter_uuid },
+        { mobile }
+      );
+      await Otp.deleteMany({ mobile: value.mobile });
+      console.log(mobile);
+      if (response.acknowledged)
+        res.json({ success: true, message: "Number Verified" });
+      else res.json({ success: false, message: "Number Not Verified" });
+    } else {
+      res.json({ success: false, message: "Invalid Otp " });
+    }
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }

@@ -37,6 +37,8 @@ const CollectionTags = require("./Routes/collectionTag");
 const Counter_scheme = require("./Routes/counter_schemes");
 const whatsapp_notifications = require("./Routes/whatsapp_notifications");
 const campaigns = require("./Routes/campaigns");
+const OrderForm = require("./Routes/OrderForm");
+
 connectDB();
 app = express();
 app.use(
@@ -84,6 +86,7 @@ app.use("/collectionTags", CollectionTags);
 app.use("/counter_scheme", Counter_scheme);
 app.use("/whatsapp_notifications", whatsapp_notifications);
 app.use("/campaigns", campaigns);
+app.use("/orderForm", OrderForm);
 app.get("/MinLevelUpdate", async (req, res, next) => {
   const response = await MinLevelUpdateAutomation();
   res.json({ success: true, message: "Updated", result: response });
