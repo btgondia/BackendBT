@@ -17,6 +17,10 @@ const RoutesSchema = new mongoose.Schema({
         type: String,
 
     },
+    order_status: {
+        type: Number,
+
+    },
     
 
 })

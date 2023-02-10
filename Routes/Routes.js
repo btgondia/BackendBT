@@ -61,6 +61,23 @@ router.get("/GetRouteList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/GetRouteList", async (req, res) => {
+  try {
+    let value = req.body;
+    let json = {};
+
+    for (let i of value) {
+      json = {...json, [i]: 1 };
+    }
+    console.log(json);
+    let data = await Routes.find({}, json);
+
+    if (data.length) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Routes Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.get("/GetOrderRouteList", async (req, res) => {
   try {
     console.time("routes");
