@@ -26,7 +26,10 @@ router.post("/postCounter", async (req, res) => {
     let verirfyshort_link = await Counter.findOne({}, { counter_uuid: 1 });
     while (verirfyshort_link) {
       short_link = uuid().slice(0, 7);
-      verirfyshort_link = await Counter.findOne({short_link}, { counter_uuid: 1 });
+      verirfyshort_link = await Counter.findOne(
+        { short_link },
+        { counter_uuid: 1 }
+      );
     }
     value = { ...value, counter_uuid: uuid(), short_link };
     if (!value.sort_order) {
@@ -118,6 +121,7 @@ router.get("/GetCounterData", async (req, res) => {
         counter_title: 1,
         counter_code: 1,
         sort_order: 1,
+
         payment_reminder_days: 1,
         outstanding_type: 1,
         credit_allowed: 1,
@@ -139,6 +143,23 @@ router.get("/GetCounterData", async (req, res) => {
         payment_modes: 1,
       }
     );
+
+    if (data.length) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Counters Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.post("/GetCounterData", async (req, res) => {
+  try {
+    let value = req.body;
+    let json = {};
+
+    for (let i of value) {
+      json = {...json, [i]: 1 };
+    }
+    console.log(json);
+    let data = await Counter.find({}, json);
 
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Counters Not found" });
