@@ -17,15 +17,16 @@ var msg91 = require("msg91-templateid")(
   "foodDo",
   "4"
 );
+
 router.post("/postCounter", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     let short_link = uuid().slice(0, 7);
-    let verirfyshort_link = await Counter.findOne({},{counter_uuid:1});
+    let verirfyshort_link = await Counter.findOne({}, { counter_uuid: 1 });
     while (verirfyshort_link) {
       short_link = uuid().slice(0, 7);
-      verirfyshort_link = await Counter.findOne({},{counter_uuid:1});
+      verirfyshort_link = await Counter.findOne({short_link}, { counter_uuid: 1 });
     }
     value = { ...value, counter_uuid: uuid(), short_link };
     if (!value.sort_order) {
@@ -123,6 +124,7 @@ router.get("/GetCounterData", async (req, res) => {
         gst: 1,
         food_license: 1,
         counter_uuid: 1,
+        short_link: 1,
         remarks: 1,
         status: 1,
         route_uuid: 1,

@@ -303,41 +303,38 @@ router.post("/sendMsg", async (req, res) => {
     let message = WhatsappNotification.message
       ?.replace(/{invoice_number}/g, value.invoice_number)
       ?.replace(/{amount}/g, value?.amt || value?.amount);
-
-    if (WhatsappNotification?.status && counterData?.mobile?.length) {
+    let mobile = counterData.mobile.filter(
+      (a) => a.mobile && a.lable.find((b) => b.type === "wa" && +b.varification)
+    );
+    if (WhatsappNotification?.status && mobile.filter()?.length) {
       let data = [];
-      for (let contact of counterData?.mobile) {
+      for (let contact of mobile) {
+        console.count(message);
+        data.push({ contact: contact.mobile, messages: [{ text: message }] });
+        await Notification_logs.create({
+          contact: contact.mobile,
+          notification_uuid: WhatsappNotification.notification_uuid,
+          message,
+          invoice_number: value.invoice_number?.replace(/^\D+/g, ""),
+          created_at: new Date().getTime(),
+        });
         if (
-          contact.mobile &&
-          contact?.lable?.find((a) => a.type === "wa" && +a.varification)
+          WhatsappNotification.notification_uuid ===
+          "outstanding-manual-reminder"
         ) {
-          console.count(message);
-          data.push({ contact: contact.mobile, messages: [{ text: message }] });
-          await Notification_logs.create({
-            contact: contact.mobile,
-            notification_uuid: WhatsappNotification.notification_uuid,
-            message,
-            invoice_number: value.invoice_number?.replace(/^\D+/g, ''),
-            created_at: new Date().getTime(),
-          });
-          if (
-            WhatsappNotification.notification_uuid ===
-            "outstanding-manual-reminder"
-          ) {
-            let response = await OutStanding.updateOne(
-              { outstanding_uuid: value.outstanding_uuid },
-              {
-                $push: {
-                  logs: {
-                    user_uuid: value.user_uuid,
-                    timestamp: new Date().getTime(),
-                    contact: contact.mobile,
-                  },
+          let response = await OutStanding.updateOne(
+            { outstanding_uuid: value.outstanding_uuid },
+            {
+              $push: {
+                logs: {
+                  user_uuid: value.user_uuid,
+                  timestamp: new Date().getTime(),
+                  contact: contact.mobile,
                 },
-              }
-            );
-            console.log(response);
-          }
+              },
+            }
+          );
+          console.log(response);
         }
       }
       console.log(data);
@@ -349,7 +346,10 @@ router.post("/sendMsg", async (req, res) => {
       console.log(data, msgResponse);
       res.json({ success: true, message: "Message Sent Successfully" });
     } else {
-      res.json({ success: false, message: "Mobile Number Missing " });
+      res.json({
+        success: false,
+        message: "No Verified Number for this Counter ",
+      });
     }
   } catch (err) {
     res.status(500).json({ success: false, message: err });
@@ -838,9 +838,12 @@ router.get("/getPendingEntry", async (req, res) => {
   try {
     let data = await OrderCompleted.find({ entry: 0 });
     data = JSON.parse(JSON.stringify(data));
-    let receiptData = await Receipts.find({
-      order_uuid: { $in: data.map((a) => a.order_uuid) },
-    },{modes:1,invoice_number:1,order_uuid:1,counter_uuid:1});
+    let receiptData = await Receipts.find(
+      {
+        order_uuid: { $in: data.map((a) => a.order_uuid) },
+      },
+      { modes: 1, invoice_number: 1, order_uuid: 1, counter_uuid: 1 }
+    );
     receiptData = JSON.parse(JSON.stringify(receiptData));
     let outstandindData = await OutStanding.find({
       order_uuid: { $in: data.map((a) => a.order_uuid) },
@@ -860,7 +863,7 @@ router.get("/getPendingEntry", async (req, res) => {
         return {
           ...order,
           modes: receipt?.modes || [],
-          counter_uuid: order?.counter_uuid || receipt?.counter_uuid||"",
+          counter_uuid: order?.counter_uuid || receipt?.counter_uuid || "",
           unpaid:
             outstandindData?.find(
               (b) =>
