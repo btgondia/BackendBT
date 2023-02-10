@@ -7,8 +7,7 @@ const Users = require("../Models/Users");
 const router = express.Router();
 const Receipts = require("../Models/Receipts");
 const Details = require("../Models/Details");
-const { format } = require("express/lib/response");
-const OutStanding = require("../Models/OutStanding");
+
 
 router.get("/getPendingEntry", async (req, res) => {
   try {
@@ -29,22 +28,45 @@ router.post("/postReceipt", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    let next_receipt_number = await Details.find({});
-
-    next_receipt_number = next_receipt_number[0].next_receipt_number;
-
-    let pending=value.modes.filter((b) => +b.status === 0 && b.amt)?.length?0:1
-    let response = await Receipts.create({
-      ...value,
-      receipt_number: next_receipt_number,
-      time: new Date().getTime(),
-      pending
+    let resciptJson = await Receipts.findOne({
+      $or: [
+        { invoice_number: value.invoice_number },
+        { order_uuid: value.order_uuid },
+      ],
     });
-    next_receipt_number = "R" + (+next_receipt_number.match(/\d+/)[0] + 1);
-    await Details.updateMany({}, { next_receipt_number });
-    if (response) {
-      res.json({ success: true, result: response });
-    } else res.json({ success: false, message: "Receipts Not created" });
+    if (resciptJson) {
+      let { order_uuid, counter_uuid, modes } = value;
+      let pending = modes.filter((b) => +b.status === 0 && b.amt)?.length
+        ? 0
+        : 1;
+      let response = await Receipts.updateOne(
+        { order_uuid, counter_uuid },
+        { modes, pending }
+      );
+
+      if (response.acknowledged) {
+        res.json({ success: true, result: response });
+      } else res.json({ success: false, message: "Receipts Not created" });
+    } else {
+      let next_receipt_number = await Details.find({});
+
+      next_receipt_number = next_receipt_number[0].next_receipt_number;
+
+      let pending = value.modes.filter((b) => +b.status === 0 && b.amt)?.length
+        ? 0
+        : 1;
+      let response = await Receipts.create({
+        ...value,
+        receipt_number: next_receipt_number,
+        time: new Date().getTime(),
+        pending,
+      });
+      next_receipt_number = "R" + (+next_receipt_number.match(/\d+/)[0] + 1);
+      await Details.updateMany({}, { next_receipt_number });
+      if (response) {
+        res.json({ success: true, result: response });
+      } else res.json({ success: false, message: "Receipts Not created" });
+    }
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -119,10 +141,10 @@ router.put("/putCompleteOrder", async (req, res) => {
   try {
     let value = req.body;
     console.log(value);
-    let pending=value.modes.find((b) => b.status === 0 && b.amt)?0:1
+    let pending = value.modes.find((b) => b.status === 0 && b.amt) ? 0 : 1;
     let data = await Receipts.updateOne(
       { receipt_number: value.receipt_number },
-      {...value,pending}
+      { ...value, pending }
     );
     if (data.acknowledged) {
       res.json({
@@ -156,10 +178,10 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
       a.mode_uuid === value.mode_uuid ? { ...a, status: value.status } : a
     );
     console.log(response);
-    let pending=response.find((b) => b.status === 0 && b.amt)?0:1
+    let pending = response.find((b) => b.status === 0 && b.amt) ? 0 : 1;
     let data = await Receipts.updateMany(
       { order_uuid: value.order_uuid },
-      { modes: response,pending }
+      { modes: response, pending }
     );
     if (data.acknowledged) {
       res.json({ success: true, result: response });
@@ -184,7 +206,7 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
 // updateStetus()
 router.get("/getReceipt", async (req, res) => {
   try {
-    let response = await Receipts.find({pending:0});
+    let response = await Receipts.find({ pending: 0 });
     response = JSON.parse(JSON.stringify(response));
     let usersData = await Users.find(
       {
@@ -207,22 +229,16 @@ router.get("/getReceipt", async (req, res) => {
             a.amt &&
             a.status === 0
         );
-        let orderData = await OrderCompleted.findOne(
-          {
-            order_uuid: item.order_uuid,
-          },
-          { counter_uuid: 1, invoice_number: 1, status: 1 }
-        );
+        let orderData = await OrderCompleted.findOne({
+          order_uuid: item.order_uuid,
+        });
         if (!orderData)
-          orderData = await Orders.findOne(
-            { order_uuid: item.order_uuid },
-            { counter_uuid: 1, invoice_number: 1, status: 1 }
-          );
+          orderData = await Orders.findOne({ order_uuid: item.order_uuid });
 
         if (orderData) {
           let counterData = await Counters.findOne(
             {
-              counter_uuid: orderData.counter_uuid,
+              counter_uuid: orderData.counter_uuid || item.counter_uuid,
             },
             { counter_title: 1, counter_uuid: 1 }
           );
@@ -287,7 +303,5 @@ router.put("/putRemarks", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-
-
 
 module.exports = router;

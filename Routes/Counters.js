@@ -22,10 +22,10 @@ router.post("/postCounter", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     let short_link = uuid().slice(0, 7);
-    let verirfyshort_link = await Counter.findOne({});
+    let verirfyshort_link = await Counter.findOne({},{counter_uuid:1});
     while (verirfyshort_link) {
       short_link = uuid().slice(0, 7);
-      verirfyshort_link = await Counter.findOne({});
+      verirfyshort_link = await Counter.findOne({},{counter_uuid:1});
     }
     value = { ...value, counter_uuid: uuid(), short_link };
     if (!value.sort_order) {

@@ -27,6 +27,7 @@ router.post("/postOrder", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
     value = { ...value, order_uuid: uuid() };
+
     if (!value.warehouse_uuid) {
       let counterData = await Counters.findOne(
         {
@@ -316,7 +317,7 @@ router.post("/sendMsg", async (req, res) => {
             contact: contact.mobile,
             notification_uuid: WhatsappNotification.notification_uuid,
             message,
-            invoice_number: value.invoice_number,
+            invoice_number: value.invoice_number?.replace(/^\D+/g, ''),
             created_at: new Date().getTime(),
           });
           if (
@@ -339,7 +340,7 @@ router.post("/sendMsg", async (req, res) => {
           }
         }
       }
-      console.log(data)
+      console.log(data);
       let msgResponse = await axios({
         url: "http://15.207.39.69:2000/sendMessage",
         method: "post",
@@ -354,86 +355,12 @@ router.post("/sendMsg", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-// router.put("/putOrder", async (req, res) => {
-//   try {
-//     let value = req.body;
-//     if (!value) res.json({ success: false, message: "Invalid Data" });
-
-//     value = Object.keys(value)
-//       .filter((key) => key !== "_id")
-//       .reduce((obj, key) => {
-//         obj[key] = value[key];
-//         return obj;
-//       }, {});
-
-//     console.log(value, value.orderStatus === "edit");
-//     let response = {};
-//     if (value.orderStatus === "edit") {
-//       response = await OrderCompleted.updateOne(
-//         { order_uuid: value.order_uuid },
-//         { ...value }
-//       );
-//     } else {
-//       response = await Orders.updateOne(
-//         { order_uuid: value.order_uuid },
-//         { ...value }
-//       );
-//     }
-//     if (response.acknowledged) {
-//       res.json({ success: true, result: value });
-//     } else res.json({ success: false, message: "Order Not updated" });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err });
-//   }
-// });
-// router.put("/reCalculation", async (req, res) => {
-//   try {
-//     let value = req.body;
-//     if (!value) res.json({ success: false, message: "Invalid Data" });
-//     let result = [];
-//     let orderData = await OrderCompleted.find(
-//       value.order_uuid ? { order_uuid: value.order_uuid } : {}
-//     );
-//     for (let order of orderData) {
-//       let item_details = [];
-//       for (let item of order.item_details) {
-//         let price = 0;
-//         let itemData = await Item.findOne({ item_uuid: item.item_uuid });
-//         let qty = +itemData.conversion * (+item.b || 0) + (item.p||0) + (item.free||0);
-//         let desc =
-//           +item.charges_discount.length > 1
-//             ? +item.charges_discount
-//                 .map((a) => a.value)
-//                 .reduce((a, b) => a * (100 / (100 - b) || 0))
-//             : +item.charges_discount.length
-//             ? 100 / (100 - item.charges_discount[0].value)
-//             : 1;
-//         price = (+item.item_total * desc) / qty;
-
-//         item.price = (price||0).toFixed(2);
-//         item_details.push(item);
-//       }
-//       // console.log(item_details);
-//       let response = await OrderCompleted.updateMany(
-//         { order_uuid: order.order_uuid },
-//         { item_details }
-//       );
-//       if (response.acknowledged)
-//       result.push(order);
-//     }
-
-//     if (result.length) {
-//       res.json({ success: true, result: "Success" });
-//     } else res.json({ success: false, message: "Order Not updated" });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err });
-//   }
-// });
 router.put("/putOrders", async (req, res) => {
   try {
     let response = [];
     for (let value of req.body) {
       if (!value) res.json({ success: false, message: "Invalid Data" });
+
       let prevData = await Orders.findOne({
         invoice_number: value.invoice_number,
       });
@@ -528,6 +455,7 @@ router.put("/putOrders", async (req, res) => {
           }
 
           data = await OrderCompleted.create({
+            ...prevData,
             ...value,
             entry: +orderStage === 5 ? 1 : 0,
           });
@@ -912,7 +840,7 @@ router.get("/getPendingEntry", async (req, res) => {
     data = JSON.parse(JSON.stringify(data));
     let receiptData = await Receipts.find({
       order_uuid: { $in: data.map((a) => a.order_uuid) },
-    });
+    },{modes:1,invoice_number:1,order_uuid:1,counter_uuid:1});
     receiptData = JSON.parse(JSON.stringify(receiptData));
     let outstandindData = await OutStanding.find({
       order_uuid: { $in: data.map((a) => a.order_uuid) },
@@ -921,23 +849,27 @@ router.get("/getPendingEntry", async (req, res) => {
     outstandindData = JSON.parse(JSON.stringify(outstandindData));
     res.json({
       success: true,
-      result: data.map((order) => ({
-        ...order,
-        modes:
-          receiptData?.find(
-            (b) =>
-              b.invoice_number === order.invoice_number ||
-              (b.order_uuid === order.order_uuid &&
-                b.counter_uuid === order.counter_uuid)
-          )?.modes || [],
-        unpaid:
-          outstandindData?.find(
-            (b) =>
-              b.invoice_number === order.invoice_number ||
-              (b.order_uuid === order.order_uuid &&
-                b.counter_uuid === order.counter_uuid)
-          )?.amount || 0,
-      })),
+      result: data.map((order) => {
+        let receipt = receiptData?.find(
+          (b) =>
+            b.invoice_number === order.invoice_number ||
+            (b.order_uuid === order.order_uuid &&
+              b.counter_uuid === order.counter_uuid)
+        );
+
+        return {
+          ...order,
+          modes: receipt?.modes || [],
+          counter_uuid: order?.counter_uuid || receipt?.counter_uuid||"",
+          unpaid:
+            outstandindData?.find(
+              (b) =>
+                b.invoice_number === order.invoice_number ||
+                (b.order_uuid === order.order_uuid &&
+                  b.counter_uuid === order.counter_uuid)
+            )?.amount || 0,
+        };
+      }),
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
