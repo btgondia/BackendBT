@@ -30,7 +30,7 @@ router.post("/CreateCampaigns", async (req, res) => {
   }
 });
 router.post("/sendMsg", async (req, res) => {
-  // try {
+  try {
   let value = req.body;
   if (!value) res.json({ success: false, message: "Invalid Data" });
 
@@ -46,6 +46,9 @@ router.post("/sendMsg", async (req, res) => {
     let message = value.message?.replace(
       /{counter_title}/g,
       counterData?.counter_title || ""
+    )?.replace(
+      /{short_link}/g,
+      counterData?.short_link || ""
     );
 
     if (counterData?.mobile?.length) {
@@ -90,9 +93,9 @@ router.post("/sendMsg", async (req, res) => {
   });
 
   res.json({ success: true, message: "Message Shooted Successfully" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 router.delete("/DeleteCampaigns", async (req, res) => {
   try {
