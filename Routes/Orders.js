@@ -286,7 +286,7 @@ router.post("/postOrder", async (req, res) => {
   }
 });
 router.post("/sendMsg", async (req, res) => {
-  try {
+  // try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
@@ -306,7 +306,7 @@ router.post("/sendMsg", async (req, res) => {
     let mobile = counterData.mobile.filter(
       (a) => a.mobile && a.lable.find((b) => b.type === "wa" && +b.varification)
     );
-    if (WhatsappNotification?.status && mobile.filter()?.length) {
+    if (WhatsappNotification?.status && mobile?.length) {
       let data = [];
       for (let contact of mobile) {
         console.count(message);
@@ -351,9 +351,9 @@ router.post("/sendMsg", async (req, res) => {
         message: "No Verified Number for this Counter ",
       });
     }
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 router.put("/putOrders", async (req, res) => {
   try {
