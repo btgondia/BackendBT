@@ -21,6 +21,7 @@ const Vochers = require("../Models/Vochers");
 const whatsapp_notifications = require("../Models/whatsapp_notifications");
 const Notification_logs = require("../Models/notification_log");
 const axios = require("axios");
+const Campaigns = require("../Models/Campaigns");
 router.post("/postOrder", async (req, res) => {
   try {
     let value = req.body;
@@ -251,8 +252,17 @@ router.post("/postOrder", async (req, res) => {
           let data = [];
           for (let messageobj of WhatsappNotification.message) {
             let message = messageobj.text
-              ?.replace(/{invoice_number}/g, value.invoice_number)
-              ?.replace(/{amount}/g, value.order_grandtotal);
+              ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+              ?.replace(/{short_link}/g, counterData?.short_link || "")
+              ?.replace(/{invoice_number}/g, counterData?.invoice_number || "")
+              ?.replace(
+                /{amount}/g,
+                value.order_grandtotal ||
+                  counterData?.amount ||
+                  counterData?.amt ||
+                  ""
+              );
+
             console.log(message);
             for (let contact of counterData?.mobile) {
               if (
@@ -279,6 +289,30 @@ router.post("/postOrder", async (req, res) => {
             data,
           });
           console.log(msgResponse);
+        }
+      }
+      if (value?.campaign_short_link) {
+        let campaignData = await Campaigns.findOne(
+          {
+            campaign_short_link: value.campaign_short_link,
+          },
+          {
+            campaign_uuid: 1,
+            counter_status: 1,
+          }
+        );
+        if (campaignData?.counter_status?.length) {
+          let counter_status = campaignData.counter_status.map((a) =>
+            a.counter_uuid === value.counter_uuid ? { ...a, status: 1 } : a
+          );
+          await Campaigns.updateOne(
+            {
+              campaign_short_link: value.campaign_short_link,
+            },
+            {
+              counter_status,
+            }
+          );
         }
       }
       res.json({ success: true, result: response, incentives });
@@ -309,8 +343,13 @@ router.post("/sendMsg", async (req, res) => {
       let data = [];
       for (let messageobj of WhatsappNotification.message) {
         let message = messageobj.text
-          ?.replace(/{invoice_number}/g, value.invoice_number)
-          ?.replace(/{amount}/g, value?.amt || value?.amount);
+          ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+          ?.replace(/{short_link}/g, counterData?.short_link || "")
+          ?.replace(/{invoice_number}/g, value?.invoice_number || "")
+          ?.replace(
+            /{amount}/g,
+            value.order_grandtotal || value?.amount || value?.amt || ""
+          );
         for (let contact of mobile) {
           console.count(message);
           data.push({ contact: contact.mobile, messages: [{ text: message }] });
@@ -738,8 +777,10 @@ router.put("/putOrders", async (req, res) => {
           let data = [];
           for (let messageobj of WhatsappNotification?.message) {
             let message = messageobj.text
-              ?.replace(/{invoice_number}/g, value.invoice_number)
-              ?.replace(/{amount}/g, value.order_grandtotal);
+            ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+            ?.replace(/{short_link}/g, counterData?.short_link || "")
+            ?.replace(/{invoice_number}/g, value?.invoice_number || "")
+            ?.replace(/{amount}/g, value.order_grandtotal||value?.amount||value?.amt || "");
             console.log(message);
             for (let contact of counterData?.mobile) {
               if (
@@ -768,14 +809,14 @@ router.put("/putOrders", async (req, res) => {
           });
           console.log(data, msgResponse);
         }
-      } 
+      }
 
-       if (value.accept_notification) {
-         let notification_uuid= +value.accept_notification
-         ? "order-accept-notification"
-         : "order-decline-notification"
+      if (value.accept_notification) {
+        let notification_uuid = +value.accept_notification
+          ? "order-accept-notification"
+          : "order-decline-notification";
         let WhatsappNotification = await whatsapp_notifications.findOne({
-          notification_uuid
+          notification_uuid,
         });
         let counterData = await Counters.findOne(
           {
@@ -785,14 +826,16 @@ router.put("/putOrders", async (req, res) => {
             mobile: 1,
           }
         );
-        console.log(notification_uuid)
-        console.log(WhatsappNotification?.status , counterData?.mobile?.length)
+        console.log(notification_uuid);
+        console.log(WhatsappNotification?.status, counterData?.mobile?.length);
         if (WhatsappNotification?.status && counterData?.mobile?.length) {
           let data = [];
           for (let messageobj of WhatsappNotification?.message) {
             let message = messageobj.text
-              ?.replace(/{invoice_number}/g, value.invoice_number)
-              ?.replace(/{amount}/g, value.order_grandtotal);
+            ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+            ?.replace(/{short_link}/g, counterData?.short_link || "")
+            ?.replace(/{invoice_number}/g, value?.invoice_number || "")
+            ?.replace(/{amount}/g, value.order_grandtotal||value?.amount||value?.amt || "");
             console.log(message);
             for (let contact of counterData?.mobile) {
               if (

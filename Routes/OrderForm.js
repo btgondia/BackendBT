@@ -50,7 +50,23 @@ router.get("/GetFormList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/GetFormList", async (req, res) => {
+  try {
+    let value = req.body;
+    let json = {};
 
+    for (let i of value) {
+      json = { ...json, [i]: 1 };
+    }
+    console.log(json);
+    let data = await OrderForm.find({}, json);
+
+    if (data.length) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Order Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 
 router.put("/putForm", async (req, res) => {

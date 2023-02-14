@@ -4,6 +4,9 @@ const CampaignsSchema = new mongoose.Schema({
   campaign_uuid: {
     type: String,
   },
+  form_uuid: {
+    type: String,
+  },
   campaign_title: {
     type: String,
   },
@@ -22,12 +25,35 @@ const CampaignsSchema = new mongoose.Schema({
       type: String,
     },
   ],
+  counter_status: [
+    {
+      counter_uuid: {
+        type: String,
+      },
+      status: {
+        type: Number,
+      },
+    },
+  ],
   mobile: [
     {
       type: String,
     },
   ],
-  message: {
+  message: [
+    {
+      type: {
+        type: String,
+      },
+      text: {
+        type: String,
+      },
+      uuid: {
+        type: String,
+      },
+    },
+  ],
+  campaign_short_link: {
     type: String,
   },
 });

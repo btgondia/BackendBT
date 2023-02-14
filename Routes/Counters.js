@@ -13,6 +13,7 @@ const ItemCategories = require("../Models/ItemCategories");
 const notification_log = require("../Models/notification_log");
 const axios = require("axios");
 const orderForms = require("../Models/orderForms");
+const Campaigns = require("../Models/Campaigns");
 var msg91 = require("msg91-templateid")(
   "312759AUCbnlpoZeD61714959P1",
   "foodDo",
@@ -314,31 +315,48 @@ router.post("/GetCounter", async (req, res) => {
 });
 router.post("/GetCounterByLink", async (req, res) => {
   try {
-  let counterData = await Counter.findOne(
-    { short_link: req.body.short_link },
-    {
-      counter_uuid: 1,
-      counter_title: 1,
-      route_uuid: 1,
-      form_uuid: 1,
-      item_special_price: 1,
-      company_discount:1
-    }
-  );
-  if (counterData?.route_uuid) {
-    let routeData = await Routes.findOne(
+    let { campaign_short_link = "", short_link = "" } = req.body;
+    let counterData = await Counter.findOne(
+      { short_link },
       {
-        route_uuid: counterData?.route_uuid,
-      },
-      { order_status: 1 }
+        counter_uuid: 1,
+        counter_title: 1,
+        route_uuid: 1,
+        form_uuid: 1,
+        item_special_price: 1,
+        company_discount: 1,
+      }
     );
-   
+    let form_uuid = counterData.form_uuid;
+
+    if (campaign_short_link) {
+      let compainData = await Campaigns.findOne(
+        { campaign_short_link },
+        { form_uuid: 1 }
+      );
+
+      if (compainData?.form_uuid) {
+        if (compainData.form_uuid !== "d") {
+          form_uuid = compainData.form_uuid;
+        }
+      }
+    }
+
+    if (counterData?.route_uuid) {
+      let routeData = await Routes.findOne(
+        {
+          route_uuid: counterData?.route_uuid,
+        },
+        { order_status: 1 }
+      );
+
       let orderFormData = await orderForms.findOne(
         {
-          form_uuid: counterData?.form_uuid,
+          form_uuid,
         },
         { company_uuid: 1 }
       );
+
       if (orderFormData?.company_uuid?.length) {
         let companiesData = await Companies.find(
           { company_uuid: { $in: orderFormData.company_uuid } },
@@ -379,12 +397,11 @@ router.post("/GetCounterByLink", async (req, res) => {
             company: companiesData,
             items: ItemData,
             ItemCategories: CategoryData,
-            order_status:+routeData?.order_status
+            order_status: +routeData?.order_status,
           },
         });
       } else res.json({ success: false, message: "No Order Form Applied" });
-
-  } else res.json({ success: false, message: "Counter Not found" });
+    } else res.json({ success: false, message: "Counter Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }

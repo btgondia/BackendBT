@@ -15,7 +15,17 @@ router.post("/CreateCampaigns", async (req, res) => {
       campaign_uuid: uuid(),
       created_at: new Date().getTime(),
     };
-
+    if (value.type === "order") {
+      let campaign_short_link = uuid().slice(0, 7);
+      let verirfyshort_link = await Campaigns.findOne({}, { campaign_uuid: 1 });
+      while (verirfyshort_link) {
+        campaign_short_link = uuid().slice(0, 7);
+        verirfyshort_link = await Campaigns.findOne(
+          { campaign_short_link },
+          { campaign_uuid: 1 }
+        );
+      }
+    }
     console.log(value);
     let response = await Campaigns.create(value);
     if (response) {
@@ -31,68 +41,70 @@ router.post("/CreateCampaigns", async (req, res) => {
 });
 router.post("/sendMsg", async (req, res) => {
   try {
-  let value = req.body;
-  if (!value) res.json({ success: false, message: "Invalid Data" });
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
 
-  let countersData = await Counters.find(
-    {
-      counter_uuid: { $in: value?.counters },
-    },
-    { mobile: 1, counter_uuid: 1, counter_title: 1 }
-  );
-  let data = [];
-  for (let counterData of countersData) {
-    console.log(counterData);
-    let message = value.message?.replace(
-      /{counter_title}/g,
-      counterData?.counter_title || ""
-    )?.replace(
-      /{short_link}/g,
-      counterData?.short_link || ""
+    let countersData = await Counters.find(
+      {
+        counter_uuid: { $in: value?.counters },
+      },
+      { mobile: 1, counter_uuid: 1, counter_title: 1 }
     );
+    let data = [];
+    for (let counterData of countersData) {
+      console.log(counterData);
+      let message = value.message
+        ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+        ?.replace(/{short_link}/g, counterData?.short_link || "")
+        ?.replace(/{invoice_number}/g, counterData?.invoice_number || "")
+        ?.replace(/{amount}/g, counterData?.amount || counterData?.amt || "");
 
-    if (counterData?.mobile?.length) {
-      for (let contact of counterData?.mobile) {
-        if (
-          contact.mobile &&
-          contact?.lable?.find((a) => a.type === "wa" && +a.varification)
-        ) {
-          data.push({
-            contact: contact.mobile,
-            messages: [{ text: message }],
-          });
-          await Notification_log.create({
-            contact: contact.mobile,
-            notification_uuid: value.campaign_title,
-            message,
-            created_at: new Date().getTime(),
-          });
+      if (counterData?.mobile?.length) {
+        for (let contact of counterData?.mobile) {
+          if (
+            contact.mobile &&
+            contact?.lable?.find((a) => a.type === "wa" && +a.varification)
+          ) {
+            data.push({
+              contact: contact.mobile,
+              messages: [{ text: message }],
+            });
+            await Notification_log.create({
+              contact: contact.mobile,
+              notification_uuid: value.campaign_title,
+              message,
+              created_at: new Date().getTime(),
+            });
+          }
         }
       }
     }
-  }
-  for (let mobile of value?.mobile) {
-    let message = value.message;
+    for (let mobile of value?.mobile) {
+      let message = value.message
+        ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+        ?.replace(/{short_link}/g, counterData?.short_link || "")
+        ?.replace(/{invoice_number}/g, counterData?.invoice_number || "")
+        ?.replace(/{amount}/g, counterData?.amount || counterData?.amt || "");
 
-    data.push({
-      contact: mobile,
-      messages: [{ text: message }],
+      data.push({
+        contact: mobile,
+        messages: [{ text: message }],
+      });
+      await Notification_log.create({
+        contact: mobile,
+        notification_uuid: value.campaign_title,
+        message,
+        created_at: new Date().getTime(),
+      });
+    }
+    console.log(data);
+    let msgResponse = await axios({
+      url: "http://15.207.39.69:2000/sendMessage",
+      method: "post",
+      data,
     });
-    await Notification_log.create({
-      contact: mobile,
-      notification_uuid: value.campaign_title,
-      message,
-      created_at: new Date().getTime(),
-    });
-  }
-  console.log(data);
-  let msgResponse = await axios({
-    url: "http://15.207.39.69:2000/sendMessage",
-    method: "post",
-    data,
-  });
 
-  res.json({ success: true, message: "Message Shooted Successfully" });
+    res.json({ success: true, message: "Message Shooted Successfully" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
