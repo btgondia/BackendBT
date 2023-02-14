@@ -4,9 +4,19 @@ const warehouseSchema = new mongoose.Schema({
   type: {
     type: String,
   },
-  message: {
-    type: String,
-  },
+  message: [
+    {
+      type: {
+        type: String,
+      },
+      text: {
+        type: String,
+      },
+      uuid: {
+        type: String,
+      },
+    },
+  ],
   notification_uuid: {
     type: String,
   },

@@ -313,7 +313,7 @@ router.post("/GetCounter", async (req, res) => {
   }
 });
 router.post("/GetCounterByLink", async (req, res) => {
-  // try {
+  try {
   let counterData = await Counter.findOne(
     { short_link: req.body.short_link },
     {
@@ -322,6 +322,7 @@ router.post("/GetCounterByLink", async (req, res) => {
       route_uuid: 1,
       form_uuid: 1,
       item_special_price: 1,
+      company_discount:1
     }
   );
   if (counterData?.route_uuid) {
@@ -331,7 +332,7 @@ router.post("/GetCounterByLink", async (req, res) => {
       },
       { order_status: 1 }
     );
-    if (+routeData?.order_status) {
+   
       let orderFormData = await orderForms.findOne(
         {
           form_uuid: counterData?.form_uuid,
@@ -378,14 +379,15 @@ router.post("/GetCounterByLink", async (req, res) => {
             company: companiesData,
             items: ItemData,
             ItemCategories: CategoryData,
+            order_status:+routeData?.order_status
           },
         });
-      } else res.json({ success: false, message: "No Order Form Data Found" });
-    } else res.json({ success: false, message: "Route Order status is Off" });
+      } else res.json({ success: false, message: "No Order Form Applied" });
+
   } else res.json({ success: false, message: "Counter Not found" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 
 router.put("/putCounter", async (req, res) => {

@@ -247,28 +247,30 @@ router.post("/postOrder", async (req, res) => {
           { mobile }
         );
 
-        let message = WhatsappNotification.message
-          ?.replace(/{invoice_number}/g, value.invoice_number)
-          ?.replace(/{amount}/g, value.order_grandtotal);
         console.log(message);
         if (WhatsappNotification?.status && counterData?.mobile?.length) {
           let data = [];
-          for (let contact of counterData?.mobile) {
-            if (
-              contact.mobile &&
-              contact?.lable?.find((a) => a.type === "wa" && +a.varification)
-            ) {
-              data.push({
-                contact: contact.mobile,
-                messages: [{ text: message }],
-              });
-              await Notification_logs.create({
-                contact: contact.mobile,
-                notification_uuid: value.notifiacation_uuid,
-                message,
-                invoice_number: value.invoice_number,
-                created_at: new Date().getTime(),
-              });
+          for (let messageobj of WhatsappNotification.message) {
+            let message = messageobj.text
+              ?.replace(/{invoice_number}/g, value.invoice_number)
+              ?.replace(/{amount}/g, value.order_grandtotal);
+            for (let contact of counterData?.mobile) {
+              if (
+                contact.mobile &&
+                contact?.lable?.find((a) => a.type === "wa" && +a.varification)
+              ) {
+                data.push({
+                  contact: contact.mobile,
+                  messages: [{ text: message }],
+                });
+                await Notification_logs.create({
+                  contact: contact.mobile,
+                  notification_uuid: value.notifiacation_uuid,
+                  message,
+                  invoice_number: value.invoice_number,
+                  created_at: new Date().getTime(),
+                });
+              }
             }
           }
           let msgResponse = await axios({
@@ -287,27 +289,28 @@ router.post("/postOrder", async (req, res) => {
 });
 router.post("/sendMsg", async (req, res) => {
   // try {
-    let value = req.body;
-    if (!value) res.json({ success: false, message: "Invalid Data" });
+  let value = req.body;
+  if (!value) res.json({ success: false, message: "Invalid Data" });
 
-    let WhatsappNotification = await whatsapp_notifications.findOne({
-      notification_uuid: value.notification_uuid,
-    });
-    let counterData = await Counters.findOne(
-      {
-        counter_uuid: value.counter_uuid,
-      },
-      { mobile: 1 }
-    );
+  let WhatsappNotification = await whatsapp_notifications.findOne({
+    notification_uuid: value.notification_uuid,
+  });
+  let counterData = await Counters.findOne(
+    {
+      counter_uuid: value.counter_uuid,
+    },
+    { mobile: 1 }
+  );
 
-    let message = WhatsappNotification.message
-      ?.replace(/{invoice_number}/g, value.invoice_number)
-      ?.replace(/{amount}/g, value?.amt || value?.amount);
-    let mobile = counterData.mobile.filter(
-      (a) => a.mobile && a.lable.find((b) => b.type === "wa" && +b.varification)
-    );
-    if (WhatsappNotification?.status && mobile?.length) {
-      let data = [];
+  let mobile = counterData.mobile.filter(
+    (a) => a.mobile && a.lable.find((b) => b.type === "wa" && +b.varification)
+  );
+  if (WhatsappNotification?.status && mobile?.length) {
+    let data = [];
+    for (let messageobj of WhatsappNotification.message) {
+      let message = messageobj.text
+        ?.replace(/{invoice_number}/g, value.invoice_number)
+        ?.replace(/{amount}/g, value?.amt || value?.amount);
       for (let contact of mobile) {
         console.count(message);
         data.push({ contact: contact.mobile, messages: [{ text: message }] });
@@ -337,20 +340,21 @@ router.post("/sendMsg", async (req, res) => {
           console.log(response);
         }
       }
-      console.log(data);
-      let msgResponse = await axios({
-        url: "http://15.207.39.69:2000/sendMessage",
-        method: "post",
-        data,
-      });
-      console.log(data, msgResponse);
-      res.json({ success: true, message: "Message Sent Successfully" });
-    } else {
-      res.json({
-        success: false,
-        message: "No Verified Number for this Counter ",
-      });
     }
+    console.log(data);
+    let msgResponse = await axios({
+      url: "http://15.207.39.69:2000/sendMessage",
+      method: "post",
+      data,
+    });
+    console.log(data, msgResponse);
+    res.json({ success: true, message: "Message Sent Successfully" });
+  } else {
+    res.json({
+      success: false,
+      message: "No Verified Number for this Counter ",
+    });
+  }
   // } catch (err) {
   //   res.status(500).json({ success: false, message: err });
   // }
@@ -727,29 +731,31 @@ router.put("/putOrders", async (req, res) => {
           }
         );
 
-        let message = WhatsappNotification.message
-          ?.replace(/{invoice_number}/g, value.invoice_number)
-          ?.replace(/{amount}/g, value.order_grandtotal);
         console.log(message);
         if (WhatsappNotification?.status && counterData?.mobile?.length) {
           let data = [];
-          for (let contact of counterData?.mobile) {
-            if (
-              contact.mobile &&
-              contact?.lable?.find((a) => a.type === "wa" && +a.varification)
-            ) {
-              data.push({
-                contact: contact.mobile,
-                messages: [{ text: message }],
-              });
+          for (let messageobj of WhatsappNotification?.message) {
+            let message = messageobj.text
+              ?.replace(/{invoice_number}/g, value.invoice_number)
+              ?.replace(/{amount}/g, value.order_grandtotal);
+            for (let contact of counterData?.mobile) {
+              if (
+                contact.mobile &&
+                contact?.lable?.find((a) => a.type === "wa" && +a.varification)
+              ) {
+                data.push({
+                  contact: contact.mobile,
+                  messages: [{ text: message }],
+                });
 
-              await Notification_logs.create({
-                contact: contact.mobile,
-                notification_uuid: value.notifiacation_uuid,
-                message,
-                invoice_number: value.invoice_number,
-                created_at: new Date().getTime(),
-              });
+                await Notification_logs.create({
+                  contact: contact.mobile,
+                  notification_uuid: value.notifiacation_uuid,
+                  message,
+                  invoice_number: value.invoice_number,
+                  created_at: new Date().getTime(),
+                });
+              }
             }
           }
           let msgResponse = await axios({
