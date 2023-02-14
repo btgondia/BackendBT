@@ -289,352 +289,243 @@ router.post("/postOrder", async (req, res) => {
 });
 router.post("/sendMsg", async (req, res) => {
   try {
-  let value = req.body;
-  if (!value) res.json({ success: false, message: "Invalid Data" });
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
 
-  let WhatsappNotification = await whatsapp_notifications.findOne({
-    notification_uuid: value.notification_uuid,
-  });
-  let counterData = await Counters.findOne(
-    {
-      counter_uuid: value.counter_uuid,
-    },
-    { mobile: 1 }
-  );
+    let WhatsappNotification = await whatsapp_notifications.findOne({
+      notification_uuid: value.notification_uuid,
+    });
+    let counterData = await Counters.findOne(
+      {
+        counter_uuid: value.counter_uuid,
+      },
+      { mobile: 1 }
+    );
 
-  let mobile = counterData.mobile.filter(
-    (a) => a.mobile && a.lable.find((b) => b.type === "wa" && +b.varification)
-  );
-  if (WhatsappNotification?.status && mobile?.length) {
-    let data = [];
-    for (let messageobj of WhatsappNotification.message) {
-      let message = messageobj.text
-        ?.replace(/{invoice_number}/g, value.invoice_number)
-        ?.replace(/{amount}/g, value?.amt || value?.amount);
-      for (let contact of mobile) {
-        console.count(message);
-        data.push({ contact: contact.mobile, messages: [{ text: message }] });
-        await Notification_logs.create({
-          contact: contact.mobile,
-          notification_uuid: WhatsappNotification.notification_uuid,
-          message,
-          invoice_number:
-            typeof value.invoice_number === "string"
-              ? value.invoice_number?.replace(/^\D+/g, "")
-              : value.invoice_number,
-          created_at: new Date().getTime(),
-        });
-        if (
-          WhatsappNotification.notification_uuid ===
-          "outstanding-manual-reminder"
-        ) {
-          let response = await OutStanding.updateOne(
-            { outstanding_uuid: value.outstanding_uuid },
-            {
-              $push: {
-                logs: {
-                  user_uuid: value.user_uuid,
-                  timestamp: new Date().getTime(),
-                  contact: contact.mobile,
+    let mobile = counterData.mobile.filter(
+      (a) => a.mobile && a.lable.find((b) => b.type === "wa" && +b.varification)
+    );
+    if (WhatsappNotification?.status && mobile?.length) {
+      let data = [];
+      for (let messageobj of WhatsappNotification.message) {
+        let message = messageobj.text
+          ?.replace(/{invoice_number}/g, value.invoice_number)
+          ?.replace(/{amount}/g, value?.amt || value?.amount);
+        for (let contact of mobile) {
+          console.count(message);
+          data.push({ contact: contact.mobile, messages: [{ text: message }] });
+          await Notification_logs.create({
+            contact: contact.mobile,
+            notification_uuid: WhatsappNotification.notification_uuid,
+            message,
+            invoice_number:
+              typeof value.invoice_number === "string"
+                ? value.invoice_number?.replace(/^\D+/g, "")
+                : value.invoice_number,
+            created_at: new Date().getTime(),
+          });
+          if (
+            WhatsappNotification.notification_uuid ===
+            "outstanding-manual-reminder"
+          ) {
+            let response = await OutStanding.updateOne(
+              { outstanding_uuid: value.outstanding_uuid },
+              {
+                $push: {
+                  logs: {
+                    user_uuid: value.user_uuid,
+                    timestamp: new Date().getTime(),
+                    contact: contact.mobile,
+                  },
                 },
-              },
-            }
-          );
-          console.log(response);
+              }
+            );
+            console.log(response);
+          }
         }
       }
+      console.log(data);
+      let msgResponse = await axios({
+        url: "http://15.207.39.69:2000/sendMessage",
+        method: "post",
+        data,
+      });
+      console.log(data, msgResponse);
+      res.json({ success: true, message: "Message Sent Successfully" });
+    } else {
+      res.json({
+        success: false,
+        message: "No Verified Number for this Counter ",
+      });
     }
-    console.log(data);
-    let msgResponse = await axios({
-      url: "http://15.207.39.69:2000/sendMessage",
-      method: "post",
-      data,
-    });
-    console.log(data, msgResponse);
-    res.json({ success: true, message: "Message Sent Successfully" });
-  } else {
-    res.json({
-      success: false,
-      message: "No Verified Number for this Counter ",
-    });
-  }
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 router.put("/putOrders", async (req, res) => {
   try {
-  let response = [];
-  for (let value of req.body) {
-    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let response = [];
+    for (let value of req.body) {
+      if (!value) res.json({ success: false, message: "Invalid Data" });
 
-    let prevData = await Orders.findOne({
-      invoice_number: value.invoice_number,
-    });
-    value = Object.keys(value)
-      .filter((key) => key !== "_id")
-      .reduce((obj, key) => {
-        obj[key] = value[key];
-        return obj;
-      }, {});
-
-    let prevorderStage = prevData
-      ? +Math.max.apply(
-          null,
-          prevData?.status?.map((a) => +a.stage)
-        )
-      : 0;
-    let orderStage = +Math.max.apply(
-      null,
-      value?.status?.map((a) => +a.stage)
-    );
-
-    let tripData = {};
-    if (value.trip_uuid) {
-      tripData = await Trips.findOne({ trip_uuid: value.trip_uuid });
-      tripData = JSON.parse(JSON.stringify(tripData));
-    }
-    if (
-      +orderStage === 4 ||
-      +orderStage === 5 ||
-      value?.item_details?.length === 0
-    ) {
-      let data = await OrderCompleted.findOne({
-        order_uuid: value.order_uuid,
+      let prevData = await Orders.findOne({
+        invoice_number: value.invoice_number,
       });
-      // console.log(orderStage);
-      if (+orderStage === 5 || value?.item_details?.length === 0) {
-        data = await CancelOrders.create(value);
+      value = Object.keys(value)
+        .filter((key) => key !== "_id")
+        .reduce((obj, key) => {
+          obj[key] = value[key];
+          return obj;
+        }, {});
 
-        await Orders.deleteOne({ order_uuid: value.order_uuid });
+      let prevorderStage = prevData
+        ? +Math.max.apply(
+            null,
+            prevData?.status?.map((a) => +a.stage)
+          )
+        : 0;
+      let orderStage = +Math.max.apply(
+        null,
+        value?.status?.map((a) => +a.stage)
+      );
+
+      let tripData = {};
+      if (value.trip_uuid) {
+        tripData = await Trips.findOne({ trip_uuid: value.trip_uuid });
+        tripData = JSON.parse(JSON.stringify(tripData));
       }
-      // console.log("length", value?.item_details?.length);
-      // console.log("Old Data",data)
-      else if (data) {
-        await OrderCompleted.updateOne({ order_uuid: value.order_uuid }, value);
-      } else {
-        let warehouse_uuid = value.warehouse_uuid || tripData?.warehouse_uuid;
-        if (warehouse_uuid) {
-          value = { ...value, warehouse_uuid };
-          for (let item of value.item_details) {
-            let itemData = await Item.findOne({
-              item_uuid: item.item_uuid,
-            });
-            itemData = JSON.parse(JSON.stringify(itemData));
-            let stock = itemData.stock;
-            // console.log("Stock", stock);
-            let qty =
-              +item.b * +itemData.conversion + +item.p + (+item.free || 0);
-            stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)
-              ?.length
-              ? stock.map((a) =>
-                  a.warehouse_uuid === warehouse_uuid
-                    ? { ...a, qty: a.qty - qty }
-                    : a
-                )
-              : stock?.length
-              ? [
-                  ...stock,
-                  {
-                    warehouse_uuid: warehouse_uuid,
-                    min_level: 0,
-                    qty: -qty,
-                  },
-                ]
-              : [
-                  {
-                    warehouse_uuid: warehouse_uuid,
-                    min_level: 0,
-                    qty: -qty,
-                  },
-                ];
-            // console.log("Stock", stock);
-            await Item.updateOne(
-              {
-                item_uuid: item.item_uuid,
-              },
-              { stock }
-            );
-          }
+      if (
+        +orderStage === 4 ||
+        +orderStage === 5 ||
+        value?.item_details?.length === 0
+      ) {
+        let data = await OrderCompleted.findOne({
+          order_uuid: value.order_uuid,
+        });
+        // console.log(orderStage);
+        if (+orderStage === 5 || value?.item_details?.length === 0) {
+          data = await CancelOrders.create(value);
+
+          await Orders.deleteOne({ order_uuid: value.order_uuid });
         }
+        // console.log("length", value?.item_details?.length);
+        // console.log("Old Data",data)
+        else if (data) {
+          await OrderCompleted.updateOne(
+            { order_uuid: value.order_uuid },
+            value
+          );
+        } else {
+          let warehouse_uuid = value.warehouse_uuid || tripData?.warehouse_uuid;
+          if (warehouse_uuid) {
+            value = { ...value, warehouse_uuid };
+            for (let item of value.item_details) {
+              let itemData = await Item.findOne({
+                item_uuid: item.item_uuid,
+              });
+              itemData = JSON.parse(JSON.stringify(itemData));
+              let stock = itemData.stock;
+              // console.log("Stock", stock);
+              let qty =
+                +item.b * +itemData.conversion + +item.p + (+item.free || 0);
+              stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)
+                ?.length
+                ? stock.map((a) =>
+                    a.warehouse_uuid === warehouse_uuid
+                      ? { ...a, qty: a.qty - qty }
+                      : a
+                  )
+                : stock?.length
+                ? [
+                    ...stock,
+                    {
+                      warehouse_uuid: warehouse_uuid,
+                      min_level: 0,
+                      qty: -qty,
+                    },
+                  ]
+                : [
+                    {
+                      warehouse_uuid: warehouse_uuid,
+                      min_level: 0,
+                      qty: -qty,
+                    },
+                  ];
+              // console.log("Stock", stock);
+              await Item.updateOne(
+                {
+                  item_uuid: item.item_uuid,
+                },
+                { stock }
+              );
+            }
+          }
 
-        data = await OrderCompleted.create({
-          ...prevData,
-          ...value,
-          entry: +orderStage === 5 ? 1 : 0,
-        });
-        await Orders.deleteOne({ order_uuid: value.order_uuid });
-      }
-      // console.log("New DAta", data);
-      if (+orderStage === 4) {
-        let counterGroupsData = await Counters.findOne(
-          {
-            counter_uuid: value.counter_uuid,
-          },
-          { counter_group_uuid: 1 }
-        );
-        let itemsData = await Item.find({
-          item_uuid: {
-            $in: value.item_details.map((a) => a.item_uuid),
-          },
-        });
-        let incentiveData = await Incentive.find({ status: 1 });
-        incentiveData = JSON.parse(JSON.stringify(incentiveData));
-        let user_range_order = value.status.find(
-          (c) => +c.stage === 1
-        )?.user_uuid;
+          data = await OrderCompleted.create({
+            ...prevData,
+            ...value,
+            entry: +orderStage === 5 ? 1 : 0,
+          });
+          await Orders.deleteOne({ order_uuid: value.order_uuid });
+        }
+        // console.log("New DAta", data);
+        if (+orderStage === 4) {
+          let counterGroupsData = await Counters.findOne(
+            {
+              counter_uuid: value.counter_uuid,
+            },
+            { counter_group_uuid: 1 }
+          );
+          let itemsData = await Item.find({
+            item_uuid: {
+              $in: value.item_details.map((a) => a.item_uuid),
+            },
+          });
+          let incentiveData = await Incentive.find({ status: 1 });
+          incentiveData = JSON.parse(JSON.stringify(incentiveData));
+          let user_range_order = value.status.find(
+            (c) => +c.stage === 1
+          )?.user_uuid;
 
-        let user_delivery_intensive = value.status.find(
-          (c) => +c.stage === 4
-        )?.user_uuid;
+          let user_delivery_intensive = value.status.find(
+            (c) => +c.stage === 4
+          )?.user_uuid;
 
-        incentiveData = incentiveData.filter(
-          (a) =>
-            a.counters.filter((b) => b === value.counter_uuid).length ||
-            a.counter_groups.filter((b) =>
-              counterGroupsData?.counter_group_uuid?.find((c) => b === c)
-            ).length
-        );
-        let rangeOrderIncentive = incentiveData.filter(
-          (a) =>
-            a.users.filter((b) => b === user_range_order).length &&
-            a.type === "range-order"
-        );
+          incentiveData = incentiveData.filter(
+            (a) =>
+              a.counters.filter((b) => b === value.counter_uuid).length ||
+              a.counter_groups.filter((b) =>
+                counterGroupsData?.counter_group_uuid?.find((c) => b === c)
+              ).length
+          );
+          let rangeOrderIncentive = incentiveData.filter(
+            (a) =>
+              a.users.filter((b) => b === user_range_order).length &&
+              a.type === "range-order"
+          );
 
-        let rangeDeliveryIntensive = incentiveData.filter(
-          (a) =>
-            a.users.filter((b) => b === user_delivery_intensive).length &&
-            a.type === "delivery-incentive"
-        );
-        if (!rangeDeliveryIntensive?.length) {
-          user_delivery_intensive = tripData?.users?.length
-            ? tripData?.users[0]
-            : "";
-          rangeDeliveryIntensive = incentiveData.filter(
+          let rangeDeliveryIntensive = incentiveData.filter(
             (a) =>
               a.users.filter((b) => b === user_delivery_intensive).length &&
               a.type === "delivery-incentive"
           );
-        }
-        let rangeItemIntensive = incentiveData.filter(
-          (a) =>
-            a.users.filter((b) => b === user_range_order).length &&
-            a.type === "item-incentive"
-        );
-
-        for (let incentive_item of rangeOrderIncentive) {
-          let eligibleItems = value.item_details.filter(
-            (a) =>
-              +a.status !== 3 &&
-              (a.b || a.p) &&
-              (incentive_item.items.find((b) => b === a.item_uuid) ||
-                incentive_item.item_groups.find(
-                  (b) =>
-                    itemsData
-                      .find((c) => c.item_uuid === a.item_uuid)
-                      ?.item_group_uuid.filter((d) => b === d).length
-                ))
-          );
-          if (+incentive_item.min_range <= eligibleItems.length) {
-            let userData = await Users.findOne({
-              user_uuid: user_range_order,
-            });
-            userData = JSON.parse(JSON.stringify(userData));
-            let amt = eligibleItems.length * incentive_item.amt;
-            let incentive_balance = (
-              +(userData.incentive_balance || 0) + amt
-            ).toFixed(2);
-
-            await Users.updateMany(
-              { user_uuid: user_range_order },
-              { incentive_balance }
+          if (!rangeDeliveryIntensive?.length) {
+            user_delivery_intensive = tripData?.users?.length
+              ? tripData?.users[0]
+              : "";
+            rangeDeliveryIntensive = incentiveData.filter(
+              (a) =>
+                a.users.filter((b) => b === user_delivery_intensive).length &&
+                a.type === "delivery-incentive"
             );
-            let time = new Date();
-            let statment = await IncentiveStatment.create({
-              user_uuid: user_range_order,
-              order_uuid: value.order_uuid,
-              counter_uuid: value.counter_uuid,
-              incentive_uuid: incentive_item.incentive_uuid,
-              time: time.getTime(),
-              amt: amt.toFixed(2),
-            });
           }
-        }
-        for (let incentive_item of rangeDeliveryIntensive) {
-          if (incentive_item.value) {
-            let userData = await Users.findOne({
-              user_uuid: user_delivery_intensive,
-            });
-            userData = JSON.parse(JSON.stringify(userData));
-            let amt = 0;
-            let incentive_balance = 0;
-            if (incentive_item.calculation === "amt" && incentive_item.value) {
-              amt =
-                (incentive_item.value / 100) *
-                (value.order_grandtotal || value.order_grandtotal);
-              incentive_balance = (
-                +(userData.incentive_balance || 0) + amt
-              ).toFixed(2);
-            }
-            if (incentive_item.calculation === "qty" && incentive_item.value) {
-              amt =
-                (incentive_item.value || 0) *
-                (value.item_details.filter((a) => +a.status !== 3).length > 1
-                  ? value.item_details
-                      .filter((a) => +a.status !== 3)
-                      .map((a) => +a.b)
-                      .reduce((a, b) => a + b)
-                  : value.item_details.length
-                  ? +value.item_details[0]?.b
-                  : 0);
-              incentive_balance = (
-                +(userData.incentive_balance || 0) + amt
-              ).toFixed(2);
-            }
+          let rangeItemIntensive = incentiveData.filter(
+            (a) =>
+              a.users.filter((b) => b === user_range_order).length &&
+              a.type === "item-incentive"
+          );
 
-            if (tripData?.users?.length > 1) {
-              for (let tripUser of tripData.users) {
-                let update = await Users.updateMany(
-                  { user_uuid: tripUser },
-                  {
-                    $inc: {
-                      incentive_balance: (amt / tripData?.users.length).toFixed(
-                        2
-                      ),
-                    },
-                  }
-                );
-                let time = new Date();
-                let statment = await IncentiveStatment.create({
-                  user_uuid: tripUser,
-                  order_uuid: value.order_uuid,
-                  counter_uuid: value.counter_uuid,
-                  incentive_uuid: incentive_item.incentive_uuid,
-                  time: time.getTime(),
-                  amt: (amt / tripData?.users.length).toFixed(2),
-                });
-                console.log(update, statment, amt, incentive_balance);
-              }
-            } else {
-              let update = await Users.updateMany(
-                { user_uuid: user_delivery_intensive },
-                { incentive_balance }
-              );
-              let time = new Date();
-              let statment = await IncentiveStatment.create({
-                user_uuid: user_delivery_intensive,
-                order_uuid: value.order_uuid,
-                counter_uuid: value.counter_uuid,
-                incentive_uuid: incentive_item.incentive_uuid,
-                time: time.getTime(),
-                amt: amt.toFixed(2),
-              });
-              console.log(update, statment, amt, incentive_balance);
-            }
-          }
-        }
-        for (let incentive_item of rangeItemIntensive) {
-          if (incentive_item.value) {
+          for (let incentive_item of rangeOrderIncentive) {
             let eligibleItems = value.item_details.filter(
               (a) =>
                 +a.status !== 3 &&
@@ -647,117 +538,294 @@ router.put("/putOrders", async (req, res) => {
                         ?.item_group_uuid.filter((d) => b === d).length
                   ))
             );
-            let userData = await Users.findOne({
-              user_uuid: user_range_order,
-            });
-            userData = JSON.parse(JSON.stringify(userData));
-            let amt = 0;
-            let incentive_balance = 0;
-            if (incentive_item.calculation === "amt" && incentive_item.value) {
-              for (let item of eligibleItems) {
-                amt = +amt + (incentive_item.value / 100) * item.item_total;
-              }
-            }
-            if (incentive_item.calculation === "qty" && incentive_item.value) {
-              for (let item of eligibleItems) {
-                let itemData = await Item.findOne({
-                  item_uuid: item.item_uuid,
-                });
-                amt =
-                  +amt +
-                  ((+item.b * +itemData.conversion || 0) + item.p) *
-                    +incentive_item.value;
-              }
-            }
-            incentive_balance = (
-              +(userData.incentive_balance || 0) + amt
-            ).toFixed(2);
+            if (+incentive_item.min_range <= eligibleItems.length) {
+              let userData = await Users.findOne({
+                user_uuid: user_range_order,
+              });
+              userData = JSON.parse(JSON.stringify(userData));
+              let amt = eligibleItems.length * incentive_item.amt;
+              let incentive_balance = (
+                +(userData.incentive_balance || 0) + amt
+              ).toFixed(2);
 
-            await Users.updateMany(
-              { user_uuid: user_range_order },
-              { incentive_balance }
-            );
-            let time = new Date();
-            let statment = await IncentiveStatment.create({
-              user_uuid: user_range_order,
-              order_uuid: value.order_uuid,
-              counter_uuid: value.counter_uuid,
-              incentive_uuid: incentive_item.incentive_uuid,
-              time: time.getTime(),
-              amt: amt.toFixed(2),
-            });
+              await Users.updateMany(
+                { user_uuid: user_range_order },
+                { incentive_balance }
+              );
+              let time = new Date();
+              let statment = await IncentiveStatment.create({
+                user_uuid: user_range_order,
+                order_uuid: value.order_uuid,
+                counter_uuid: value.counter_uuid,
+                incentive_uuid: incentive_item.incentive_uuid,
+                time: time.getTime(),
+                amt: amt.toFixed(2),
+              });
+            }
+          }
+          for (let incentive_item of rangeDeliveryIntensive) {
+            if (incentive_item.value) {
+              let userData = await Users.findOne({
+                user_uuid: user_delivery_intensive,
+              });
+              userData = JSON.parse(JSON.stringify(userData));
+              let amt = 0;
+              let incentive_balance = 0;
+              if (
+                incentive_item.calculation === "amt" &&
+                incentive_item.value
+              ) {
+                amt =
+                  (incentive_item.value / 100) *
+                  (value.order_grandtotal || value.order_grandtotal);
+                incentive_balance = (
+                  +(userData.incentive_balance || 0) + amt
+                ).toFixed(2);
+              }
+              if (
+                incentive_item.calculation === "qty" &&
+                incentive_item.value
+              ) {
+                amt =
+                  (incentive_item.value || 0) *
+                  (value.item_details.filter((a) => +a.status !== 3).length > 1
+                    ? value.item_details
+                        .filter((a) => +a.status !== 3)
+                        .map((a) => +a.b)
+                        .reduce((a, b) => a + b)
+                    : value.item_details.length
+                    ? +value.item_details[0]?.b
+                    : 0);
+                incentive_balance = (
+                  +(userData.incentive_balance || 0) + amt
+                ).toFixed(2);
+              }
+
+              if (tripData?.users?.length > 1) {
+                for (let tripUser of tripData.users) {
+                  let update = await Users.updateMany(
+                    { user_uuid: tripUser },
+                    {
+                      $inc: {
+                        incentive_balance: (
+                          amt / tripData?.users.length
+                        ).toFixed(2),
+                      },
+                    }
+                  );
+                  let time = new Date();
+                  let statment = await IncentiveStatment.create({
+                    user_uuid: tripUser,
+                    order_uuid: value.order_uuid,
+                    counter_uuid: value.counter_uuid,
+                    incentive_uuid: incentive_item.incentive_uuid,
+                    time: time.getTime(),
+                    amt: (amt / tripData?.users.length).toFixed(2),
+                  });
+                  console.log(update, statment, amt, incentive_balance);
+                }
+              } else {
+                let update = await Users.updateMany(
+                  { user_uuid: user_delivery_intensive },
+                  { incentive_balance }
+                );
+                let time = new Date();
+                let statment = await IncentiveStatment.create({
+                  user_uuid: user_delivery_intensive,
+                  order_uuid: value.order_uuid,
+                  counter_uuid: value.counter_uuid,
+                  incentive_uuid: incentive_item.incentive_uuid,
+                  time: time.getTime(),
+                  amt: amt.toFixed(2),
+                });
+                console.log(update, statment, amt, incentive_balance);
+              }
+            }
+          }
+          for (let incentive_item of rangeItemIntensive) {
+            if (incentive_item.value) {
+              let eligibleItems = value.item_details.filter(
+                (a) =>
+                  +a.status !== 3 &&
+                  (a.b || a.p) &&
+                  (incentive_item.items.find((b) => b === a.item_uuid) ||
+                    incentive_item.item_groups.find(
+                      (b) =>
+                        itemsData
+                          .find((c) => c.item_uuid === a.item_uuid)
+                          ?.item_group_uuid.filter((d) => b === d).length
+                    ))
+              );
+              let userData = await Users.findOne({
+                user_uuid: user_range_order,
+              });
+              userData = JSON.parse(JSON.stringify(userData));
+              let amt = 0;
+              let incentive_balance = 0;
+              if (
+                incentive_item.calculation === "amt" &&
+                incentive_item.value
+              ) {
+                for (let item of eligibleItems) {
+                  amt = +amt + (incentive_item.value / 100) * item.item_total;
+                }
+              }
+              if (
+                incentive_item.calculation === "qty" &&
+                incentive_item.value
+              ) {
+                for (let item of eligibleItems) {
+                  let itemData = await Item.findOne({
+                    item_uuid: item.item_uuid,
+                  });
+                  amt =
+                    +amt +
+                    ((+item.b * +itemData.conversion || 0) + item.p) *
+                      +incentive_item.value;
+                }
+              }
+              incentive_balance = (
+                +(userData.incentive_balance || 0) + amt
+              ).toFixed(2);
+
+              await Users.updateMany(
+                { user_uuid: user_range_order },
+                { incentive_balance }
+              );
+              let time = new Date();
+              let statment = await IncentiveStatment.create({
+                user_uuid: user_range_order,
+                order_uuid: value.order_uuid,
+                counter_uuid: value.counter_uuid,
+                incentive_uuid: incentive_item.incentive_uuid,
+                time: time.getTime(),
+                amt: amt.toFixed(2),
+              });
+            }
           }
         }
-      }
 
-      if (data) response.push(data);
-    } else {
-      let data = await Orders.updateOne(
-        { order_uuid: value.order_uuid },
-        value
-      );
-      if (data.acknowledged) response.push(value);
-      else {
-        data = await OrderCompleted.updateOne(
+        if (data) response.push(data);
+      } else {
+        let data = await Orders.updateOne(
           { order_uuid: value.order_uuid },
           value
         );
         if (data.acknowledged) response.push(value);
-      }
-    }
-    console.log(orderStage, prevorderStage);
-    if (+orderStage === 2 && prevorderStage === 1) {
-      let WhatsappNotification = await whatsapp_notifications.findOne({
-        notification_uuid: "out-for-delivery",
-      });
-      let counterData = await Counters.findOne(
-        {
-          counter_uuid: value.counter_uuid,
-        },
-        {
-          mobile: 1,
+        else {
+          data = await OrderCompleted.updateOne(
+            { order_uuid: value.order_uuid },
+            value
+          );
+          if (data.acknowledged) response.push(value);
         }
-      );
+      }
+      console.log(orderStage, prevorderStage);
+      if (+orderStage === 2 && prevorderStage === 1) {
+        let WhatsappNotification = await whatsapp_notifications.findOne({
+          notification_uuid: "out-for-delivery",
+        });
+        let counterData = await Counters.findOne(
+          {
+            counter_uuid: value.counter_uuid,
+          },
+          {
+            mobile: 1,
+          }
+        );
 
-      if (WhatsappNotification?.status && counterData?.mobile?.length) {
-        let data = [];
-        for (let messageobj of WhatsappNotification?.message) {
-          let message = messageobj.text
-            ?.replace(/{invoice_number}/g, value.invoice_number)
-            ?.replace(/{amount}/g, value.order_grandtotal);
-          console.log(message);
-          for (let contact of counterData?.mobile) {
-            if (
-              contact.mobile &&
-              contact?.lable?.find((a) => a.type === "wa" && +a.varification)
-            ) {
-              data.push({
-                contact: contact.mobile,
-                messages: [{ text: message }],
-              });
+        if (WhatsappNotification?.status && counterData?.mobile?.length) {
+          let data = [];
+          for (let messageobj of WhatsappNotification?.message) {
+            let message = messageobj.text
+              ?.replace(/{invoice_number}/g, value.invoice_number)
+              ?.replace(/{amount}/g, value.order_grandtotal);
+            console.log(message);
+            for (let contact of counterData?.mobile) {
+              if (
+                contact.mobile &&
+                contact?.lable?.find((a) => a.type === "wa" && +a.varification)
+              ) {
+                data.push({
+                  contact: contact.mobile,
+                  messages: [{ text: message }],
+                });
 
-              await Notification_logs.create({
-                contact: contact.mobile,
-                notification_uuid: value.notifiacation_uuid,
-                message,
-                invoice_number: value.invoice_number,
-                created_at: new Date().getTime(),
-              });
+                await Notification_logs.create({
+                  contact: contact.mobile,
+                  notification_uuid: value.notifiacation_uuid,
+                  message,
+                  invoice_number: value.invoice_number,
+                  created_at: new Date().getTime(),
+                });
+              }
             }
           }
+          let msgResponse = await axios({
+            url: "http://15.207.39.69:2000/sendMessage",
+            method: "post",
+            data,
+          });
+          console.log(data, msgResponse);
         }
-        let msgResponse = await axios({
-          url: "http://15.207.39.69:2000/sendMessage",
-          method: "post",
-          data,
+      } 
+
+       if (value.accept_notification) {
+         let notification_uuid= +value.accept_notification
+         ? "order-accept-notification"
+         : "order-decline-notification"
+        let WhatsappNotification = await whatsapp_notifications.findOne({
+          notification_uuid
         });
-        console.log(data, msgResponse);
+        let counterData = await Counters.findOne(
+          {
+            counter_uuid: value.counter_uuid,
+          },
+          {
+            mobile: 1,
+          }
+        );
+        console.log(notification_uuid)
+        console.log(WhatsappNotification?.status , counterData?.mobile?.length)
+        if (WhatsappNotification?.status && counterData?.mobile?.length) {
+          let data = [];
+          for (let messageobj of WhatsappNotification?.message) {
+            let message = messageobj.text
+              ?.replace(/{invoice_number}/g, value.invoice_number)
+              ?.replace(/{amount}/g, value.order_grandtotal);
+            console.log(message);
+            for (let contact of counterData?.mobile) {
+              if (
+                contact.mobile &&
+                contact?.lable?.find((a) => a.type === "wa" && +a.varification)
+              ) {
+                data.push({
+                  contact: contact.mobile,
+                  messages: [{ text: message }],
+                });
+
+                await Notification_logs.create({
+                  contact: contact.mobile,
+                  notification_uuid: value.notifiacation_uuid,
+                  message,
+                  invoice_number: value.invoice_number,
+                  created_at: new Date().getTime(),
+                });
+              }
+            }
+          }
+          let msgResponse = await axios({
+            url: "http://15.207.39.69:2000/sendMessage",
+            method: "post",
+            data,
+          });
+          console.log(data, msgResponse);
+        }
       }
     }
-  }
-  if (response.length) {
-    res.json({ success: true, result: response });
-  } else res.json({ success: false, message: "Order Not updated" });
+    if (response.length) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Order Not updated" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
