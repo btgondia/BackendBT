@@ -7,6 +7,9 @@ const orderFormsSchema = new mongoose.Schema({
   form_uuid: {
     type: String,
   },
+  form_short_link: {
+    type: String,
+  },
 
   company_uuid: [
     {

@@ -25,6 +25,7 @@ router.post("/CreateCampaigns", async (req, res) => {
           { campaign_uuid: 1 }
         );
       }
+      value = { ...value, campaign_short_link };
     }
     console.log(value);
     let response = await Campaigns.create(value);

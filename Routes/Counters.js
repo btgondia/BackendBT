@@ -186,6 +186,7 @@ router.get("/GetCounterData", async (req, res) => {
         address: 1,
         mobile: 1,
         company_discount: 1,
+        form_uuid: 1,
         // average_lines_company: 1,
         // average_lines_category: 1,
         item_special_price: 1,
@@ -315,7 +316,11 @@ router.post("/GetCounter", async (req, res) => {
 });
 router.post("/GetCounterByLink", async (req, res) => {
   try {
-    let { campaign_short_link = "", short_link = "" } = req.body;
+    let {
+      form_short_link = "",
+      campaign_short_link = "",
+      short_link = "",
+    } = req.body;
     let counterData = await Counter.findOne(
       { short_link },
       {
@@ -339,6 +344,16 @@ router.post("/GetCounterByLink", async (req, res) => {
         if (compainData.form_uuid !== "d") {
           form_uuid = compainData.form_uuid;
         }
+      }
+    }
+    if (form_short_link) {
+      let compainData = await orderForms.findOne(
+        { form_short_link },
+        { form_uuid: 1 }
+      );
+
+      if (compainData?.form_uuid) {
+        form_uuid = compainData.form_uuid;
       }
     }
 

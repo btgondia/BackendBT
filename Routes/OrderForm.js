@@ -9,7 +9,17 @@ router.post("/postForm", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    value = { ...value, form_uuid: uuid() };
+    let form_short_link = uuid().slice(0, 7);
+    let verirfyshort_link = await OrderForm.findOne({}, { form_uuid: 1 });
+    while (verirfyshort_link) {
+      form_short_link = uuid().slice(0, 7);
+      verirfyshort_link = await OrderForm.findOne(
+        { form_short_link },
+        { form_uuid: 1 }
+      );
+    }
+
+    value = { ...value, form_uuid: uuid(), form_short_link };
 
     console.log(value);
     let response = await OrderForm.create(value);
@@ -68,7 +78,6 @@ router.post("/GetFormList", async (req, res) => {
   }
 });
 
-
 router.put("/putForm", async (req, res) => {
   try {
     let result = [];
@@ -94,6 +103,5 @@ router.put("/putForm", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-
 
 module.exports = router;

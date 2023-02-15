@@ -131,13 +131,8 @@ router.post("/postOrder", async (req, res) => {
         }
         if (incentive_item.calculation === "qty" && incentive_item.value) {
           for (let item of eligibleItems) {
-            let itemData = await Item.findOne({
-              item_uuid: item.item_uuid,
-            });
-            amt =
-              +amt +
-              ((+item.b * +itemData.conversion || 0) + item.p) *
-                +incentive_item.value;
+          
+            amt = +amt + +item.b * +incentive_item.value;
           }
         }
 
@@ -245,7 +240,7 @@ router.post("/postOrder", async (req, res) => {
           {
             counter_uuid: value.counter_uuid,
           },
-          { mobile }
+          { mobile: 1, counter_title: 1, short_link: 1 }
         );
 
         if (WhatsappNotification?.status && counterData?.mobile?.length) {
@@ -254,13 +249,10 @@ router.post("/postOrder", async (req, res) => {
             let message = messageobj.text
               ?.replace(/{counter_title}/g, counterData?.counter_title || "")
               ?.replace(/{short_link}/g, counterData?.short_link || "")
-              ?.replace(/{invoice_number}/g, counterData?.invoice_number || "")
+              ?.replace(/{invoice_number}/g, value?.invoice_number || "")
               ?.replace(
                 /{amount}/g,
-                value.order_grandtotal ||
-                  counterData?.amount ||
-                  counterData?.amt ||
-                  ""
+                value.order_grandtotal || value?.amount || value?.amt || ""
               );
 
             console.log(message);
@@ -714,12 +706,10 @@ router.put("/putOrders", async (req, res) => {
                 incentive_item.value
               ) {
                 for (let item of eligibleItems) {
-                  let itemData = await Item.findOne({
-                    item_uuid: item.item_uuid,
-                  });
+                 
                   amt =
                     +amt +
-                    ((+item.b * +itemData.conversion || 0) + item.p) *
+                    +item.b  *
                       +incentive_item.value;
                 }
               }
@@ -777,10 +767,13 @@ router.put("/putOrders", async (req, res) => {
           let data = [];
           for (let messageobj of WhatsappNotification?.message) {
             let message = messageobj.text
-            ?.replace(/{counter_title}/g, counterData?.counter_title || "")
-            ?.replace(/{short_link}/g, counterData?.short_link || "")
-            ?.replace(/{invoice_number}/g, value?.invoice_number || "")
-            ?.replace(/{amount}/g, value.order_grandtotal||value?.amount||value?.amt || "");
+              ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+              ?.replace(/{short_link}/g, counterData?.short_link || "")
+              ?.replace(/{invoice_number}/g, value?.invoice_number || "")
+              ?.replace(
+                /{amount}/g,
+                value.order_grandtotal || value?.amount || value?.amt || ""
+              );
             console.log(message);
             for (let contact of counterData?.mobile) {
               if (
@@ -832,10 +825,13 @@ router.put("/putOrders", async (req, res) => {
           let data = [];
           for (let messageobj of WhatsappNotification?.message) {
             let message = messageobj.text
-            ?.replace(/{counter_title}/g, counterData?.counter_title || "")
-            ?.replace(/{short_link}/g, counterData?.short_link || "")
-            ?.replace(/{invoice_number}/g, value?.invoice_number || "")
-            ?.replace(/{amount}/g, value.order_grandtotal||value?.amount||value?.amt || "");
+              ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+              ?.replace(/{short_link}/g, counterData?.short_link || "")
+              ?.replace(/{invoice_number}/g, value?.invoice_number || "")
+              ?.replace(
+                /{amount}/g,
+                value.order_grandtotal || value?.amount || value?.amt || ""
+              );
             console.log(message);
             for (let contact of counterData?.mobile) {
               if (
