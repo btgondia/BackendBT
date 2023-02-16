@@ -38,7 +38,18 @@ const Counter_scheme = require("./Routes/counter_schemes");
 const whatsapp_notifications = require("./Routes/whatsapp_notifications");
 const campaigns = require("./Routes/campaigns");
 const OrderForm = require("./Routes/OrderForm");
+const multer=require("multer")
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./uploads");
+  },
+  filename: function (req, file, cb) {
+    console.log(file);
+    cb(null, file.originalname);
+  },
+});
 
+const upload = multer({ storage });
 connectDB();
 app = express();
 app.use(
@@ -58,6 +69,9 @@ app.use(
   })
 );
 app.use(morgan("dev"));
+app.post("/uploadImage", upload.single("file"), (req, res) => {
+  res.json({ success: true });
+});
 
 app.use("/routes", Routes);
 app.use("/itemCategories", ItemCategories);

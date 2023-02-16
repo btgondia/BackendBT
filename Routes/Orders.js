@@ -22,15 +22,36 @@ const whatsapp_notifications = require("../Models/whatsapp_notifications");
 const Notification_logs = require("../Models/notification_log");
 const axios = require("axios");
 const Campaigns = require("../Models/Campaigns");
-const FileSystem = require("fs");
+const fs = require("fs");
 var FormData = require("form-data");
+const instructions = [
+  {
+    contact: 8503097161,
+    messages: [
+      {
+        text: "test-text",
+      },
+      {
+        file: "image.jpg",
+        sendAsDocument: false,
+        caption: "image-caption",
+      },
+      {
+        text: "Next image is being sent as a document",
+      },
+      {
+        file: "image.jpg",
+      },
+    ],
+  },
+];
 const CallMsg = async ({
   counterData = {},
   WhatsappNotification = {},
   value = {},
 }) => {
   let data = [];
-
+  let file = [];
   for (let contact of counterData?.mobile) {
     if (
       contact.mobile &&
@@ -38,15 +59,27 @@ const CallMsg = async ({
     ) {
       let messages = [];
       for (let messageobj of WhatsappNotification.message) {
-        let message = messageobj.text
-          ?.replace(/{counter_title}/g, counterData?.counter_title || "")
-          ?.replace(/{short_link}/g, "cam-" + counterData?.short_link || "")
-          ?.replace(/{invoice_number}/g, value?.invoice_number || "")
-          ?.replace(
-            /{amount}/g,
-            value.order_grandtotal || value?.amount || value?.amt || ""
-          );
-        messages.push({ text: message });
+        let message = "";
+        if (messageobj?.type === "text") {
+          message = messageobj.text
+            ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+            ?.replace(/{short_link}/g, "https://btgondia.com/counter/" + counterData?.short_link || "")
+            ?.replace(/{invoice_number}/g, value?.invoice_number || "")
+            ?.replace(
+              /{amount}/g,
+              value.order_grandtotal || value?.amount || value?.amt || ""
+            );
+          messages.push({ text: message });
+        } else {
+          file.push(messageobj.uuid + ".png");
+ 
+          messages.push( {
+            file: messageobj.uuid + ".png",
+            sendAsDocument: false,
+            caption: messageobj?.text||"",
+          });
+          // messages.push({ file: messageobj.uuid + ".png" });
+        }
       }
       data.push({
         contact: contact.mobile,
@@ -75,12 +108,24 @@ const CallMsg = async ({
   // formData.append("file",Imagedata)
   // console.log(formData)
 
-  let msgResponse = await axios({
-    url: "http://15.207.39.69:2000/sendMessage",
-    method: "post",
-    data,
-  });
-  console.log(data, msgResponse);
+  const form = new FormData();
+  form.append("instructions", JSON.stringify(data));
+  for (let item of file) {
+    form.append("file", fs.createReadStream("./uploads/" + item));
+  }
+  const result = await axios.post(
+    "http://15.207.39.69:2000/send",
+    form,
+    form.getHeaders()
+  );
+  console.log(result.data);
+
+  // let msgResponse = await axios({
+  //   url: "http://15.207.39.69:2000/sendMessage",
+  //   method: "post",
+  //   data,
+  // });
+  // console.log(data, msgResponse);
 };
 // setTimeout(
 //   () => CallMsg({ counterData: {}, value: {}, WhatsappNotification: {} }),
