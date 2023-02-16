@@ -63,7 +63,10 @@ const CallMsg = async ({
         if (messageobj?.type === "text") {
           message = messageobj.text
             ?.replace(/{counter_title}/g, counterData?.counter_title || "")
-            ?.replace(/{short_link}/g, "https://btgondia.com/counter/" + counterData?.short_link || "")
+            ?.replace(
+              /{short_link}/g,
+              "https://btgondia.com/counter/" + counterData?.short_link || ""
+            )
             ?.replace(/{invoice_number}/g, value?.invoice_number || "")
             ?.replace(
               /{amount}/g,
@@ -72,11 +75,11 @@ const CallMsg = async ({
           messages.push({ text: message });
         } else {
           file.push(messageobj.uuid + ".png");
- 
-          messages.push( {
+
+          messages.push({
             file: messageobj.uuid + ".png",
             sendAsDocument: false,
-            caption: messageobj?.text||"",
+            caption: messageobj?.text || "",
           });
           // messages.push({ file: messageobj.uuid + ".png" });
         }
@@ -111,7 +114,8 @@ const CallMsg = async ({
   const form = new FormData();
   form.append("instructions", JSON.stringify(data));
   for (let item of file) {
-    form.append("file", fs.createReadStream("./uploads/" + item));
+    let img = await fs.promises.createReadStream("./uploads/" + item);
+    if (img) form.append("file", img);
   }
   const result = await axios.post(
     "http://15.207.39.69:2000/send",
