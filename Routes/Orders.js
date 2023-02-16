@@ -75,7 +75,7 @@ const CallMsg = async ({
           messages.push({ text: message });
         } else {
           fs.access(
-            "./uploads/" + (messageobj.uuid + ".png" || "") + ".png",
+            "./uploads/" + (messageobj.uuid || "") + ".png",
             (err) => {
               if (err) {
                 console.log(err);
@@ -127,7 +127,7 @@ const CallMsg = async ({
     for (let item of file) {
       form.append(
         "file",
-        fs.createReadStream("./uploads/" + (item || "") + ".png")
+        fs.createReadStream("./uploads/" + (item || ""))
       );
     }
     const result = await axios.post(
