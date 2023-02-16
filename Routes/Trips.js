@@ -110,22 +110,31 @@ router.get("/GetTripListSummary/:user_uuid", async (req, res) => {
       }
     );
     CounterData = JSON.parse(JSON.stringify(CounterData));
+
     data = data.filter(
       (a) =>
         !a.warehouse_uuid ||
+        +userData?.warehouse[0] === 1 ||
         userData?.warehouse.find((b) => b === a.warehouse_uuid)
     );
+
     if (data.length) {
       let result = [];
 
       for (let a of data) {
-        let ordersData = await Orders.find({ trip_uuid: a.trip_uuid });
-        let warehouseData = await Warehouse.findOne({
-          warehouse_uuid: a.warehouse_uuid,
-        });
+        let ordersData = await Orders.find(
+          { trip_uuid: a.trip_uuid },
+          { order_uuid: 1 }
+        );
+        let warehouseData = await Warehouse.findOne(
+          {
+            warehouse_uuid: a.warehouse_uuid,
+          },
+          { warehouse_title: 1 }
+        );
         ordersData = JSON.parse(JSON.stringify(ordersData));
         let orderLength = ordersData.length;
-        // console.log(warehouseData, a);
+        console.log(orderLength);
         result.push({
           ...a,
           orderLength,
@@ -146,6 +155,7 @@ router.get("/GetTripSummaryDetails/:trip_uuid", async (req, res) => {
   try {
     let a = await Trips.findOne({ trip_uuid: req.params.trip_uuid });
     a = JSON.parse(JSON.stringify(a));
+    console.log("tripsData", a);
 
     let CounterData = await Counters.find(
       {},

@@ -8,7 +8,6 @@ const router = express.Router();
 const Receipts = require("../Models/Receipts");
 const Details = require("../Models/Details");
 
-
 router.get("/getPendingEntry", async (req, res) => {
   try {
     let receiptData = await Receipts.find({
@@ -141,7 +140,11 @@ router.put("/putCompleteOrder", async (req, res) => {
   try {
     let value = req.body;
     console.log(value);
-    let pending = value.modes.find((b) => b.status === 0 && b.amt) ? 0 : 1;
+    let receiptData = await Receipts.findOne(
+      { receipt_number: value.receipt_number },
+      { modes: 1 }
+    );
+    let pending = receiptData?.modes?.find((b) => b.status === 0 && b.amt) ? 0 : 1;
     let data = await Receipts.updateOne(
       { receipt_number: value.receipt_number },
       { ...value, pending }

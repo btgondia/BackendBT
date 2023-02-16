@@ -612,42 +612,42 @@ router.put("/putCounter/sortOrder", async (req, res) => {
   }
 });
 router.post("/sendWhatsappOtp", async (req, res) => {
-  try {
-    let value = req.body;
-    if (!value) res.json({ success: false, message: "Invalid Data" });
-    const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
-      .toString()
-      .slice(0, 6);
-    let otp = await generatedOTP;
-    let message = "Your OTP for Mobile Number Verification is " + otp;
-    if (value?.mobile) {
-      let data = [{ contact: value.mobile, messages: [{ text: message }] }];
-      await Otp.create({
-        mobile: value.mobile,
-        counter_uuid: value.counter_uuid,
-        otp,
-      });
-      await notification_log.create({
-        contact: value.mobile,
-        notification_uuid: "Whatsapp Otp",
-        message,
-        // invoice_number: value.invoice_number,
-        created_at: new Date().getTime(),
-      });
+  // try {
+  let value = req.body;
+  if (!value) res.json({ success: false, message: "Invalid Data" });
+  const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
+    .toString()
+    .slice(0, 6);
+  let otp = await generatedOTP;
+  let message = "Your OTP for Mobile Number Verification is " + otp;
+  if (value?.mobile) {
+    let data = [{ contact: value.mobile, messages: [{ text: message }] }];
+    await Otp.create({
+      mobile: value.mobile,
+      counter_uuid: value.counter_uuid,
+      otp,
+    });
+    await notification_log.create({
+      contact: value.mobile,
+      notification_uuid: "Whatsapp Otp",
+      message: [{ text: message }],
+      // invoice_number: value.invoice_number,
+      created_at: new Date().getTime(),
+    });
 
-      let msgResponse = await axios({
-        url: "http://15.207.39.69:2000/sendMessage",
-        method: "post",
-        data,
-      });
-      console.log(data, msgResponse);
-      res.json({ success: true, message: "Message Sent Successfully" });
-    } else {
-      res.json({ success: false, message: "Mobile Number Missing " });
-    }
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
+    let msgResponse = await axios({
+      url: "http://15.207.39.69:2000/sendMessage",
+      method: "post",
+      data,
+    });
+    console.log(data, msgResponse);
+    res.json({ success: true, message: "Message Sent Successfully" });
+  } else {
+    res.json({ success: false, message: "Mobile Number Missing " });
   }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 router.post("/sendCallOtp", async (req, res) => {
   try {

@@ -4,7 +4,7 @@
 
 node_modules
 /uploads
-
+remote-test.json
 
 # testing
 /coverage

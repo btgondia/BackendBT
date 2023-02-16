@@ -142,6 +142,23 @@ router.get("/GetItemData", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/GetItemData", async (req, res) => {
+  try {
+    let value = req.body;
+    let json = {};
+
+    for (let i of value) {
+      json = { ...json, [i]: 1 };
+    }
+    console.log(json);
+    let data = await Item.find({}, json);
+
+    if (data.length) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Counters Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.get("/getNewItemReminder", async (req, res) => {
   try {
     let data = await Details.findOne({});

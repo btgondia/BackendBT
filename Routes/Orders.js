@@ -22,6 +22,70 @@ const whatsapp_notifications = require("../Models/whatsapp_notifications");
 const Notification_logs = require("../Models/notification_log");
 const axios = require("axios");
 const Campaigns = require("../Models/Campaigns");
+const FileSystem = require("fs");
+var FormData = require("form-data");
+const CallMsg = async ({
+  counterData = {},
+  WhatsappNotification = {},
+  value = {},
+}) => {
+  let data = [];
+
+  for (let contact of counterData?.mobile) {
+    if (
+      contact.mobile &&
+      contact?.lable?.find((a) => a.type === "wa" && +a.varification)
+    ) {
+      let messages = [];
+      for (let messageobj of WhatsappNotification.message) {
+        let message = messageobj.text
+          ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+          ?.replace(/{short_link}/g, "cam-" + counterData?.short_link || "")
+          ?.replace(/{invoice_number}/g, value?.invoice_number || "")
+          ?.replace(
+            /{amount}/g,
+            value.order_grandtotal || value?.amount || value?.amt || ""
+          );
+        messages.push({ text: message });
+      }
+      data.push({
+        contact: contact.mobile,
+        messages,
+      });
+      await Notification_logs.create({
+        contact: contact.mobile,
+        notification_uuid: value.notifiacation_uuid,
+        messages,
+        invoice_number: value.invoice_number,
+        created_at: new Date().getTime(),
+      });
+    }
+  }
+  // FileSystem.writeFile(
+  //   "remote-test.json",
+  //   JSON.stringify(data),
+  //   (error, data) => {
+  //     if (error) throw error;
+  //   }
+  // );
+  // let filedata = await FileSystem.promises.readFile("./remote-test.json");
+  // let Imagedata = await FileSystem.promises.readFile("./uploads/images.jpg");
+  // let formData=new FormData()
+  // formData.append("file",filedata)
+  // formData.append("file",Imagedata)
+  // console.log(formData)
+
+  let msgResponse = await axios({
+    url: "http://15.207.39.69:2000/sendMessage",
+    method: "post",
+    data,
+  });
+  console.log(data, msgResponse);
+};
+// setTimeout(
+//   () => CallMsg({ counterData: {}, value: {}, WhatsappNotification: {} }),
+//   5000
+// );
 router.post("/postOrder", async (req, res) => {
   try {
     let value = req.body;
@@ -131,7 +195,6 @@ router.post("/postOrder", async (req, res) => {
         }
         if (incentive_item.calculation === "qty" && incentive_item.value) {
           for (let item of eligibleItems) {
-          
             amt = +amt + +item.b * +incentive_item.value;
           }
         }
@@ -244,45 +307,10 @@ router.post("/postOrder", async (req, res) => {
         );
 
         if (WhatsappNotification?.status && counterData?.mobile?.length) {
-          let data = [];
-          for (let messageobj of WhatsappNotification.message) {
-            let message = messageobj.text
-              ?.replace(/{counter_title}/g, counterData?.counter_title || "")
-              ?.replace(/{short_link}/g, counterData?.short_link || "")
-              ?.replace(/{invoice_number}/g, value?.invoice_number || "")
-              ?.replace(
-                /{amount}/g,
-                value.order_grandtotal || value?.amount || value?.amt || ""
-              );
-
-            console.log(message);
-            for (let contact of counterData?.mobile) {
-              if (
-                contact.mobile &&
-                contact?.lable?.find((a) => a.type === "wa" && +a.varification)
-              ) {
-                data.push({
-                  contact: contact.mobile,
-                  messages: [{ text: message }],
-                });
-                await Notification_logs.create({
-                  contact: contact.mobile,
-                  notification_uuid: value.notifiacation_uuid,
-                  message,
-                  invoice_number: value.invoice_number,
-                  created_at: new Date().getTime(),
-                });
-              }
-            }
-          }
-          let msgResponse = await axios({
-            url: "http://15.207.39.69:2000/sendMessage",
-            method: "post",
-            data,
-          });
-          console.log(msgResponse);
+          CallMsg({ counterData, WhatsappNotification, value });
         }
       }
+      console.log(value.campaign_short_link);
       if (value?.campaign_short_link) {
         let campaignData = await Campaigns.findOne(
           {
@@ -293,13 +321,16 @@ router.post("/postOrder", async (req, res) => {
             counter_status: 1,
           }
         );
+        console.log(campaignData, value.counter_uuid);
+        campaignData = JSON.parse(JSON.stringify(campaignData));
         if (campaignData?.counter_status?.length) {
           let counter_status = campaignData.counter_status.map((a) =>
             a.counter_uuid === value.counter_uuid ? { ...a, status: 1 } : a
           );
+          console.log(counter_status);
           await Campaigns.updateOne(
             {
-              campaign_short_link: value.campaign_short_link,
+              campaign_uuid: campaignData.campaign_uuid,
             },
             {
               counter_status,
@@ -325,63 +356,14 @@ router.post("/sendMsg", async (req, res) => {
       {
         counter_uuid: value.counter_uuid,
       },
-      { mobile: 1 }
+      { mobile: 1, counter_title: 1, short_link: 1 }
     );
 
     let mobile = counterData.mobile.filter(
       (a) => a.mobile && a.lable.find((b) => b.type === "wa" && +b.varification)
     );
     if (WhatsappNotification?.status && mobile?.length) {
-      let data = [];
-      for (let messageobj of WhatsappNotification.message) {
-        let message = messageobj.text
-          ?.replace(/{counter_title}/g, counterData?.counter_title || "")
-          ?.replace(/{short_link}/g, counterData?.short_link || "")
-          ?.replace(/{invoice_number}/g, value?.invoice_number || "")
-          ?.replace(
-            /{amount}/g,
-            value.order_grandtotal || value?.amount || value?.amt || ""
-          );
-        for (let contact of mobile) {
-          console.count(message);
-          data.push({ contact: contact.mobile, messages: [{ text: message }] });
-          await Notification_logs.create({
-            contact: contact.mobile,
-            notification_uuid: WhatsappNotification.notification_uuid,
-            message,
-            invoice_number:
-              typeof value.invoice_number === "string"
-                ? value.invoice_number?.replace(/^\D+/g, "")
-                : value.invoice_number,
-            created_at: new Date().getTime(),
-          });
-          if (
-            WhatsappNotification.notification_uuid ===
-            "outstanding-manual-reminder"
-          ) {
-            let response = await OutStanding.updateOne(
-              { outstanding_uuid: value.outstanding_uuid },
-              {
-                $push: {
-                  logs: {
-                    user_uuid: value.user_uuid,
-                    timestamp: new Date().getTime(),
-                    contact: contact.mobile,
-                  },
-                },
-              }
-            );
-            console.log(response);
-          }
-        }
-      }
-      console.log(data);
-      let msgResponse = await axios({
-        url: "http://15.207.39.69:2000/sendMessage",
-        method: "post",
-        data,
-      });
-      console.log(data, msgResponse);
+      CallMsg({ value, WhatsappNotification, counterData });
       res.json({ success: true, message: "Message Sent Successfully" });
     } else {
       res.json({
@@ -706,11 +688,7 @@ router.put("/putOrders", async (req, res) => {
                 incentive_item.value
               ) {
                 for (let item of eligibleItems) {
-                 
-                  amt =
-                    +amt +
-                    +item.b  *
-                      +incentive_item.value;
+                  amt = +amt + +item.b * +incentive_item.value;
                 }
               }
               incentive_balance = (
@@ -760,47 +738,13 @@ router.put("/putOrders", async (req, res) => {
           },
           {
             mobile: 1,
+            counter_title: 1,
+            short_link: 1,
           }
         );
 
         if (WhatsappNotification?.status && counterData?.mobile?.length) {
-          let data = [];
-          for (let messageobj of WhatsappNotification?.message) {
-            let message = messageobj.text
-              ?.replace(/{counter_title}/g, counterData?.counter_title || "")
-              ?.replace(/{short_link}/g, counterData?.short_link || "")
-              ?.replace(/{invoice_number}/g, value?.invoice_number || "")
-              ?.replace(
-                /{amount}/g,
-                value.order_grandtotal || value?.amount || value?.amt || ""
-              );
-            console.log(message);
-            for (let contact of counterData?.mobile) {
-              if (
-                contact.mobile &&
-                contact?.lable?.find((a) => a.type === "wa" && +a.varification)
-              ) {
-                data.push({
-                  contact: contact.mobile,
-                  messages: [{ text: message }],
-                });
-
-                await Notification_logs.create({
-                  contact: contact.mobile,
-                  notification_uuid: value.notifiacation_uuid,
-                  message,
-                  invoice_number: value.invoice_number,
-                  created_at: new Date().getTime(),
-                });
-              }
-            }
-          }
-          let msgResponse = await axios({
-            url: "http://15.207.39.69:2000/sendMessage",
-            method: "post",
-            data,
-          });
-          console.log(data, msgResponse);
+          CallMsg({ value, WhatsappNotification, counterData });
         }
       }
 
@@ -817,48 +761,14 @@ router.put("/putOrders", async (req, res) => {
           },
           {
             mobile: 1,
+            counter_title: 1,
+            short_link: 1,
           }
         );
         console.log(notification_uuid);
         console.log(WhatsappNotification?.status, counterData?.mobile?.length);
         if (WhatsappNotification?.status && counterData?.mobile?.length) {
-          let data = [];
-          for (let messageobj of WhatsappNotification?.message) {
-            let message = messageobj.text
-              ?.replace(/{counter_title}/g, counterData?.counter_title || "")
-              ?.replace(/{short_link}/g, counterData?.short_link || "")
-              ?.replace(/{invoice_number}/g, value?.invoice_number || "")
-              ?.replace(
-                /{amount}/g,
-                value.order_grandtotal || value?.amount || value?.amt || ""
-              );
-            console.log(message);
-            for (let contact of counterData?.mobile) {
-              if (
-                contact.mobile &&
-                contact?.lable?.find((a) => a.type === "wa" && +a.varification)
-              ) {
-                data.push({
-                  contact: contact.mobile,
-                  messages: [{ text: message }],
-                });
-
-                await Notification_logs.create({
-                  contact: contact.mobile,
-                  notification_uuid: value.notifiacation_uuid,
-                  message,
-                  invoice_number: value.invoice_number,
-                  created_at: new Date().getTime(),
-                });
-              }
-            }
-          }
-          let msgResponse = await axios({
-            url: "http://15.207.39.69:2000/sendMessage",
-            method: "post",
-            data,
-          });
-          console.log(data, msgResponse);
+          CallMsg({ value, WhatsappNotification, counterData });
         }
       }
     }
