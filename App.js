@@ -280,4 +280,5 @@ setInterval(function () {
     MinLevelUpdateAutomation();
   }
 }, 360000);
+app.use(express.static("uploads"));
 module.exports = app;
