@@ -74,13 +74,23 @@ const CallMsg = async ({
             );
           messages.push({ text: message });
         } else {
-          file.push(messageobj.uuid + ".png");
+          fs.access(
+            "./uploads/" + (messageobj.uuid + ".png" || "") + ".png",
+            (err) => {
+              if (err) {
+                console.log(err);
+                return;
+              }
+              file.push(messageobj.uuid + ".png");
 
-          messages.push({
-            file: messageobj.uuid + ".png",
-            sendAsDocument: false,
-            caption: messageobj?.text || "",
-          });
+              messages.push({
+                file: messageobj.uuid + ".png",
+                sendAsDocument: false,
+                caption: messageobj?.text || "",
+              });
+            }
+          );
+
           // messages.push({ file: messageobj.uuid + ".png" });
         }
       }
@@ -111,25 +121,29 @@ const CallMsg = async ({
   // formData.append("file",Imagedata)
   // console.log(formData)
 
-  const form = new FormData();
-  form.append("instructions", JSON.stringify(data));
-  for (let item of file) {
-    let img = await fs.promises.createReadStream("./uploads/" + item);
-    if (img) form.append("file", img);
+  if (file.length) {
+    const form = new FormData();
+    form.append("instructions", JSON.stringify(data));
+    for (let item of file) {
+      form.append(
+        "file",
+        fs.createReadStream("./uploads/" + (item || "") + ".png")
+      );
+    }
+    const result = await axios.post(
+      "http://15.207.39.69:2000/send",
+      form,
+      form.getHeaders()
+    );
+    console.log(result.data);
+  } else {
+    let msgResponse = await axios({
+      url: "http://15.207.39.69:2000/sendMessage",
+      method: "post",
+      data,
+    });
+    console.log(data, msgResponse);
   }
-  const result = await axios.post(
-    "http://15.207.39.69:2000/send",
-    form,
-    form.getHeaders()
-  );
-  console.log(result.data);
-
-  // let msgResponse = await axios({
-  //   url: "http://15.207.39.69:2000/sendMessage",
-  //   method: "post",
-  //   data,
-  // });
-  // console.log(data, msgResponse);
 };
 // setTimeout(
 //   () => CallMsg({ counterData: {}, value: {}, WhatsappNotification: {} }),
