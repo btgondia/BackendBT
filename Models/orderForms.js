@@ -16,6 +16,11 @@ const orderFormsSchema = new mongoose.Schema({
       type: String,
     },
   ],
+  items: [
+    {
+      type: String,
+    },
+  ],
   created_at: {
     type: Number,
   },
