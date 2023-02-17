@@ -131,14 +131,14 @@ const CallMsg = async ({
       );
     }
     const result = await axios.post(
-      "http://15.207.63.206:2000/send",
+      "http://15.207.39.69:2000/send",
       form,
       form.getHeaders()
     );
     console.log(result.data);
   } else {
     let msgResponse = await axios({
-      url: "http://15.207.63.206:2000/sendMessage",
+      url: "http://15.207.39.69:2000/sendMessage",
       method: "post",
       data,
     });

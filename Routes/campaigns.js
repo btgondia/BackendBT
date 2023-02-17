@@ -100,7 +100,7 @@ router.post("/sendMsg", async (req, res) => {
     }
     console.log(data);
     let msgResponse = await axios({
-      url: "http://15.207.63.206:2000/sendMessage",
+      url: "http://15.207.39.69:2000/sendMessage",
       method: "post",
       data,
     });
