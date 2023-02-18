@@ -397,6 +397,7 @@ router.post("/GetCounterByLink", async (req, res) => {
             item_price: 1,
             item_gst: 1,
             conversion: 1,
+            img_status: 1,
           }
         );
 
