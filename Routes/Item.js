@@ -11,7 +11,7 @@ router.post("/postItem", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    value = { ...value, item_uuid: uuid() };
+    value = { ...value, item_uuid: value.item_uuid || uuid() };
     if (!value.sort_order) {
       let response = await Item.find({});
       response = JSON.parse(JSON.stringify(response));

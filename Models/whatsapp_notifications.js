@@ -23,6 +23,9 @@ const warehouseSchema = new mongoose.Schema({
   status: {
     type: Boolean,
   },
+  checkbox: {
+    type: Number,
+  },
 });
 
 module.exports = mongoose.model("whatsapp_notifications", warehouseSchema);

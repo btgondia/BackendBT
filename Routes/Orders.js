@@ -74,22 +74,19 @@ const CallMsg = async ({
             );
           messages.push({ text: message });
         } else {
-          fs.access(
-            "./uploads/" + (messageobj.uuid || "") + ".png",
-            (err) => {
-              if (err) {
-                console.log(err);
-                return;
-              }
-              file.push(messageobj.uuid + ".png");
-
-              messages.push({
-                file: messageobj.uuid + ".png",
-                sendAsDocument: false,
-                caption: messageobj?.text || "",
-              });
+          fs.access("./uploads/" + (messageobj.uuid || "") + ".png", (err) => {
+            if (err) {
+              console.log(err);
+              return;
             }
-          );
+            file.push(messageobj.uuid + ".png");
+
+            messages.push({
+              file: messageobj.uuid + ".png",
+              sendAsDocument: false,
+              caption: messageobj?.text || "",
+            });
+          });
 
           // messages.push({ file: messageobj.uuid + ".png" });
         }
@@ -125,10 +122,7 @@ const CallMsg = async ({
     const form = new FormData();
     form.append("instructions", JSON.stringify(data));
     for (let item of file) {
-      form.append(
-        "file",
-        fs.createReadStream("./uploads/" + (item || ""))
-      );
+      form.append("file", fs.createReadStream("./uploads/" + (item || "")));
     }
     const result = await axios.post(
       "http://15.207.39.69:2000/send",
@@ -258,7 +252,13 @@ router.post("/postOrder", async (req, res) => {
         }
         if (incentive_item.calculation === "qty" && incentive_item.value) {
           for (let item of eligibleItems) {
-            amt = +amt + +item.b * +incentive_item.value;
+            let itemData = await Item.findOne({
+              item_uuid: item.item_uuid,
+            });
+            amt =
+              +amt +
+              ((+item.b * +itemData.conversion || 0) + item.p) *
+                +incentive_item.value;
           }
         }
 
@@ -453,7 +453,9 @@ router.put("/putOrders", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-
+      let itemData = await Item.find({
+        item_uuid: { $in: value.item_details.map((a) => a.item_details) },
+      });
       let prevorderStage = prevData
         ? +Math.max.apply(
             null,
@@ -667,11 +669,21 @@ router.put("/putOrders", async (req, res) => {
                   (value.item_details.filter((a) => +a.status !== 3).length > 1
                     ? value.item_details
                         .filter((a) => +a.status !== 3)
-                        .map((a) => +a.b)
+                        .map((a) => {
+                          return (
+                            (+a.b *
+                              +itemData.find((c) => c.item_uuid === a.item_uuid)
+                                .conversion || 0) + a.p
+                          );
+                        })
                         .reduce((a, b) => a + b)
                     : value.item_details.length
-                    ? +value.item_details[0]?.b
+                    ? (+value.item_details[0].b *
+                        +itemData.find(
+                          (c) => c.item_uuid === value.item_details[0].item_uuid
+                        ).conversion || 0) + value.item_details[0].p
                     : 0);
+
                 incentive_balance = (
                   +(userData.incentive_balance || 0) + amt
                 ).toFixed(2);
@@ -751,7 +763,13 @@ router.put("/putOrders", async (req, res) => {
                 incentive_item.value
               ) {
                 for (let item of eligibleItems) {
-                  amt = +amt + +item.b * +incentive_item.value;
+                  let itemData = await Item.findOne({
+                    item_uuid: item.item_uuid,
+                  });
+                  amt =
+                    +amt +
+                    ((+item.b * +itemData.conversion || 0) + item.p) *
+                      +incentive_item.value;
                 }
               }
               incentive_balance = (
@@ -1111,8 +1129,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
 
     data = data.filter((a) => {
       return (
-        a.order_uuid &&
-        a.hold !== "Y" 
+        a.order_uuid && a.hold !== "Y"
         // &&
         // (!a.warehouse_uuid ||
         //   !userData?.warehouse?.length ||
@@ -1188,13 +1205,11 @@ router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
       );
     }
     data = data.filter(
-      (a) =>
-        a.order_uuid &&
-        a.hold === "Y" 
-        // &&
-        // (!a.warehouse_uuid ||
-        //   +userData?.warehouse[0] === 1 ||
-        //   userData?.warehouse?.find((b) => b === a.warehouse_uuid))
+      (a) => a.order_uuid && a.hold === "Y"
+      // &&
+      // (!a.warehouse_uuid ||
+      //   +userData?.warehouse[0] === 1 ||
+      //   userData?.warehouse?.find((b) => b === a.warehouse_uuid))
     );
     res.json({
       success: true,
