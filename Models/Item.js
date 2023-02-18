@@ -73,6 +73,7 @@ const itemSchema = new mongoose.Schema({
       },
     },
   ],
+  img_status: { type: Number },
   created_at: { type: Number },
 });
 
