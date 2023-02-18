@@ -1112,12 +1112,13 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
     data = data.filter((a) => {
       return (
         a.order_uuid &&
-        a.hold !== "Y" &&
-        (!a.warehouse_uuid ||
-          !userData?.warehouse?.length ||
-          +userData?.warehouse[0] === 1 ||
-          userData?.warehouse[0] === "none" ||
-          userData?.warehouse?.find((b) => b === a.warehouse_uuid))
+        a.hold !== "Y" 
+        // &&
+        // (!a.warehouse_uuid ||
+        //   !userData?.warehouse?.length ||
+        //   +userData?.warehouse[0] === 1 ||
+        //   userData?.warehouse[0] === "none" ||
+        //   userData?.warehouse?.find((b) => b === a.warehouse_uuid))
       );
     });
 
@@ -1189,10 +1190,11 @@ router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
     data = data.filter(
       (a) =>
         a.order_uuid &&
-        a.hold === "Y" &&
-        (!a.warehouse_uuid ||
-          +userData?.warehouse[0] === 1 ||
-          userData?.warehouse?.find((b) => b === a.warehouse_uuid))
+        a.hold === "Y" 
+        // &&
+        // (!a.warehouse_uuid ||
+        //   +userData?.warehouse[0] === 1 ||
+        //   userData?.warehouse?.find((b) => b === a.warehouse_uuid))
     );
     res.json({
       success: true,

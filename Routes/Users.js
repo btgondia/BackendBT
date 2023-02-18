@@ -82,10 +82,13 @@ router.get("/GetNormalUserList", async (req, res) => {
 });
 router.get("/GetUser/:user_uuid", async (req, res) => {
   try {
-    let data = await User.findOne({ user_uuid: req.params.user_uuid });
+    let data = await User.findOne({
+      user_uuid: req.params.user_uuid,
+      status: 1,
+    });
     console.log(req.params.user_uuid.data);
     if (data) res.json({ success: true, result: data });
-    else res.json({ success: false, message: "Users Not found" });
+    else res.json({ success: false, message: "Not Authorized to Log-in" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -97,9 +100,12 @@ router.post("/login", async (req, res) => {
   const login_password = req.body.login_password;
   try {
     const result = await User.findOne({ login_username, login_password });
-    console.log(result, login_password, login_username);
-    if (result && +result.status === 1) res.json({ success: true, result });
-    else res.json({ success: false, message: "Users Not found" });
+    if (result) {
+      if (+result.status === 1) res.json({ success: true, result });
+      else res.json({ success: false, message: "Not Authorized to Log-in" });
+    } else {
+      res.json({ success: false, message: "Invalid User Name and Password" });
+    }
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
