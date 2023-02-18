@@ -612,7 +612,7 @@ router.put("/putCounter/sortOrder", async (req, res) => {
   }
 });
 router.post("/sendWhatsappOtp", async (req, res) => {
-  // try {
+  try {
   let value = req.body;
   if (!value) res.json({ success: false, message: "Invalid Data" });
   const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
@@ -645,9 +645,9 @@ router.post("/sendWhatsappOtp", async (req, res) => {
   } else {
     res.json({ success: false, message: "Mobile Number Missing " });
   }
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 router.post("/sendCallOtp", async (req, res) => {
   try {

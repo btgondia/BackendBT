@@ -1,11 +1,154 @@
 const express = require("express");
-
+const fs = require("fs");
+var FormData = require("form-data");
 const router = express.Router();
 const { v4: uuid } = require("uuid");
 const Campaigns = require("../Models/Campaigns");
 const Counters = require("../Models/Counters");
 const Notification_log = require("../Models/notification_log");
 const axios = require("axios");
+const CallMsg = async ({
+  counterData = {},
+
+  value = {},
+  mobile = [],
+}) => {
+  let data = [];
+  let file = [];
+  for (let contact of counterData?.mobile) {
+    if (
+      contact.mobile &&
+      contact?.lable?.find((a) => a.type === "wa" && +a.varification)
+    ) {
+      let messages = [];
+      for (let messageobj of value.message) {
+        let message = "";
+        if (messageobj?.type === "text") {
+          message = messageobj.text
+            ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+            ?.replace(
+              /{short_link}/g,
+              "https://btgondia.com/counter/" + counterData?.short_link || ""
+            )
+            ?.replace(/{invoice_number}/g, value?.invoice_number || "")
+            ?.replace(
+              /{amount}/g,
+              value.order_grandtotal || value?.amount || value?.amt || ""
+            );
+          messages.push({ text: message });
+        } else {
+          fs.access("./uploads/" + (messageobj.uuid || "") + ".png", (err) => {
+            if (err) {
+              console.log(err);
+              return;
+            }
+            file.push(messageobj.uuid + ".png");
+
+            messages.push({
+              file: messageobj.uuid + ".png",
+              sendAsDocument: false,
+              caption: messageobj?.text || "",
+            });
+          });
+
+          // messages.push({ file: messageobj.uuid + ".png" });
+        }
+      }
+      data.push({
+        contact: contact.mobile,
+        messages,
+      });
+      await Notification_log.create({
+        contact: contact.mobile,
+        notification_uuid: value.notifiacation_uuid,
+        messages,
+        invoice_number: value.invoice_number,
+        created_at: new Date().getTime(),
+      });
+    }
+  }
+  for (let contact of value?.mobile) {
+    let messages = [];
+    for (let messageobj of value.message) {
+      let message = "";
+      if (messageobj?.type === "text") {
+        message = messageobj.text
+          ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+          ?.replace(
+            /{short_link}/g,
+            "https://btgondia.com/counter/" + counterData?.short_link || ""
+          )
+          ?.replace(/{invoice_number}/g, value?.invoice_number || "")
+          ?.replace(
+            /{amount}/g,
+            value.order_grandtotal || value?.amount || value?.amt || ""
+          );
+        messages.push({ text: message });
+      } else {
+        fs.access("./uploads/" + (messageobj.uuid || "") + ".png", (err) => {
+          if (err) {
+            console.log(err);
+            return;
+          }
+          file.push(messageobj.uuid + ".png");
+
+          messages.push({
+            file: messageobj.uuid + ".png",
+            sendAsDocument: false,
+            caption: messageobj?.text || "",
+          });
+        });
+
+        // messages.push({ file: messageobj.uuid + ".png" });
+      }
+    }
+    data.push({
+      contact: contact.mobile,
+      messages,
+    });
+    await Notification_log.create({
+      contact: contact.mobile,
+      notification_uuid: value.campaign_uuid,
+      messages,
+      invoice_number: value.invoice_number,
+      created_at: new Date().getTime(),
+    });
+  }
+  // FileSystem.writeFile(
+  //   "remote-test.json",
+  //   JSON.stringify(data),
+  //   (error, data) => {
+  //     if (error) throw error;
+  //   }
+  // );
+  // let filedata = await FileSystem.promises.readFile("./remote-test.json");
+  // let Imagedata = await FileSystem.promises.readFile("./uploads/images.jpg");
+  // let formData=new FormData()
+  // formData.append("file",filedata)
+  // formData.append("file",Imagedata)
+  // console.log(formData)
+
+  if (file.length) {
+    const form = new FormData();
+    form.append("instructions", JSON.stringify(data));
+    for (let item of file) {
+      form.append("file", fs.createReadStream("./uploads/" + (item || "")));
+    }
+    const result = await axios.post(
+      "http://15.207.39.69:2000/send",
+      form,
+      form.getHeaders()
+    );
+    console.log(result.data);
+  } else {
+    let msgResponse = await axios({
+      url: "http://15.207.39.69:2000/sendMessage",
+      method: "post",
+      data,
+    });
+    console.log(data, msgResponse);
+  }
+};
 router.post("/CreateCampaigns", async (req, res) => {
   try {
     let value = req.body;
@@ -51,59 +194,14 @@ router.post("/sendMsg", async (req, res) => {
       },
       { mobile: 1, counter_uuid: 1, counter_title: 1 }
     );
-    let data = [];
+
     for (let counterData of countersData) {
-      console.log(counterData);
-      let message = value.message
-        ?.replace(/{counter_title}/g, counterData?.counter_title || "")
-        ?.replace(/{short_link}/g, counterData?.short_link || "")
-        ?.replace(/{invoice_number}/g, counterData?.invoice_number || "")
-        ?.replace(/{amount}/g, counterData?.amount || counterData?.amt || "");
+      CallMsg({
+        counterData,
 
-      if (counterData?.mobile?.length) {
-        for (let contact of counterData?.mobile) {
-          if (
-            contact.mobile &&
-            contact?.lable?.find((a) => a.type === "wa" && +a.varification)
-          ) {
-            data.push({
-              contact: contact.mobile,
-              messages: [{ text: message }],
-            });
-            await Notification_log.create({
-              contact: contact.mobile,
-              notification_uuid: value.campaign_title,
-              message,
-              created_at: new Date().getTime(),
-            });
-          }
-        }
-      }
-    }
-    for (let mobile of value?.mobile) {
-      let message = value.message
-        ?.replace(/{counter_title}/g, counterData?.counter_title || "")
-        ?.replace(/{short_link}/g, counterData?.short_link || "")
-        ?.replace(/{invoice_number}/g, counterData?.invoice_number || "")
-        ?.replace(/{amount}/g, counterData?.amount || counterData?.amt || "");
-
-      data.push({
-        contact: mobile,
-        messages: [{ text: message }],
-      });
-      await Notification_log.create({
-        contact: mobile,
-        notification_uuid: value.campaign_title,
-        message,
-        created_at: new Date().getTime(),
+        value,
       });
     }
-    console.log(data);
-    let msgResponse = await axios({
-      url: "http://15.207.39.69:2000/sendMessage",
-      method: "post",
-      data,
-    });
 
     res.json({ success: true, message: "Message Shooted Successfully" });
   } catch (err) {
