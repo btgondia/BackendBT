@@ -110,6 +110,7 @@ router.get("/GetItemData", async (req, res) => {
       {},
       {
         item_title: 1,
+        img_status: 1,
         item_discount: 1,
         exclude_discount: 1,
         status: 1,
