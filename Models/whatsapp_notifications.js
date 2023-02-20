@@ -12,6 +12,9 @@ const warehouseSchema = new mongoose.Schema({
       text: {
         type: String,
       },
+      caption: {
+        type: String,
+      },
       uuid: {
         type: String,
       },

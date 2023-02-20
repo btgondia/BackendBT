@@ -6,7 +6,7 @@ const Details = require("../Models/Details");
 const Item = require("../Models/Item");
 const OrderCompleted = require("../Models/OrderCompleted");
 const Orders = require("../Models/Orders");
-
+const fs = require("fs");
 router.post("/postItem", async (req, res) => {
   try {
     let value = req.body;
@@ -40,8 +40,33 @@ router.delete("/deleteItem", async (req, res) => {
     let CompleteOrderData = await OrderCompleted.find({
       "item_details.item_uuid": item_uuid,
     });
-    if (!(orderData.length || CompleteOrderData.length))
+    if (!(orderData.length || CompleteOrderData.length)) {
+      fs.access("./uploads/" + (item_uuid || "") + ".png", (err) => {
+        if (err) {
+          console.log(err);
+          return;
+        }
+        fs.unlink("./uploads/" + (item_uuid || "") + ".png",(err)=>{
+          if (err) {
+            console.log(err);
+            return;
+          }
+        });
+      });
+      fs.access("./uploads/" + (item_uuid || "") + "thumbnail.png", (err) => {
+        if (err) {
+          console.log(err);
+          return;
+        }
+        fs.unlink("./uploads/" + (item_uuid || "") + "thumbnail.png",(err)=>{
+          if (err) {
+            console.log(err);
+            return;
+          }
+        });
+      });
       response = await Item.deleteOne({ item_uuid });
+    }
     if (response.acknowledged) {
       res.json({ success: true, result: response });
     } else

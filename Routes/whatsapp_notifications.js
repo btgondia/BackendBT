@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 const { v4: uuid } = require("uuid");
 const Whatsapp_notifications = require("../Models/whatsapp_notifications");
-
+const fs = require("fs");
 router.post("/CreateWhatsapp_notifications", async (req, res) => {
   try {
     let value = req.body;
@@ -28,8 +28,24 @@ router.delete("/DeleteWhatsapp_notifications", async (req, res) => {
     let value = req.body;
     if (!value.notification_uuid)
       res.json({ success: false, message: "Invalid Data" });
-
+    let data = await Whatsapp_notifications.findOne({
+      notification_uuid: value.notification_uuid,
+    });
     console.log(value);
+    for (let item of data.message) {
+      fs.access("./uploads/" + (item.uuid || "") + ".png", (err) => {
+        if (err) {
+          console.log(err);
+          return;
+        }
+        fs.unlink("./uploads/" + (item.uuid || "") + ".png", (err) => {
+          if (err) {
+            console.log(err);
+            return;
+          }
+        });
+      });
+    }
     let response = await Whatsapp_notifications.deleteMany({
       notification_uuid: value.notification_uuid,
     });
@@ -54,6 +70,21 @@ router.put("/UpdateWhatsapp_notifications", async (req, res) => {
         obj[key] = value[key];
         return obj;
       }, {});
+    for (let item of value.message.filter((a) => a.delete)) {
+      fs.access("./uploads/" + (item.uuid || "") + ".png", (err) => {
+        if (err) {
+          console.log(err);
+          return;
+        }
+        fs.unlink("./uploads/" + (item.uuid || "") + ".png", (err) => {
+          if (err) {
+            console.log(err);
+            return;
+          }
+        });
+      });
+    }
+    value = { ...value, message: value.message.filter((a) => !a.delete) };
     console.log(value);
     let response = await Whatsapp_notifications.updateMany(
       { notification_uuid: value.notification_uuid },

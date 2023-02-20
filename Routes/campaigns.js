@@ -1,5 +1,5 @@
 const express = require("express");
-const fs = require("fs");
+
 var FormData = require("form-data");
 const router = express.Router();
 const { v4: uuid } = require("uuid");
@@ -7,6 +7,7 @@ const Campaigns = require("../Models/Campaigns");
 const Counters = require("../Models/Counters");
 const Notification_log = require("../Models/notification_log");
 const axios = require("axios");
+const fs = require("fs");
 const CallMsg = async ({
   counterData = {},
 
@@ -47,7 +48,7 @@ const CallMsg = async ({
             messages.push({
               file: messageobj.uuid + ".png",
               sendAsDocument: false,
-              caption: messageobj?.text || "",
+              caption: messageobj?.caption || "",
             });
           });
 
@@ -95,7 +96,7 @@ const CallMsg = async ({
           messages.push({
             file: messageobj.uuid + ".png",
             sendAsDocument: false,
-            caption: messageobj?.text || "",
+            caption: messageobj?.caption || "",
           });
         });
 
@@ -139,7 +140,7 @@ const CallMsg = async ({
       form,
       form.getHeaders()
     );
-    console.log(result.data);
+    console.log(result.data, data);
   } else {
     let msgResponse = await axios({
       url: "http://15.207.39.69:2000/sendMessage",
@@ -190,9 +191,16 @@ router.post("/sendMsg", async (req, res) => {
 
     let countersData = await Counters.find(
       {
-        counter_uuid: { $in: value?.counters },
+        counter_uuid: {
+          $in:
+            value.type === "order"
+              ? value?.counter_status
+                  .filter((a) => value.all || !a.status)
+                  .map((a) => a.counter_uuid)
+              : value?.counters,
+        },
       },
-      { mobile: 1, counter_uuid: 1, counter_title: 1 }
+      { mobile: 1, counter_uuid: 1, counter_title: 1, short_link: 1 }
     );
 
     for (let counterData of countersData) {
@@ -202,7 +210,24 @@ router.post("/sendMsg", async (req, res) => {
         value,
       });
     }
-
+    if (value.type === "order") {
+      setTimeout(() => {
+        for (let messageobj of value.message) {
+          fs.access("./uploads/" + (messageobj.uuid || "") + ".png", (err) => {
+            if (err) {
+              console.log(err);
+              return;
+            }
+            fs.unlink("./uploads/" + (messageobj.uuid || "") + ".png",(err)=>{
+              if (err) {
+                console.log(err);
+                return;
+              }
+            });
+          });
+        }
+      }, 5000);
+    }
     res.json({ success: true, message: "Message Shooted Successfully" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
@@ -215,6 +240,23 @@ router.delete("/DeleteCampaigns", async (req, res) => {
       res.json({ success: false, message: "Invalid Data" });
 
     console.log(value);
+    let data = await Campaigns.findOne({
+      campaign_uuid: value.campaign_uuid,
+    });
+    for (let item of data.message) {
+      fs.access("./uploads/" + (item.uuid || "") + ".png", (err) => {
+        if (err) {
+          console.log(err);
+          return;
+        }
+        fs.unlink("./uploads/" + (item.uuid || "") + ".png",(err)=>{
+          if (err) {
+            console.log(err);
+            return;
+          }
+        });
+      });
+    }
     let response = await Campaigns.deleteMany({
       campaign_uuid: value.campaign_uuid,
     });
@@ -240,6 +282,21 @@ router.put("/UpdateCampaigns", async (req, res) => {
         return obj;
       }, {});
     console.log(value);
+    for (let item of value.message.filter((a) => a.delete)) {
+      fs.access("./uploads/" + (item.uuid || "") + ".png", (err) => {
+        if (err) {
+          console.log(err);
+          return;
+        }
+        fs.unlink("./uploads/" + (item.uuid || "") + ".png",(err)=>{
+          if (err) {
+            console.log(err);
+            return;
+          }
+        });
+      });
+    }
+    value = { ...value, message: value.message.filter((a) => !a.delete) };
     let response = await Campaigns.updateMany(
       { campaign_uuid: value.campaign_uuid },
       value

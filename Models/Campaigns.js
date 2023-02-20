@@ -51,6 +51,9 @@ const CampaignsSchema = new mongoose.Schema({
       uuid: {
         type: String,
       },
+      caption: {
+        type: String,
+      },
     },
   ],
   campaign_short_link: {
