@@ -115,6 +115,48 @@ router.get("/GetCounterList", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.get("/GetCounter/:counter_uuid", async (req, res) => {
+  try {
+    let data = await Counter.findOne(
+      { counter_uuid: req.params.counter_uuid },
+      {
+        counter_title: 1,
+        counter_code: 1,
+        sort_order: 1,
+        payment_reminder_days: 1,
+        outstanding_type: 1,
+        credit_allowed: 1,
+        gst: 1,
+        food_license: 1,
+        counter_uuid: 1,
+        remarks: 1,
+        status: 1,
+        route_uuid: 1,
+        address: 1,
+        mobile: 1,
+        company_discount: 1,
+        // average_lines_company: 1,
+        // average_lines_category: 1,
+        item_special_price: 1,
+        item_special_discount: 1,
+        counter_group_uuid: 1,
+        payment_modes: 1,
+      }
+    );
+    data = JSON.parse(JSON.stringify(data));
+    let RoutesData = await Routes.findOne({
+      route_uuid: data.route_uuid,
+    });
+    data = data.map((a) => ({
+      ...a,
+      route_title: RoutesData?.route_title || "",
+    }));
+    if (data.length) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Counters Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.post("/GetCounterList", async (req, res) => {
   try {
     let { counters = [] } = req.body;
@@ -614,38 +656,38 @@ router.put("/putCounter/sortOrder", async (req, res) => {
 });
 router.post("/sendWhatsappOtp", async (req, res) => {
   try {
-  let value = req.body;
-  if (!value) res.json({ success: false, message: "Invalid Data" });
-  const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
-    .toString()
-    .slice(0, 6);
-  let otp = await generatedOTP;
-  let message = "Your OTP for Mobile Number Verification is " + otp;
-  if (value?.mobile) {
-    let data = [{ contact: value.mobile, messages: [{ text: message }] }];
-    await Otp.create({
-      mobile: value.mobile,
-      counter_uuid: value.counter_uuid,
-      otp,
-    });
-    await notification_log.create({
-      contact: value.mobile,
-      notification_uuid: "Whatsapp Otp",
-      message: [{ text: message }],
-      // invoice_number: value.invoice_number,
-      created_at: new Date().getTime(),
-    });
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
+      .toString()
+      .slice(0, 6);
+    let otp = await generatedOTP;
+    let message = "Your OTP for Mobile Number Verification is " + otp;
+    if (value?.mobile) {
+      let data = [{ contact: value.mobile, messages: [{ text: message }] }];
+      await Otp.create({
+        mobile: value.mobile,
+        counter_uuid: value.counter_uuid,
+        otp,
+      });
+      await notification_log.create({
+        contact: value.mobile,
+        notification_uuid: "Whatsapp Otp",
+        message: [{ text: message }],
+        // invoice_number: value.invoice_number,
+        created_at: new Date().getTime(),
+      });
 
-    let msgResponse = await axios({
-      url: "http://15.207.39.69:2000/sendMessage",
-      method: "post",
-      data,
-    });
-    console.log(data, msgResponse);
-    res.json({ success: true, message: "Message Sent Successfully" });
-  } else {
-    res.json({ success: false, message: "Mobile Number Missing " });
-  }
+      let msgResponse = await axios({
+        url: "http://15.207.39.69:2000/sendMessage",
+        method: "post",
+        data,
+      });
+      console.log(data, msgResponse);
+      res.json({ success: true, message: "Message Sent Successfully" });
+    } else {
+      res.json({ success: false, message: "Mobile Number Missing " });
+    }
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }

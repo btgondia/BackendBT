@@ -103,6 +103,7 @@ const CallMsg = async ({
         // messages.push({ file: messageobj.uuid + ".png" });
       }
     }
+    
     data.push({
       contact: contact.mobile,
       messages,

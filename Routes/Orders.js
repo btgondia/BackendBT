@@ -72,6 +72,21 @@ const CallMsg = async ({
           // messages.push({ file: messageobj.uuid + ".png" });
         }
       }
+      if (WhatsappNotification.checkbox && value?.order_uuid) {
+        fs.access("./uploads/" + (value?.order_uuid || "") + ".pdf", (err) => {
+          if (err) {
+            console.log(err);
+            return;
+          }
+          file.push((value?.order_uuid || "") + ".pdf");
+
+          messages.push({
+            file: (value?.order_uuid || "") + ".pdf",
+            sendAsDocument: true,
+            caption: "",
+          });
+        });
+      }
       data.push({
         contact: contact.mobile,
         messages,
@@ -120,7 +135,39 @@ const CallMsg = async ({
     console.log(data, msgResponse);
   }
 };
+const CheckPdf = async (data) => {
+  for (let order of data) {
+    if (order.order_uuid) {
+      try {
+        let orderpdf = await fs.promises.access(
+          "./uploads/" + (order.order_uuid || "") + ".pdf"
+        );
+      } catch (err) {
+        // Create a browser instance
+        const browser = await puppeteer.launch();
 
+        // Create a new page
+        const page = await browser.newPage();
+
+        // Website URL to export as pdf
+        const website_url = "https://btgondia.com/pdf/" + order.order_uuid;
+        await page.goto(website_url, { waitUntil: "networkidle0" });
+        await page.emulateMediaType("screen");
+        const pdf = await page.pdf({
+          path: `./uploads/${order.order_uuid}.pdf`,
+          margin: {
+            top: "100px",
+            right: "50px",
+            bottom: "100px",
+            left: "50px",
+          },
+          printBackground: true,
+          format: "A4",
+        });
+      }
+    }
+  }
+};
 router.post("/postOrder", async (req, res) => {
   try {
     let value = req.body;
@@ -465,6 +512,21 @@ router.put("/putOrders", async (req, res) => {
           data = await CancelOrders.create(value);
 
           await Orders.deleteOne({ order_uuid: value.order_uuid });
+          fs.access("./uploads/" + (value.order_uuid || "") + ".pdf", (err) => {
+            if (err) {
+              console.log(err);
+              return;
+            }
+            fs.unlink(
+              "./uploads/" + (value.order_uuid || "") + ".pdf",
+              (err) => {
+                if (err) {
+                  console.log(err);
+                  return;
+                }
+              }
+            );
+          });
         }
         // console.log("length", value?.item_details?.length);
         // console.log("Old Data",data)
@@ -525,6 +587,21 @@ router.put("/putOrders", async (req, res) => {
             entry: +orderStage === 5 ? 1 : 0,
           });
           await Orders.deleteOne({ order_uuid: value.order_uuid });
+          fs.access("./uploads/" + (value.order_uuid || "") + ".pdf", (err) => {
+            if (err) {
+              console.log(err);
+              return;
+            }
+            fs.unlink(
+              "./uploads/" + (value.order_uuid || "") + ".pdf",
+              (err) => {
+                if (err) {
+                  console.log(err);
+                  return;
+                }
+              }
+            );
+          });
         }
         // console.log("New DAta", data);
         if (+orderStage === 4) {
@@ -1108,45 +1185,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
         { counter_title: 1, counter_uuid: 1 }
       );
     }
-    let pdforders = [];
-    // for (let order of data) {
-    //   let orderStage = order.status
-    //     ? order?.status?.length > 1
-    //       ? +order.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
-    //       : +order?.status[0]?.stage
-    //     : "";
-    //   if (order.order_uuid && +orderStage === 1) {
-    //     try {
-    //       let orderpdf = await fs.promises.access(
-    //         "./uploads/" + (order.order_uuid || "") + ".pdf"
-    //       );
-    //     } catch (err) {
-    //       pdforders.push(order.order_uuid);
-    //       // Create a browser instance
-    //       const browser = await puppeteer.launch();
-
-    //       // Create a new page
-    //       const page = await browser.newPage();
-
-    //       // Website URL to export as pdf
-    //       const website_url = "http://localhost:3000/";
-    //       await page.goto(website_url, { waitUntil: "networkidle0" });
-    //       await page.emulateMediaType("screen");
-    //       const pdf = await page.pdf({
-    //         path: "./uploads/result.pdf",
-    //         margin: {
-    //           top: "100px",
-    //           right: "50px",
-    //           bottom: "100px",
-    //           left: "50px",
-    //         },
-    //         printBackground: true,
-    //         format: "A4",
-    //       });
-    //     }
-    //   }
-    // }
-    console.log(pdforders.length);
+    CheckPdf(data);
     data = data.filter((a) => {
       return (
         a.order_uuid && a.hold !== "Y"
@@ -1161,7 +1200,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
 
     res.json({
       success: true,
-      pdforders,
+
       result: data
         .filter((a) => a.item_details.length)
         .map((a) => ({
