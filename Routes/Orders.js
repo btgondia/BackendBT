@@ -166,7 +166,7 @@ const CheckPdf = async (data) => {
         // Create a browser instance
         try {
           const browser = await puppeteer.launch(
-            // executablePath: "/usr/bin/chromium-browser",
+            { args: ['--no-sandbox'] }
           );
 
           // Create a new page
