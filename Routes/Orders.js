@@ -161,57 +161,57 @@ const CallMsg = async ({
   }
 };
 const CheckPdf = async (data) => {
-  for (let order of data?.slice(0, 5)) {
-    if (order.order_uuid) {
-      try {
-        let orderpdf = await fs.promises.access(
-          "./uploads/N" +
-            (order.invoice_number || "") +
-            "-{" +
-            (order?.order_uuid || "") +
-            "}.pdf"
-        );
-      } catch (err) {
-        // Create a browser instance
-        try {
-          const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+  // for (let order of data?.slice(0, 5)) {
+  //   if (order.order_uuid) {
+  //     try {
+  //       let orderpdf = await fs.promises.access(
+  //         "./uploads/N" +
+  //           (order.invoice_number || "") +
+  //           "-{" +
+  //           (order?.order_uuid || "") +
+  //           "}.pdf"
+  //       );
+  //     } catch (err) {
+  //       // Create a browser instance
+  //       try {
+  //         const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
 
-          // Create a new page
-          const page = await browser.newPage();
+  //         // Create a new page
+  //         const page = await browser.newPage();
 
-          // Website URL to export as pdf
-          const website_url = "https://btgondia.com/pdf/" + order.order_uuid;
-          await page.goto(website_url, { waitUntil: "networkidle0" });
-          await page.emulateMediaType("screen");
-          console.log(
-            "./uploads/N" +
-              (order.invoice_number || "") +
-              "-{" +
-              (order?.order_uuid || "") +
-              "}.pdf"
-          );
-          const pdf = await page.pdf({
-            path:
-              "./uploads/N" +
-              (order.invoice_number || "") +
-              "-{" +
-              (order?.order_uuid || "") +
-              "}.pdf",
-            margin: {
-              top: "100px",
-              right: "50px",
-              bottom: "100px",
-              left: "50px",
-            },
-            printBackground: true,
-            format: "A4",
-          });
-        } catch (err) {
-          console.log(err);
-        }
-      }
-    }
-  }
+  //         // Website URL to export as pdf
+  //         const website_url = "https://btgondia.com/pdf/" + order.order_uuid;
+  //         await page.goto(website_url, { waitUntil: "networkidle0" });
+  //         await page.emulateMediaType("screen");
+  //         console.log(
+  //           "./uploads/N" +
+  //             (order.invoice_number || "") +
+  //             "-{" +
+  //             (order?.order_uuid || "") +
+  //             "}.pdf"
+  //         );
+  //         const pdf = await page.pdf({
+  //           path:
+  //             "./uploads/N" +
+  //             (order.invoice_number || "") +
+  //             "-{" +
+  //             (order?.order_uuid || "") +
+  //             "}.pdf",
+  //           margin: {
+  //             top: "100px",
+  //             right: "50px",
+  //             bottom: "100px",
+  //             left: "50px",
+  //           },
+  //           printBackground: true,
+  //           format: "A4",
+  //         });
+  //       } catch (err) {
+  //         console.log(err);
+  //       }
+  //     }
+  //   }
+  // }
 };
 router.post("/postOrder", async (req, res) => {
   try {
