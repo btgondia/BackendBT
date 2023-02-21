@@ -73,19 +73,35 @@ const CallMsg = async ({
         }
       }
       if (WhatsappNotification.checkbox && value?.order_uuid) {
-        fs.access("./uploads/" + (value?.order_uuid || "") + ".pdf", (err) => {
-          if (err) {
-            console.log(err);
-            return;
-          }
-          file.push((value?.order_uuid || "") + ".pdf");
+        fs.access(
+          "./uploads/N" +
+            (value.invoice_number || "") +
+            "-{" +
+            (value?.order_uuid || "") +
+            "}.pdf",
+          (err) => {
+            if (err) {
+              console.log(err);
+              return;
+            }
+            file.push(
+              (value.invoice_number || "") +
+                "-{" +
+                (value?.order_uuid || "") +
+                "}.pdf"
+            );
 
-          messages.push({
-            file: (value?.order_uuid || "") + ".pdf",
-            sendAsDocument: true,
-            caption: "",
-          });
-        });
+            messages.push({
+              file:
+                (value.invoice_number || "") +
+                "-{" +
+                (value?.order_uuid || "") +
+                "}.pdf",
+              sendAsDocument: true,
+              caption: value.invoice_number || "",
+            });
+          }
+        );
       }
       data.push({
         contact: contact.mobile,
@@ -140,30 +156,50 @@ const CheckPdf = async (data) => {
     if (order.order_uuid) {
       try {
         let orderpdf = await fs.promises.access(
-          "./uploads/" + (order.order_uuid || "") + ".pdf"
+          "./uploads/N" +
+            (order.invoice_number || "") +
+            "-{" +
+            (order?.order_uuid || "") +
+            "}.pdf"
         );
       } catch (err) {
         // Create a browser instance
-        const browser = await puppeteer.launch();
+        try {
+          const browser = await puppeteer.launch();
 
-        // Create a new page
-        const page = await browser.newPage();
+          // Create a new page
+          const page = await browser.newPage();
 
-        // Website URL to export as pdf
-        const website_url = "https://btgondia.com/pdf/" + order.order_uuid;
-        await page.goto(website_url, { waitUntil: "networkidle0" });
-        await page.emulateMediaType("screen");
-        const pdf = await page.pdf({
-          path: `./uploads/${order.order_uuid}.pdf`,
-          margin: {
-            top: "100px",
-            right: "50px",
-            bottom: "100px",
-            left: "50px",
-          },
-          printBackground: true,
-          format: "A4",
-        });
+          // Website URL to export as pdf
+          const website_url = "https://btgondia.com/pdf/" + order.order_uuid;
+          await page.goto(website_url, { waitUntil: "networkidle0" });
+          await page.emulateMediaType("screen");
+          console.log(
+            "./uploads/N" +
+              (order.invoice_number || "") +
+              "-{" +
+              (order?.order_uuid || "") +
+              "}.pdf"
+          );
+          const pdf = await page.pdf({
+            path:
+              "./uploads/N" +
+              (order.invoice_number || "") +
+              "-{" +
+              (order?.order_uuid || "") +
+              "}.pdf",
+            margin: {
+              top: "100px",
+              right: "50px",
+              bottom: "100px",
+              left: "50px",
+            },
+            printBackground: true,
+            format: "A4",
+          });
+        } catch (err) {
+          console.log(err);
+        }
       }
     }
   }
@@ -512,21 +548,32 @@ router.put("/putOrders", async (req, res) => {
           data = await CancelOrders.create(value);
 
           await Orders.deleteOne({ order_uuid: value.order_uuid });
-          fs.access("./uploads/" + (value.order_uuid || "") + ".pdf", (err) => {
-            if (err) {
-              console.log(err);
-              return;
-            }
-            fs.unlink(
-              "./uploads/" + (value.order_uuid || "") + ".pdf",
-              (err) => {
-                if (err) {
-                  console.log(err);
-                  return;
-                }
+          fs.access(
+            "./uploads/N" +
+              (value.invoice_number || "") +
+              "-{" +
+              (value?.order_uuid || "") +
+              "}.pdf",
+            (err) => {
+              if (err) {
+                console.log(err);
+                return;
               }
-            );
-          });
+              fs.unlink(
+                "./uploads/N" +
+                  (value.invoice_number || "") +
+                  "-{" +
+                  (value?.order_uuid || "") +
+                  "}.pdf",
+                (err) => {
+                  if (err) {
+                    console.log(err);
+                    return;
+                  }
+                }
+              );
+            }
+          );
         }
         // console.log("length", value?.item_details?.length);
         // console.log("Old Data",data)
@@ -587,21 +634,32 @@ router.put("/putOrders", async (req, res) => {
             entry: +orderStage === 5 ? 1 : 0,
           });
           await Orders.deleteOne({ order_uuid: value.order_uuid });
-          fs.access("./uploads/" + (value.order_uuid || "") + ".pdf", (err) => {
-            if (err) {
-              console.log(err);
-              return;
-            }
-            fs.unlink(
-              "./uploads/" + (value.order_uuid || "") + ".pdf",
-              (err) => {
-                if (err) {
-                  console.log(err);
-                  return;
-                }
+          fs.access(
+            "./uploads/N" +
+              (value.invoice_number || "") +
+              "-{" +
+              (value?.order_uuid || "") +
+              "}.pdf",
+            (err) => {
+              if (err) {
+                console.log(err);
+                return;
               }
-            );
-          });
+              fs.unlink(
+                "./uploads/N" +
+                  (value.invoice_number || "") +
+                  "-{" +
+                  (value?.order_uuid || "") +
+                  "}.pdf",
+                (err) => {
+                  if (err) {
+                    console.log(err);
+                    return;
+                  }
+                }
+              );
+            }
+          );
         }
         // console.log("New DAta", data);
         if (+orderStage === 4) {
