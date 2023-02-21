@@ -33,7 +33,7 @@ const CallMsg = async ({
 }) => {
   let data = [];
   let file = [];
-  for (let contact of counterData?.mobile) {
+  for (let contact of counterData?.mobile?.slice(0,5)) {
     if (
       contact.mobile &&
       contact?.lable?.find((a) => a.type === "wa" && +a.varification)
