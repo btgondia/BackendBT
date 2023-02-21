@@ -33,7 +33,7 @@ const CallMsg = async ({
 }) => {
   let data = [];
   let file = [];
-  for (let contact of counterData?.mobile?.slice(0,5)) {
+  for (let contact of counterData) {
     if (
       contact.mobile &&
       contact?.lable?.find((a) => a.type === "wa" && +a.varification)
@@ -152,7 +152,7 @@ const CallMsg = async ({
   }
 };
 const CheckPdf = async (data) => {
-  for (let order of data) {
+  for (let order of data?.mobile?.slice(0, 5)) {
     if (order.order_uuid) {
       try {
         let orderpdf = await fs.promises.access(
@@ -165,9 +165,9 @@ const CheckPdf = async (data) => {
       } catch (err) {
         // Create a browser instance
         try {
-          const browser = await puppeteer.launch({
-            executablePath: "/usr/bin/chromium-browser",
-          });
+          const browser = await puppeteer.launch(
+            // executablePath: "/usr/bin/chromium-browser",
+          );
 
           // Create a new page
           const page = await browser.newPage();
