@@ -31,124 +31,133 @@ const CallMsg = async ({
   WhatsappNotification = {},
   value = {},
 }) => {
-  let data = [];
-  let file = [];
-  for (let contact of counterData?.mobile) {
-    if (
-      contact.mobile &&
-      contact?.lable?.find((a) => a.type === "wa" && +a.varification)
-    ) {
-      let messages = [];
-      for (let messageobj of WhatsappNotification.message) {
-        let message = "";
-        if (messageobj?.type === "text") {
-          message = messageobj.text
-            ?.replace(/{counter_title}/g, counterData?.counter_title || "")
-            ?.replace(
-              /{short_link}/g,
-              "https://btgondia.com/counter/" + counterData?.short_link || ""
-            )
-            ?.replace(/{invoice_number}/g, value?.invoice_number || "")
-            ?.replace(
-              /{amount}/g,
-              value.order_grandtotal || value?.amount || value?.amt || ""
-            );
-          messages.push({ text: message });
-        } else {
-          fs.access("./uploads/" + (messageobj.uuid || "") + ".png", (err) => {
-            if (err) {
-              console.log(err);
-              return;
-            }
-            file.push(messageobj.uuid + ".png");
+  try {
+    let data = [];
+    let file = [];
+    for (let contact of counterData?.mobile) {
+      if (
+        contact.mobile &&
+        contact?.lable?.find((a) => a.type === "wa" && +a.varification)
+      ) {
+        let messages = [];
+        for (let messageobj of WhatsappNotification.message) {
+          let message = "";
+          if (messageobj?.type === "text") {
+            message = messageobj.text
+              ?.replace(/{counter_title}/g, counterData?.counter_title || "")
+              ?.replace(
+                /{short_link}/g,
+                "https://btgondia.com/counter/" + counterData?.short_link || ""
+              )
+              ?.replace(/{invoice_number}/g, value?.invoice_number || "")
+              ?.replace(
+                /{amount}/g,
+                value.order_grandtotal || value?.amount || value?.amt || ""
+              );
+            messages.push({ text: message });
+          } else {
+            fs.access(
+              "./uploads/" + (messageobj.uuid || "") + ".png",
+              (err) => {
+                if (err) {
+                  console.log(err);
+                  return;
+                }
+                file.push(messageobj.uuid + ".png");
 
-            messages.push({
-              file: messageobj.uuid + ".png",
-              sendAsDocument: false,
-              caption: messageobj?.caption || "",
-            });
-          });
-
-          // messages.push({ file: messageobj.uuid + ".png" });
-        }
-      }
-      if (WhatsappNotification.checkbox && value?.order_uuid) {
-        fs.access(
-          "./uploads/N" +
-            (value.invoice_number || "") +
-            "-{" +
-            (value?.order_uuid || "") +
-            "}.pdf",
-          (err) => {
-            if (err) {
-              console.log(err);
-              return;
-            }
-            file.push(
-              (value.invoice_number || "") +
-                "-{" +
-                (value?.order_uuid || "") +
-                "}.pdf"
+                messages.push({
+                  file: messageobj.uuid + ".png",
+                  sendAsDocument: false,
+                  caption: messageobj?.caption || "",
+                });
+              }
             );
 
-            messages.push({
-              file:
-                (value.invoice_number || "") +
-                "-{" +
-                (value?.order_uuid || "") +
-                "}.pdf",
-              sendAsDocument: true,
-              caption: value.invoice_number || "",
-            });
+            // messages.push({ file: messageobj.uuid + ".png" });
           }
-        );
-      }
-      data.push({
-        contact: contact.mobile,
-        messages,
-      });
-      await Notification_logs.create({
-        contact: contact.mobile,
-        notification_uuid: value.notifiacation_uuid,
-        messages,
-        invoice_number: value.invoice_number,
-        created_at: new Date().getTime(),
-      });
-    }
-  }
-  // FileSystem.writeFile(
-  //   "remote-test.json",
-  //   JSON.stringify(data),
-  //   (error, data) => {
-  //     if (error) throw error;
-  //   }
-  // );
-  // let filedata = await FileSystem.promises.readFile("./remote-test.json");
-  // let Imagedata = await FileSystem.promises.readFile("./uploads/images.jpg");
-  // let formData=new FormData()
-  // formData.append("file",filedata)
-  // formData.append("file",Imagedata)
-  // console.log(formData)
+        }
+        if (WhatsappNotification.checkbox && value?.order_uuid) {
+          fs.access(
+            "./uploads/N" +
+              (value.invoice_number || "") +
+              "-{" +
+              (value?.order_uuid || "") +
+              "}.pdf",
+            (err) => {
+              if (err) {
+                console.log(err);
+                return;
+              }
+              file.push(
+                "N" +
+                  (value.invoice_number || "") +
+                  "-{" +
+                  (value?.order_uuid || "") +
+                  "}.pdf"
+              );
 
-  if (file.length) {
-    const form = new FormData();
-    form.append("instructions", JSON.stringify(data));
-    for (let item of file) {
-      form.append("file", fs.createReadStream("./uploads/" + (item || "")));
+              messages.push({
+                file:
+                  "N" +
+                  (value.invoice_number || "") +
+                  "-{" +
+                  (value?.order_uuid || "") +
+                  "}.pdf",
+                sendAsDocument: true,
+                caption: value.invoice_number || "",
+              });
+            }
+          );
+        }
+        data.push({
+          contact: contact.mobile,
+          messages,
+        });
+        await Notification_logs.create({
+          contact: contact.mobile,
+          notification_uuid: value.notifiacation_uuid,
+          messages,
+          invoice_number: value.invoice_number,
+          created_at: new Date().getTime(),
+        });
+      }
     }
-    const result = await axios.post(
-      "http://15.207.39.69:2000/send",
-      form,
-      form.getHeaders()
-    );
-    console.log(result.data);
-  } else {
-    let msgResponse = await axios({
-      url: "http://15.207.39.69:2000/sendMessage",
-      method: "post",
-      data,
-    });
-    console.log(data, msgResponse);
+    // FileSystem.writeFile(
+    //   "remote-test.json",
+    //   JSON.stringify(data),
+    //   (error, data) => {
+    //     if (error) throw error;
+    //   }
+    // );
+    // let filedata = await FileSystem.promises.readFile("./remote-test.json");
+    // let Imagedata = await FileSystem.promises.readFile("./uploads/images.jpg");
+    // let formData=new FormData()
+    // formData.append("file",filedata)
+    // formData.append("file",Imagedata)
+    // console.log(formData)
+
+    if (file.length) {
+      const form = new FormData();
+      form.append("instructions", JSON.stringify(data));
+      for (let item of file) {
+        form.append("file", fs.createReadStream("./uploads/" + (item || "")));
+      }
+      const result = await axios.post(
+        "http://15.207.39.69:2000/send",
+        form,
+        form.getHeaders()
+      );
+      console.log(result.data,data);
+    } else {
+      let msgResponse = await axios({
+        url: "http://15.207.39.69:2000/sendMessage",
+        method: "post",
+        data,
+      });
+      console.log(data, msgResponse);
+    }
+  } catch (err) {
+    console.log(err);
   }
 };
 const CheckPdf = async (data) => {
@@ -165,9 +174,7 @@ const CheckPdf = async (data) => {
       } catch (err) {
         // Create a browser instance
         try {
-          const browser = await puppeteer.launch(
-            { args: ['--no-sandbox'] }
-          );
+          const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
 
           // Create a new page
           const page = await browser.newPage();
