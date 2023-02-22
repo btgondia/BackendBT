@@ -25,7 +25,7 @@ const Campaigns = require("../Models/Campaigns");
 const fs = require("fs");
 const puppeteer = require("puppeteer");
 var FormData = require("form-data");
-
+// const browser = puppeteer.launch({ args: ["--no-sandbox"] });
 const CallMsg = async ({
   counterData = {},
   WhatsappNotification = {},
@@ -34,6 +34,57 @@ const CallMsg = async ({
   try {
     let data = [];
     let file = [];
+    if (WhatsappNotification.checkbox && value?.order_uuid) {
+      if (value.order_uuid) {
+        try {
+          let orderpdf = await fs.promises.access(
+            "./uploads/N" +
+              (value.invoice_number || "") +
+              "-" +
+              (value?.order_uuid || "") +
+              ".pdf"
+          );
+        } catch (err) {
+          // Create a browser instance
+          try {
+            const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+
+            // Create a new page
+            const page = await browser.newPage();
+
+            // Website URL to export as pdf
+            const website_url = "https://btgondia.com/pdf/" + value.order_uuid;
+            await page.goto(website_url, { waitUntil: "networkidle0" });
+            await page.emulateMediaType("screen");
+            console.log(
+              "./uploads/N" +
+                (value.invoice_number || "") +
+                "-" +
+                (value?.order_uuid || "") +
+                ".pdf"
+            );
+            const pdf = await page.pdf({
+              path:
+                "./uploads/N" +
+                (value.invoice_number || "") +
+                "-" +
+                (value?.order_uuid || "") +
+                ".pdf",
+              margin: {
+                top: "100px",
+                right: "50px",
+                bottom: "100px",
+                left: "50px",
+              },
+              printBackground: true,
+              format: "A4",
+            });
+          } catch (err) {
+            console.log(err);
+          }
+        }
+      }
+    }
     for (let contact of counterData?.mobile) {
       if (
         contact.mobile &&
@@ -80,9 +131,9 @@ const CallMsg = async ({
           fs.access(
             "./uploads/N" +
               (value.invoice_number || "") +
-              "-{" +
+              "-" +
               (value?.order_uuid || "") +
-              "}.pdf",
+              ".pdf",
             (err) => {
               if (err) {
                 console.log(err);
@@ -91,18 +142,18 @@ const CallMsg = async ({
               file.push(
                 "N" +
                   (value.invoice_number || "") +
-                  "-{" +
+                  "-" +
                   (value?.order_uuid || "") +
-                  "}.pdf"
+                  ".pdf"
               );
 
               messages.push({
                 file:
                   "N" +
                   (value.invoice_number || "") +
-                  "-{" +
+                  "-" +
                   (value?.order_uuid || "") +
-                  "}.pdf",
+                  ".pdf",
                 sendAsDocument: true,
                 caption: value.invoice_number || "",
               });
@@ -147,7 +198,7 @@ const CallMsg = async ({
         form,
         form.getHeaders()
       );
-      console.log(result.data,data);
+      console.log(result.data, data);
     } else {
       let msgResponse = await axios({
         url: "http://15.207.39.69:2000/sendMessage",
@@ -161,7 +212,8 @@ const CallMsg = async ({
   }
 };
 const CheckPdf = async (data) => {
-  // for (let order of data?.slice(0, 5)) {
+  console.log(data.length)
+  // for (let order of data) {
   //   if (order.order_uuid) {
   //     try {
   //       let orderpdf = await fs.promises.access(
@@ -174,11 +226,9 @@ const CheckPdf = async (data) => {
   //     } catch (err) {
   //       // Create a browser instance
   //       try {
-  //         const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
 
   //         // Create a new page
   //         const page = await browser.newPage();
-
   //         // Website URL to export as pdf
   //         const website_url = "https://btgondia.com/pdf/" + order.order_uuid;
   //         await page.goto(website_url, { waitUntil: "networkidle0" });
