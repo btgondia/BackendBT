@@ -711,7 +711,7 @@ router.post("/sendCallOtp", async (req, res) => {
       await notification_log.create({
         contact: value.mobile,
         notification_uuid: "Whatsapp Otp",
-        message,
+        message: [{ text: message }],
         // invoice_number: value.invoice_number,
         created_at: new Date().getTime(),
       });
