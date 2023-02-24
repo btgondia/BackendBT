@@ -126,6 +126,7 @@ const CounterSchema = new mongoose.Schema({
       type: String,
     },
   ],
+  notes: [{ type: String }],
 });
 
 module.exports = mongoose.model("counters", CounterSchema);

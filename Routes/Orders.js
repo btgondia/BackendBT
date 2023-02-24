@@ -46,42 +46,36 @@ const CallMsg = async ({
           );
         } catch (err) {
           // Create a browser instance
-          try {
-            const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+          //try {
+            // const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
 
-            // Create a new page
-            const page = await browser.newPage();
+            // // Create a new page
+            // const page = await browser.newPage();
 
-            // Website URL to export as pdf
-            const website_url = "https://btgondia.com/pdf/" + value.order_uuid;
-            await page.goto(website_url, { waitUntil: "networkidle0" });
-            await page.emulateMediaType("screen");
-            console.log(
-              "./uploads/N" +
-                (value.invoice_number || "") +
-                "-" +
-                (value?.order_uuid || "") +
-                ".pdf"
-            );
-            const pdf = await page.pdf({
-              path:
-                "./uploads/N" +
-                (value.invoice_number || "") +
-                "-" +
-                (value?.order_uuid || "") +
-                ".pdf",
-              margin: {
-                top: "100px",
-                right: "50px",
-                bottom: "100px",
-                left: "50px",
-              },
-              printBackground: true,
-              format: "A4",
-            });
-          } catch (err) {
-            console.log(err);
-          }
+            // // Website URL to export as pdf
+            // const website_url = "https://btgondia.com/pdf/" + value.order_uuid;
+            // await page.goto(website_url, { waitUntil: "networkidle0" });
+            // await page.emulateMediaType("screen");
+          
+            // const pdf = await page.pdf({
+            //   path:
+            //     "./uploads/N" +
+            //     (value.invoice_number || "") +
+            //     "-" +
+            //     (value?.order_uuid || "") +
+            //     ".pdf",
+            //   margin: {
+            //     top: "100px",
+            //     right: "50px",
+            //     bottom: "100px",
+            //     left: "50px",
+            //   },
+            //   printBackground: true,
+            //   format: "A4",
+            // });
+          // } catch (err) {
+          //   console.log(err);
+          // }
         }
       }
     }
