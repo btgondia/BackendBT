@@ -179,7 +179,7 @@ router.post("/GetCounterList", async (req, res) => {
         address: 1,
         mobile: 1,
         company_discount: 1,
-        notes:1,
+        notes: 1,
         // average_lines_company: 1,
         // average_lines_category: 1,
         item_special_price: 1,
