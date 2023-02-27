@@ -552,6 +552,171 @@ router.post("/sendMsg", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/sendPdf", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+
+    let counterData = await Counters.findOne(
+      {
+        counter_uuid: value.counter_uuid,
+      },
+      { mobile: 1, counter_title: 1, short_link: 1 }
+    );
+
+    let mobile = counterData.mobile.filter(
+      (a) => a.mobile && a.lable.find((b) => b.type === "wa" && +b.varification)
+    );
+    if (mobile?.length) {
+      let data = [];
+      let file = [];
+
+        if (value.order_uuid) {
+          try {
+            let orderpdf = await fs.promises.access(
+              "./uploads/N" +
+                (value.invoice_number || "") +
+                "-" +
+                (value?.order_uuid || "") +
+                ".pdf"
+            );
+          } catch (err) {
+            // Create a browser instance
+            try {
+              const browser = await puppeteer.launch({
+                args: ["--no-sandbox"],
+              });
+
+              // Create a new page
+              const page = await browser.newPage();
+
+              // Website URL to export as pdf
+              const website_url =
+                "https://btgondia.com/pdf/" + value.order_uuid;
+              await page.goto(website_url, { waitUntil: "networkidle0" });
+              await page.emulateMediaType("screen");
+
+              const pdf = await page.pdf({
+                path:
+                  "./uploads/N" +
+                  (value.invoice_number || "") +
+                  "-" +
+                  (value?.order_uuid || "") +
+                  ".pdf",
+                margin: {
+                  top: "100px",
+                  right: "50px",
+                  bottom: "100px",
+                  left: "50px",
+                },
+                printBackground: true,
+                format: "A4",
+              });
+            } catch (err) {
+              console.log(err);
+            }
+          }
+        }
+    
+      for (let contact of counterData?.mobile) {
+        if (
+          contact.mobile &&
+          contact?.lable?.find((a) => a.type === "wa" && +a.varification)
+        ) {
+          let messages = [];
+
+          if (value?.order_uuid) {
+            fs.access(
+              "./uploads/N" +
+                (value.invoice_number || "") +
+                "-" +
+                (value?.order_uuid || "") +
+                ".pdf",
+              (err) => {
+                if (err) {
+                  console.log(err);
+                  return;
+                }
+                file.push(
+                  "N" +
+                    (value.invoice_number || "") +
+                    "-" +
+                    (value?.order_uuid || "") +
+                    ".pdf"
+                );
+
+                messages.push({
+                  file:
+                    "N" +
+                    (value.invoice_number || "") +
+                    "-" +
+                    (value?.order_uuid || "") +
+                    ".pdf",
+                  sendAsDocument: true,
+                  caption: value.caption || "",
+                });
+              }
+            );
+          }
+          data.push({
+            contact: contact.mobile,
+            messages,
+          });
+          await Notification_logs.create({
+            contact: contact.mobile,
+            notification_uuid: value.notifiacation_uuid || "",
+            messages,
+            invoice_number: value.invoice_number,
+            created_at: new Date().getTime(),
+          });
+        }
+      }
+      // FileSystem.writeFile(
+      //   "remote-test.json",
+      //   JSON.stringify(data),
+      //   (error, data) => {
+      //     if (error) throw error;
+      //   }
+      // );
+      // let filedata = await FileSystem.promises.readFile("./remote-test.json");
+      // let Imagedata = await FileSystem.promises.readFile("./uploads/images.jpg");
+      // let formData=new FormData()
+      // formData.append("file",filedata)
+      // formData.append("file",Imagedata)
+      // console.log(formData)
+
+      if (file.length) {
+        const form = new FormData();
+        form.append("instructions", JSON.stringify(data));
+        for (let item of file) {
+          form.append("file", fs.createReadStream("./uploads/" + (item || "")));
+        }
+        const result = await axios.post(
+          "http://15.207.39.69:2000/send",
+          form,
+          form.getHeaders()
+        );
+        console.log(result.data, data);
+      } else {
+        let msgResponse = await axios({
+          url: "http://15.207.39.69:2000/sendMessage",
+          method: "post",
+          data,
+        });
+        console.log(data, msgResponse.data);
+      }
+
+      res.json({ success: true, message: "Message Sent Successfully" });
+    } else {
+      res.json({
+        success: false,
+        message: "No Verified Number for this Counter ",
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.put("/putOrders", async (req, res) => {
   try {
     let response = [];
