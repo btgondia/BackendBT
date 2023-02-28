@@ -571,53 +571,52 @@ router.post("/sendPdf", async (req, res) => {
       let data = [];
       let file = [];
 
-        if (value.order_uuid) {
+      if (value.order_uuid) {
+        try {
+          let orderpdf = await fs.promises.access(
+            "./uploads/N" +
+              (value.invoice_number || "") +
+              "-" +
+              (value?.order_uuid || "") +
+              ".pdf"
+          );
+        } catch (err) {
+          // Create a browser instance
           try {
-            let orderpdf = await fs.promises.access(
-              "./uploads/N" +
+            const browser = await puppeteer.launch({
+              args: ["--no-sandbox"],
+            });
+
+            // Create a new page
+            const page = await browser.newPage();
+
+            // Website URL to export as pdf
+            const website_url = "https://btgondia.com/pdf/" + value.order_uuid;
+            await page.goto(website_url, { waitUntil: "networkidle0" });
+            await page.emulateMediaType("screen");
+
+            const pdf = await page.pdf({
+              path:
+                "./uploads/N" +
                 (value.invoice_number || "") +
                 "-" +
                 (value?.order_uuid || "") +
-                ".pdf"
-            );
+                ".pdf",
+              margin: {
+                top: "100px",
+                right: "50px",
+                bottom: "100px",
+                left: "50px",
+              },
+              printBackground: true,
+              format: "A4",
+            });
           } catch (err) {
-            // Create a browser instance
-            try {
-              const browser = await puppeteer.launch({
-                args: ["--no-sandbox"],
-              });
-
-              // Create a new page
-              const page = await browser.newPage();
-
-              // Website URL to export as pdf
-              const website_url =
-                "https://btgondia.com/pdf/" + value.order_uuid;
-              await page.goto(website_url, { waitUntil: "networkidle0" });
-              await page.emulateMediaType("screen");
-
-              const pdf = await page.pdf({
-                path:
-                  "./uploads/N" +
-                  (value.invoice_number || "") +
-                  "-" +
-                  (value?.order_uuid || "") +
-                  ".pdf",
-                margin: {
-                  top: "100px",
-                  right: "50px",
-                  bottom: "100px",
-                  left: "50px",
-                },
-                printBackground: true,
-                format: "A4",
-              });
-            } catch (err) {
-              console.log(err);
-            }
+            console.log(err);
           }
         }
-    
+      }
+
       for (let contact of counterData?.mobile) {
         if (
           contact.mobile &&
@@ -1185,6 +1184,50 @@ router.put("/putOrders", async (req, res) => {
         console.log(WhatsappNotification?.status, counterData?.mobile?.length);
         if (WhatsappNotification?.status && counterData?.mobile?.length) {
           CallMsg({ value, WhatsappNotification, counterData });
+        }
+      }
+      if (value.edit) {
+        try {
+          let orderpdf = await fs.promises.access(
+            "./uploads/N" +
+              (value.invoice_number || "") +
+              "-" +
+              (value?.order_uuid || "") +
+              ".pdf"
+          );
+          try {
+            const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+
+            // Create a new page
+            const page = await browser.newPage();
+
+            // Website URL to export as pdf
+            const website_url = "https://btgondia.com/pdf/" + value.order_uuid;
+            await page.goto(website_url, { waitUntil: "networkidle0" });
+            await page.emulateMediaType("screen");
+
+            const pdf = await page.pdf({
+              path:
+                "./uploads/N" +
+                (value.invoice_number || "") +
+                "-" +
+                (value?.order_uuid || "") +
+                ".pdf",
+              margin: {
+                top: "100px",
+                right: "50px",
+                bottom: "100px",
+                left: "50px",
+              },
+              printBackground: true,
+              format: "A4",
+            });
+          } catch (err) {
+            console.log(err);
+          }
+        } catch (err) {
+          // Create a browser instance
+          console.log(err);
         }
       }
     }
