@@ -162,7 +162,7 @@ router.post("/GetCounterList", async (req, res) => {
     let { counters = [] } = req.body;
     console.log(counters);
     let data = await Counter.find(
-      counters?.length ? { item_uuid: { $in: counters } } : {},
+      counters?.length ? { counter_uuid: { $in: counters } } : {},
       {
         counter_title: 1,
         counter_code: 1,

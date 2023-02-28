@@ -25,6 +25,7 @@ const Campaigns = require("../Models/Campaigns");
 const fs = require("fs");
 const puppeteer = require("puppeteer");
 var FormData = require("form-data");
+const ItemCategories = require("../Models/ItemCategories");
 // const browser = puppeteer.launch({ args: ["--no-sandbox"] });
 const CallMsg = async ({
   counterData = {},
@@ -1613,7 +1614,36 @@ router.get("/GetOrder/:order_uuid", async (req, res) => {
       data = await OrderCompleted.findOne({
         order_uuid: req.params.order_uuid,
       });
+    if (!data)
+      data = await CancelOrders.findOne({
+        order_uuid: req.params.order_uuid,
+      });
     data = JSON.parse(JSON.stringify(data));
+    let itemData = await Item.find(
+      { item_uuid: { $in: data.item_details.map((a) => a.item_uuid) } },
+      { item_uuid: 1, category_uuid: 1 }
+    );
+    let categoryData = await ItemCategories.find(
+      { category_uuid: { $in: itemData.map((a) => a.category_uuid) } },
+      { category_title: 1, category_uuid: 1 }
+    );
+    data = {
+      ...data,
+      item_details: data?.item_details
+        ?.map((a) => ({
+          ...a,
+          category_title: categoryData.find(
+            (b) =>
+              b.category_uuid ===
+              itemData.find((b) => b.item_uuid === a.item_uuid).category_uuid
+          )?.category_title,
+        }))
+        .sort(
+          (a, b) =>
+            a?.category_title?.localeCompare(b.category_title) ||
+            a?.item_title?.localeCompare(b.item_title)
+        ),
+    };
 
     res.json({
       success: true,
