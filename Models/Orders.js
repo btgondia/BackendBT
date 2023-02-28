@@ -14,6 +14,7 @@ const OrdersSchema = new mongoose.Schema({
   adjustment: { type: Number },
   counter_order: { type: Number },
   adjustment_remarks: { type: String },
+  to_print: { type: String },
   opened_by: { type: String },
   notes: [{ type: String }],
 
