@@ -215,7 +215,7 @@ router.get("/GetCounterData", async (req, res) => {
         counter_title: 1,
         counter_code: 1,
         sort_order: 1,
-
+        notes: 1,
         payment_reminder_days: 1,
         outstanding_type: 1,
         credit_allowed: 1,

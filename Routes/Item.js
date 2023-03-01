@@ -46,7 +46,7 @@ router.delete("/deleteItem", async (req, res) => {
           console.log(err);
           return;
         }
-        fs.unlink("./uploads/" + (item_uuid || "") + ".png",(err)=>{
+        fs.unlink("./uploads/" + (item_uuid || "") + ".png", (err) => {
           if (err) {
             console.log(err);
             return;
@@ -58,7 +58,7 @@ router.delete("/deleteItem", async (req, res) => {
           console.log(err);
           return;
         }
-        fs.unlink("./uploads/" + (item_uuid || "") + "thumbnail.png",(err)=>{
+        fs.unlink("./uploads/" + (item_uuid || "") + "thumbnail.png", (err) => {
           if (err) {
             console.log(err);
             return;
@@ -79,6 +79,45 @@ router.delete("/deleteItem", async (req, res) => {
 router.get("/GetItemList", async (req, res) => {
   try {
     let data = await Item.find({});
+
+    if (data.length)
+      res.json({
+        success: true,
+        result: data.filter((a) => a.item_uuid && a.item_title),
+      });
+    else res.json({ success: false, message: "Item Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.get("/GetActiveItemList", async (req, res) => {
+  try {
+    let data = await Item.find(
+      { status: 1 },
+      {
+        item_title: 1,
+        company_uuid: 1,
+        category_uuid: 1,
+
+        item_discount: 1,
+        exclude_discount: 1,
+        status: 1,
+        sort_order: 1,
+        item_code: 1,
+        free_issue: 1,
+        item_uuid: 1,
+        one_pack: 1,
+        pronounce: 1,
+        mrp: 1,
+        item_price: 1,
+        item_gst: 1,
+        conversion: 1,
+
+        item_group_uuid: 1,
+        // stock: 1,
+        created_at: 1,
+      }
+    );
 
     if (data.length)
       res.json({
