@@ -38,39 +38,43 @@ const Counter_scheme = require("./Routes/counter_schemes");
 const whatsapp_notifications = require("./Routes/whatsapp_notifications");
 const campaigns = require("./Routes/campaigns");
 const OrderForm = require("./Routes/OrderForm");
-const multer=require("multer")
+const multer = require("multer");
+const fs = require("fs");
+
+if (!fs.existsSync("./uploads")) fs.mkdirSync("./uploads");
+
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "./uploads");
-  },
-  filename: function (req, file, cb) {
-    console.log(file);
-    cb(null, file.originalname);
-  },
+	destination: function (req, file, cb) {
+		cb(null, "./uploads");
+	},
+	filename: function (req, file, cb) {
+		console.log(file);
+		cb(null, file.originalname);
+	},
 });
 
 const upload = multer({ storage });
 connectDB();
 app = express();
 app.use(
-  cors({
-    origin: "*",
-    credentials: true,
-  })
+	cors({
+		origin: "*",
+		credentials: true,
+	})
 );
 
 // app.use(express.json());
 app.use(bodyParser.json({ limit: "100mb" }));
 app.use(
-  bodyParser.urlencoded({
-    limit: "100mb",
-    extended: true,
-    parameterLimit: 50000,
-  })
+	bodyParser.urlencoded({
+		limit: "100mb",
+		extended: true,
+		parameterLimit: 50000,
+	})
 );
 app.use(morgan("dev"));
 app.post("/uploadImage", upload.single("file"), (req, res) => {
-  res.json({ success: true });
+	res.json({ success: true });
 });
 
 app.use("/routes", Routes);
@@ -102,183 +106,169 @@ app.use("/whatsapp_notifications", whatsapp_notifications);
 app.use("/campaigns", campaigns);
 app.use("/orderForm", OrderForm);
 app.get("/MinLevelUpdate", async (req, res, next) => {
-  const response = await MinLevelUpdateAutomation();
-  res.json({ success: true, message: "Updated", result: response });
+	const response = await MinLevelUpdateAutomation();
+	res.json({ success: true, message: "Updated", result: response });
 });
 app.get("/stream/:text", async (req, res) => {
-  try {
-    let { text } = await req.params;
-    let extra =
-      ", extra audio text, extra audio text, extra audio text, extra audio text, extra";
-    const gtts = new gTTS(`${text?.replaceAll("_", " ")}` + extra, "en");
-    res.set({ "Content-Type": "audio/mpeg" });
-    gtts.stream().pipe(res);
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
+	try {
+		let { text } = await req.params;
+		let extra =
+			", extra audio text, extra audio text, extra audio text, extra audio text, extra";
+		const gtts = new gTTS(`${text?.replaceAll("_", " ")}` + extra, "en");
+		res.set({ "Content-Type": "audio/mpeg" });
+		gtts.stream().pipe(res);
+	} catch (err) {
+		res.status(500).json({ success: false, message: err.message });
+	}
 });
 
 const MinLevelUpdateAutomation = async () => {
-  let itemsList = [];
-  console.log("Fuction");
+	let itemsList = [];
+	console.log("Fuction");
 
-  let warehouseData = await WarehouseModel.find({});
-  warehouseData = JSON.parse(JSON.stringify(warehouseData));
-  warehouseData = warehouseData.filter((a) => a.warehouse_uuid);
-  let itemsData = await ItemModel.find({});
-  itemsData = JSON.parse(JSON.stringify(itemsData));
+	let warehouseData = await WarehouseModel.find({});
+	warehouseData = JSON.parse(JSON.stringify(warehouseData));
+	warehouseData = warehouseData.filter(a => a.warehouse_uuid);
+	let itemsData = await ItemModel.find({});
+	itemsData = JSON.parse(JSON.stringify(itemsData));
 
-  for (let warehouseItem of warehouseData) {
-    let time = new Date().getTime();
-    let FiteenDaysTime = new Date(
-      time - 86400000 * (warehouseItem?.compare_stock_level || 0)
-    ).toDateString();
-    FiteenDaysTime = new Date(FiteenDaysTime + " 00:00:00 AM").getTime();
-    let ordersData = await OrderCompleted.find({
-      "status.time": { $gt: FiteenDaysTime },
-      warehouse_uuid: warehouseItem.warehouse_uuid,
-    });
-    let cancelOrdersData = await CancelOrdersModel.find({
-      "status.time": { $gt: FiteenDaysTime },
-      warehouse_uuid: warehouseItem.warehouse_uuid,
-    });
-    let vocherData = await Vochers.find({
-      created_at: { $gt: FiteenDaysTime },
-      from_warehouse: warehouseItem.warehouse_uuid,
-    });
-    ordersData = JSON.parse(JSON.stringify(ordersData));
-    ordersData = ordersData.filter(
-      (a) =>
-        a.status.filter((b) => +b.stage === 1 && b.time > FiteenDaysTime).length
-    );
-    cancelOrdersData = JSON.parse(JSON.stringify(cancelOrdersData));
-    cancelOrdersData = cancelOrdersData.filter(
-      (a) =>
-        a.status.filter((b) => +b.stage === 1 && b.time > FiteenDaysTime).length
-    );
-    console.log(warehouseItem);
-    let items = [
-      ...([].concat.apply(
-        [],
-        ordersData?.map((a) => a.item_details)
-      ) || []),
-      ...([].concat.apply(
-        [],
-        ordersData?.map((a) => a.processing_canceled)
-      ) || []),
-      // ...([].concat.apply(
-      //   [],
-      //   ordersData?.map((a) => a.delivery_return)
-      // ) || []),
-      ...([].concat.apply(
-        [],
-        cancelOrdersData?.map((a) => a.processing_canceled)
-      ) || []),
-      ...([].concat.apply(
-        [],
-        ordersData?.map((a) => a.fulfillment)
-      ) || []),
-      ...([].concat.apply(
-        [],
-        cancelOrdersData?.map((a) => a.fulfillment)
-      ) || []),
-      // ...([].concat.apply(
-      //   [],
-      //   cancelOrdersData?.map((a) => a.delivery_return)
-      // ) || []),
-      ...([].concat.apply(
-        [],
-        vocherData?.map((a) => a.item_details)
-      ) || []),
-    ];
+	for (let warehouseItem of warehouseData) {
+		let time = new Date().getTime();
+		let FiteenDaysTime = new Date(
+			time - 86400000 * (warehouseItem?.compare_stock_level || 0)
+		).toDateString();
+		FiteenDaysTime = new Date(FiteenDaysTime + " 00:00:00 AM").getTime();
+		let ordersData = await OrderCompleted.find({
+			"status.time": { $gt: FiteenDaysTime },
+			"warehouse_uuid": warehouseItem.warehouse_uuid,
+		});
+		let cancelOrdersData = await CancelOrdersModel.find({
+			"status.time": { $gt: FiteenDaysTime },
+			"warehouse_uuid": warehouseItem.warehouse_uuid,
+		});
+		let vocherData = await Vochers.find({
+			created_at: { $gt: FiteenDaysTime },
+			from_warehouse: warehouseItem.warehouse_uuid,
+		});
+		ordersData = JSON.parse(JSON.stringify(ordersData));
+		ordersData = ordersData.filter(
+			a => a.status.filter(b => +b.stage === 1 && b.time > FiteenDaysTime).length
+		);
+		cancelOrdersData = JSON.parse(JSON.stringify(cancelOrdersData));
+		cancelOrdersData = cancelOrdersData.filter(
+			a => a.status.filter(b => +b.stage === 1 && b.time > FiteenDaysTime).length
+		);
+		console.log(warehouseItem);
+		let items = [
+			...([].concat.apply(
+				[],
+				ordersData?.map(a => a.item_details)
+			) || []),
+			...([].concat.apply(
+				[],
+				ordersData?.map(a => a.processing_canceled)
+			) || []),
+			// ...([].concat.apply(
+			//   [],
+			//   ordersData?.map((a) => a.delivery_return)
+			// ) || []),
+			...([].concat.apply(
+				[],
+				cancelOrdersData?.map(a => a.processing_canceled)
+			) || []),
+			...([].concat.apply(
+				[],
+				ordersData?.map(a => a.fulfillment)
+			) || []),
+			...([].concat.apply(
+				[],
+				cancelOrdersData?.map(a => a.fulfillment)
+			) || []),
+			// ...([].concat.apply(
+			//   [],
+			//   cancelOrdersData?.map((a) => a.delivery_return)
+			// ) || []),
+			...([].concat.apply(
+				[],
+				vocherData?.map(a => a.item_details)
+			) || []),
+		];
 
-    let result = [];
-    for (let item of items) {
-      let itemData = itemsData.find((a) => a.item_uuid === item.item_uuid);
-      var existing = result.filter(function (v, i) {
-        return v.item_uuid === item.item_uuid;
-      });
+		let result = [];
+		for (let item of items) {
+			let itemData = itemsData.find(a => a.item_uuid === item.item_uuid);
+			var existing = result.filter(function (v, i) {
+				return v.item_uuid === item.item_uuid;
+			});
 
-      if (existing.length === 0 && itemData) {
-        let itemsFilteredData = items.filter(
-          (a) => a.item_uuid === item.item_uuid
-        );
-        let b =
-          itemsFilteredData.length > 1
-            ? itemsFilteredData?.map((c) => +c.b || 0).reduce((c, d) => c + d)
-            : +itemsFilteredData[0]?.b || 0;
-        let p =
-          itemsFilteredData.length > 1
-            ? itemsFilteredData?.map((c) => +c.p || 0).reduce((c, d) => c + d)
-            : +itemsFilteredData[0]?.p || 0;
+			if (existing.length === 0 && itemData) {
+				let itemsFilteredData = items.filter(a => a.item_uuid === item.item_uuid);
+				let b =
+					itemsFilteredData.length > 1
+						? itemsFilteredData?.map(c => +c.b || 0).reduce((c, d) => c + d)
+						: +itemsFilteredData[0]?.b || 0;
+				let p =
+					itemsFilteredData.length > 1
+						? itemsFilteredData?.map(c => +c.p || 0).reduce((c, d) => c + d)
+						: +itemsFilteredData[0]?.p || 0;
 
-        let obj = {
-          ...item,
-          stock: itemData?.stock || [],
-          conversion: itemData?.conversion,
-          b: parseInt(+b + +p / +itemData?.conversion),
-          p: parseInt(+p % +itemData?.conversion),
-        };
-        result.push(obj);
-      }
-    }
-    for (let item of result) {
-      let min_level = +item.b * +item.conversion + +item.p;
-      min_level = Math.floor(
-        min_level *
-          ((warehouseItem?.maintain_stock_days || 0) /
-            (warehouseItem?.compare_stock_level || 1))
-      );
-      let stock = item.stock;
-      stock = stock?.filter(
-        (a) => a.warehouse_uuid === warehouseItem.warehouse_uuid
-      )?.length
-        ? stock.map((a) =>
-            a.warehouse_uuid === warehouseItem.warehouse_uuid
-              ? { ...a, min_level }
-              : a
-          )
-        : stock?.length
-        ? [
-            ...stock,
-            {
-              warehouse_uuid: warehouseItem.warehouse_uuid,
-              min_level,
-              qty: 0,
-            },
-          ]
-        : [
-            {
-              warehouse_uuid: warehouseItem.warehouse_uuid,
-              min_level,
-              qty: 0,
-            },
-          ];
-      const response = await ItemModel.updateOne(
-        { item_uuid: item.item_uuid },
-        { stock }
-      );
-      itemsList.push({ item_uuid: item.item_uuid, stock });
-    }
-  }
-  var date = new Date(); // Create a Date object to find out what time it is
+				let obj = {
+					...item,
+					stock: itemData?.stock || [],
+					conversion: itemData?.conversion,
+					b: parseInt(+b + +p / +itemData?.conversion),
+					p: parseInt(+p % +itemData?.conversion),
+				};
+				result.push(obj);
+			}
+		}
+		for (let item of result) {
+			let min_level = +item.b * +item.conversion + +item.p;
+			min_level = Math.floor(
+				min_level *
+					((warehouseItem?.maintain_stock_days || 0) /
+						(warehouseItem?.compare_stock_level || 1))
+			);
+			let stock = item.stock;
+			stock = stock?.filter(a => a.warehouse_uuid === warehouseItem.warehouse_uuid)?.length
+				? stock.map(a =>
+						a.warehouse_uuid === warehouseItem.warehouse_uuid ? { ...a, min_level } : a
+				  )
+				: stock?.length
+				? [
+						...stock,
+						{
+							warehouse_uuid: warehouseItem.warehouse_uuid,
+							min_level,
+							qty: 0,
+						},
+				  ]
+				: [
+						{
+							warehouse_uuid: warehouseItem.warehouse_uuid,
+							min_level,
+							qty: 0,
+						},
+				  ];
+			const response = await ItemModel.updateOne({ item_uuid: item.item_uuid }, { stock });
+			itemsList.push({ item_uuid: item.item_uuid, stock });
+		}
+	}
+	var date = new Date(); // Create a Date object to find out what time it is
 
-  const response = await DetailsModel.updateMany(
-    {},
-    { timer_run_at: date.getTime() }
-  );
-  console.log(response);
-  return itemsList;
+	const response = await DetailsModel.updateMany({}, { timer_run_at: date.getTime() });
+	console.log(response);
+	return itemsList;
 };
 // setTimeout(MinLevelUpdateAutomation, 5000);
 setInterval(function () {
-  // Set interval for checking
-  var date = new Date(); // Create a Date object to find out what time it is
-  if (date.getHours() === 2) {
-    console.log(date.getHours());
-    // Check the time
-    MinLevelUpdateAutomation();
-  }
+	// Set interval for checking
+	var date = new Date(); // Create a Date object to find out what time it is
+	if (date.getHours() === 2) {
+		console.log(date.getHours());
+		// Check the time
+		MinLevelUpdateAutomation();
+	}
 }, 360000);
 app.use(express.static("uploads"));
 module.exports = app;
