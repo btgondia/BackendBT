@@ -152,7 +152,7 @@ router.get("/GetTripListSummary/:user_uuid", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-router.post("/GetTrip", async (req, res) => {
+router.post("/GetTripData", async (req, res) => {
   try {
     let { trips = [], params = [] } = req.body;
     let json = {};
