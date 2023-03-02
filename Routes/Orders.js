@@ -181,14 +181,14 @@ const CallMsg = async ({ counterData = {}, WhatsappNotification = {}, value = {}
 				form.append("file", fs.createReadStream("./uploads/" + (item || "")));
 			}
 			const result = await axios.post(
-				"http://15.207.39.69:2000/send",
+				"http://3.111.81.7:2000/send",
 				form,
 				form.getHeaders()
 			);
 			console.log(result.data, data);
 		} else {
 			let msgResponse = await axios({
-				url: "http://15.207.39.69:2000/sendMessage",
+				url: "http://3.111.81.7:2000/sendMessage",
 				method: "post",
 				data,
 			});
@@ -627,7 +627,7 @@ router.post("/sendPdf", async (req, res) => {
 			}
 
 			const result = await axios.post(
-				"http://15.207.39.69:2000/send",
+				"http://3.111.81.7:2000/send",
 				form,
 				form.getHeaders()
 			);
@@ -635,7 +635,7 @@ router.post("/sendPdf", async (req, res) => {
 			console.log({ requestdata: result.data, data });
 		} else {
 			let msgResponse = await axios({
-				url: "http://15.207.39.69:2000/sendMessage",
+				url: "http://3.111.81.7:2000/sendMessage",
 				method: "post",
 				data,
 			});
