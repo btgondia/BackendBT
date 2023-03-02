@@ -58,9 +58,9 @@ router.get("/GetTripList/:user_uuid", async (req, res) => {
     userData = JSON.parse(JSON.stringify(userData));
     let data = await Trips.find(
       // +userData?.warehouse[0] === 1
-      //   ? 
-        {}
-        // : { warehouse_uuid: { $in: userData.warehouse } }
+      //   ?
+      {}
+      // : { warehouse_uuid: { $in: userData.warehouse } }
     );
     data = JSON.parse(JSON.stringify(data));
 
@@ -146,6 +146,29 @@ router.get("/GetTripListSummary/:user_uuid", async (req, res) => {
       res.json({
         success: true,
         result,
+      });
+    } else res.json({ success: false, message: "Trips Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+router.post("/GetTripData", async (req, res) => {
+  try {
+    let { trips = [], params = [] } = req.body;
+    let json = {};
+    for (let i of params) {
+      json = { ...json, [i]: 1 };
+    }
+    let data = await Trips.find(
+      trips.length ? { trip_uuid: { $in: trips } } : {},
+      json
+    );
+
+
+    if (data.length) {
+      res.json({
+        success: true,
+        result:data,
       });
     } else res.json({ success: false, message: "Trips Not found" });
   } catch (err) {

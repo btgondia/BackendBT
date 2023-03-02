@@ -680,7 +680,7 @@ router.post("/sendWhatsappOtp", async (req, res) => {
       });
 
       let msgResponse = await axios({
-        url: "http://15.207.39.69:2000/sendMessage",
+        url: "http://3.111.81.7:2000/sendMessage",
         method: "post",
         data,
       });

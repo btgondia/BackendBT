@@ -143,11 +143,15 @@ const CallMsg = async ({ counterData = {}, WhatsappNotification = {}, value = {}
 	// 		for (let item of file) {
 	// 			form.append("file", fs.createReadStream("./uploads/" + (item || "")));
 	// 		}
-	// 		const result = await axios.post("http://15.207.39.69:2000/send", form, form.getHeaders());
+	// 		const result = await axios.post(
+	// 			"http://3.111.81.7:2000/send",
+	// 			form,
+	// 			form.getHeaders()
+	// 		);
 	// 		console.log(result.data, data);
 	// 	} else {
 	// 		let msgResponse = await axios({
-	// 			url: "http://15.207.39.69:2000/sendMessage",
+	// 			url: "http://3.111.81.7:2000/sendMessage",
 	// 			method: "post",
 	// 			data,
 	// 		});
@@ -155,6 +159,58 @@ const CallMsg = async ({ counterData = {}, WhatsappNotification = {}, value = {}
 	// 	}
 	// } catch (err) {
 	// 	console.log(err);
+	// }
+};
+const CheckPdf = async data => {
+	console.log(data.length);
+	// for (let order of data) {
+	//   if (order.order_uuid) {
+	//     try {
+	//       let orderpdf = await fs.promises.access(
+	//         "./uploads/N" +
+	//           (order.invoice_number || "") +
+	//           "-{" +
+	//           (order?.order_uuid || "") +
+	//           "}.pdf"
+	//       );
+	//     } catch (err) {
+	//       // Create a browser instance
+	//       try {
+
+	//         // Create a new page
+	//         const page = await browser.newPage();
+	//         // Website URL to export as pdf
+	//         const website_url = "https://btgondia.com/pdf/" + order.order_uuid;
+	//         await page.goto(website_url, { waitUntil: "networkidle0" });
+	//         await page.emulateMediaType("screen");
+	//         console.log(
+	//           "./uploads/N" +
+	//             (order.invoice_number || "") +
+	//             "-{" +
+	//             (order?.order_uuid || "") +
+	//             "}.pdf"
+	//         );
+	//         const pdf = await page.pdf({
+	//           path:
+	//             "./uploads/N" +
+	//             (order.invoice_number || "") +
+	//             "-{" +
+	//             (order?.order_uuid || "") +
+	//             "}.pdf",
+	//           margin: {
+	//             top: "100px",
+	//             right: "50px",
+	//             bottom: "100px",
+	//             left: "50px",
+	//           },
+	//           printBackground: true,
+	//           format: "A4",
+	//         });
+	//       } catch (err) {
+	//         console.log(err);
+	//       }
+	//     }
+	//   }
 	// }
 };
 router.post("/postOrder", async (req, res) => {
@@ -507,21 +563,21 @@ router.post("/sendPdf", async (req, res) => {
 	// 			form.append("file", fs.createReadStream("./uploads/" + (item || "")));
 	// 		}
 
-	// 		const result = await axios.post(
-	// 			"http://15.207.39.69:2000/send",
-	// 			form,
-	// 			form.getHeaders()
-	// 		);
+	// 	const result = await axios.post(
+	// 		"http://3.111.81.7:2000/send",
+	// 		form,
+	// 		form.getHeaders()
+	// 	);
 
-	// 		console.log({ requestdata: result.data, data });
-	// 	} else {
-	// 		let msgResponse = await axios({
-	// 			url: "http://15.207.39.69:2000/sendMessage",
-	// 			method: "post",
-	// 			data,
-	// 		});
-	// 		console.log({ requestdata: msgResponse.data, data });
-	// 	}
+	// 	console.log({ requestdata: result.data, data });
+	// } else {
+	// 	let msgResponse = await axios({
+	// 		url: "http://3.111.81.7:2000/sendMessage",
+	// 		method: "post",
+	// 		data,
+	// 	});
+	// 	console.log({ requestdata: msgResponse.data, data });
+	// }
 
 	// 	res.json({ success: true, message: "Message Sent Successfully" });
 	// } catch (err) {
