@@ -64,8 +64,8 @@ router.get("/GetTripList/:user_uuid", async (req, res) => {
     );
     data = JSON.parse(JSON.stringify(data));
 
-    let ordersData = await Orders.find({});
-    ordersData = JSON.parse(JSON.stringify(ordersData));
+    // let ordersData = await Orders.find({});
+    // ordersData = JSON.parse(JSON.stringify(ordersData));
     if (data.length) {
       // // console.log(result);
       res.json({
