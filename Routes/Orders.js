@@ -825,8 +825,17 @@ router.get("/getSignedBills", async (req, res) => {
 });
 router.get("/getPendingEntry", async (req, res) => {
 	try {
-		let data = await OrderCompleted.find({ entry: 0 });
+		let data = await OrderCompleted.find(
+			{ entry: 0 },
+			{
+				order_uuid: 1,
+				counter_title: 1,
+				invoice_number: 1,
+				order_grandtotal: 1,
+			}
+		);
 		data = JSON.parse(JSON.stringify(data));
+
 		let receiptData = await Receipts.find(
 			{
 				order_uuid: { $in: data.map(a => a.order_uuid) },
@@ -966,19 +975,21 @@ router.get("/GetOrderRunningList", async (req, res) => {
 });
 router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
 	try {
-		let userData = await Users.findOne({ user_uuid: req.params.user_uuid }, { routes: 1, warehouse: 1 });
+		let userData = await Users.findOne({ user_uuid: req.params.user_uuid }, { routes: 1 });
 		userData = JSON.parse(JSON.stringify(userData));
 
 		let data = [];
 		let counterData = [];
 		if (userData.routes.length && !userData.routes.filter(a => +a === 1).length) {
-			counterData = await Counters.find({}, { counter_title: 1, counter_uuid: 1, route_uuid: 1 });
-			counterData = JSON.parse(JSON.stringify(counterData));
-			counterData = counterData.filter(
-				a =>
-					userData.routes.filter(b => b === a.route_uuid).length ||
-					(userData.routes.filter(b => b === "none").length && !a.route_uuid)
+			counterData = await Counters.find(
+				userData.routes.filter(b => b === "none").length && !a.route_uuid
+					? {}
+					: {
+							route_uuid: { $in: userData.routes },
+					  },
+				{ counter_title: 1, counter_uuid: 1, route_uuid: 1 }
 			);
+			counterData = JSON.parse(JSON.stringify(counterData));
 
 			data = await Orders.find({
 				counter_uuid: {
