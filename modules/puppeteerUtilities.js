@@ -10,12 +10,9 @@ let browser_close_timer;
 
 const generatePDFs = async data => {
 	try {
-		if (browser_close_timer) {
-			console.log("CANCELLING TIMER:", browser_close_timer);
-			clearTimeout(browser_close_timer);
-		}
-		if (BROWSER?.STATE !== 1) {
-			console.log("LAUNCING BROWSER INSTANCE:", BROWSER?.INSTANCE);
+		clearTimeout(browser_close_timer);
+		if (BROWSER.STATE !== 1) {
+			console.log("LAUNCING BROWSER INSTANCE; CURRENT STATE:", BROWSER.STATE);
 			BROWSER.INSTANCE = await puppeteer.launch({ args: ["--no-sandbox"] });
 			BROWSER.PAGE = await BROWSER.INSTANCE.newPage();
 			BROWSER.STATE = 1;
@@ -24,6 +21,10 @@ const generatePDFs = async data => {
 			});
 		}
 		for (const { filename, order_id } of data) {
+			if (BROWSER.STATE !== 1) {
+				console.log("BROWSER.STATE:", BROWSER.STATE);
+				continue;
+			}
 			const filepath = `./uploads/${filename}`;
 			console.time("PROCESS");
 			const website_url = "https://btgondia.com/pdf/" + order_id;
@@ -43,12 +44,16 @@ const generatePDFs = async data => {
 			console.timeEnd("PROCESS");
 		}
 
-		BROWSER.INSTANCE.close();
 		browser_close_timer = setTimeout(async () => {
-			console.log("TERMINATING INSTANCES, CURRENT STATE:", BROWSER.STATE);
-			await BROWSER.PAGE.close();
-			await BROWSER.INSTANCE.close();
-			browser_close_timer = null;
+			try {
+				if (BROWSER.STATE !== 1) return;
+				console.log("TERMINATING INSTANCE, CURRENT STATE:", BROWSER.STATE);
+				await BROWSER.PAGE.close();
+				await BROWSER.INSTANCE.close();
+				browser_close_timer = null;
+			} catch (error) {
+				console.log("ERROR IN CLOSING BROWSER INSTANCE:", error.message);
+			}
 		}, 5000);
 	} catch (err) {
 		console.log(err);
