@@ -1232,8 +1232,17 @@ router.get("/getSignedBills", async (req, res) => {
 });
 router.get("/getPendingEntry", async (req, res) => {
   try {
-    let data = await OrderCompleted.find({ entry: 0 });
+    let data = await OrderCompleted.find(
+      { entry: 0 },
+      {
+        order_uuid: 1,
+        counter_title: 1,
+        invoice_number: 1,
+        order_grandtotal: 1,
+      }
+    );
     data = JSON.parse(JSON.stringify(data));
+
     let receiptData = await Receipts.find(
       {
         order_uuid: { $in: data.map((a) => a.order_uuid) },
