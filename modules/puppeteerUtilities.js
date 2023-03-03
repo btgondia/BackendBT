@@ -4,6 +4,7 @@ const getFileName = order => `N${order?.invoice_number || ""}-${order?.order_uui
 let BROWSER = {
 	INSTANCE: null,
 	PAGE: null,
+	STATE: null,
 };
 let browser_close_timer;
 
@@ -13,10 +14,14 @@ const generatePDFs = async data => {
 			console.log("CANCELLING TIMER:", browser_close_timer);
 			clearTimeout(browser_close_timer);
 		}
-		if (!BROWSER?.INSTANCE?.on) {
+		if (BROWSER?.STATE !== 1) {
 			console.log("LAUNCING BROWSER INSTANCE:", BROWSER?.INSTANCE);
 			BROWSER.INSTANCE = await puppeteer.launch({ args: ["--no-sandbox"] });
 			BROWSER.PAGE = await BROWSER.INSTANCE.newPage();
+			BROWSER.STATE = 1;
+			BROWSER.INSTANCE.on("disconnected", () => {
+				BROWSER.STATE = 0;
+			});
 		}
 		for (const { filename, order_id } of data) {
 			const filepath = `./uploads/${filename}`;
@@ -38,8 +43,9 @@ const generatePDFs = async data => {
 			console.timeEnd("PROCESS");
 		}
 
+		BROWSER.INSTANCE.close();
 		browser_close_timer = setTimeout(async () => {
-			console.log("TERMINATING INSTANCES", { BROWSER });
+			console.log("TERMINATING INSTANCES, CURRENT STATE:", BROWSER.STATE);
 			await BROWSER.PAGE.close();
 			await BROWSER.INSTANCE.close();
 			browser_close_timer = null;
