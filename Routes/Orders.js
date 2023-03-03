@@ -1389,7 +1389,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
   try {
     let userData = await Users.findOne(
       { user_uuid: req.params.user_uuid },
-      { routes: 1, warehouse: 1 }
+      { routes: 1 }
     );
     userData = JSON.parse(JSON.stringify(userData));
 
@@ -1400,15 +1400,14 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
       !userData.routes.filter((a) => +a === 1).length
     ) {
       counterData = await Counters.find(
-        {},
+        userData.routes.filter((b) => b === "none").length && !a.route_uuid
+          ? {}
+          : {
+              route_uuid: { $in: userData.routes },
+            },
         { counter_title: 1, counter_uuid: 1, route_uuid: 1 }
       );
       counterData = JSON.parse(JSON.stringify(counterData));
-      counterData = counterData.filter(
-        (a) =>
-          userData.routes.filter((b) => b === a.route_uuid).length ||
-          (userData.routes.filter((b) => b === "none").length && !a.route_uuid)
-      );
 
       data = await Orders.find({
         counter_uuid: {

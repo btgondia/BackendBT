@@ -226,7 +226,7 @@ router.post("/GetItemData", async (req, res) => {
 });
 router.get("/getNewItemReminder", async (req, res) => {
   try {
-    let data = await Details.findOne({});
+    let data = await Details.findOne({}, { new_item_reminder: 1 });
 
     if (data)
       res.json({
