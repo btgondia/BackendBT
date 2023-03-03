@@ -13,7 +13,7 @@ const callAPI = async ({ file, data }) => {
 	// 	if (file.length) {
 	// 		const form = new FormData();
 	// 		form.append("instructions", JSON.stringify(data));
-	// 		for (let item of file) form.append("file", fs.createReadStream("./uploads/" + (item || "")));
+	// 		for (let item of file) form.append("file", fs.createReadStream("uploads/" + (item || "")));
 	// 		const result = await axios.post(`${whatcraft_ip}/send`, form, form.getHeaders());
 	// 		console.log(result.data, data);
 	// 	} else {
@@ -46,7 +46,7 @@ const contactsProcessHandler = async (contacts, messagesCollection, counterData,
 					?.replace(/{invoice_number}/g, value?.invoice_number || "")
 					?.replace(/{amount}/g, value.order_grandtotal || value?.amount || value?.amt || "");
 				messages.push({ text: message });
-			} else if (fs.existsSync("./uploads/" + (messageobj.uuid || "") + ".png")) {
+			} else if (fs.existsSync("uploads/" + (messageobj.uuid || "") + ".png")) {
 				file.push(messageobj.uuid + ".png");
 				messages.push({
 					file: messageobj.uuid + ".png",
@@ -56,7 +56,7 @@ const contactsProcessHandler = async (contacts, messagesCollection, counterData,
 			}
 		}
 
-		if (options.notify && value?.order_uuid && fs.existsSync(`./uploads/${getFileName(value)}`)) {
+		if (options.notify && value?.order_uuid && fs.existsSync(`uploads/${getFileName(value)}`)) {
 			file.push(getFileName(value));
 			messages.push({
 				file: getFileName(value),
@@ -84,7 +84,7 @@ const sendMessages = async ({ counterData = {}, value = {}, WhatsappNotification
 		let file = [];
 
 		const filename = getFileName(value);
-		const filepath = `./uploads/${filename}`;
+		const filepath = `uploads/${filename}`;
 
 		if (
 			(!WhatsappNotification || (WhatsappNotification && WhatsappNotification?.checkbox)) &&

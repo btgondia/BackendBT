@@ -388,18 +388,14 @@ router.put("/putOrders", async (req, res) => {
 
 					await Orders.deleteOne({ order_uuid: value.order_uuid });
 					fs.access(
-						"./uploads/N" + (value.invoice_number || "") + "-{" + (value?.order_uuid || "") + "}.pdf",
+						"uploads/N" + (value.invoice_number || "") + "-{" + (value?.order_uuid || "") + "}.pdf",
 						err => {
 							if (err) {
 								console.log(err);
 								return;
 							}
 							fs.unlink(
-								"./uploads/N" +
-									(value.invoice_number || "") +
-									"-{" +
-									(value?.order_uuid || "") +
-									"}.pdf",
+								"uploads/N" + (value.invoice_number || "") + "-{" + (value?.order_uuid || "") + "}.pdf",
 								err => {
 									if (err) {
 										console.log(err);
@@ -461,18 +457,14 @@ router.put("/putOrders", async (req, res) => {
 					});
 					await Orders.deleteOne({ order_uuid: value.order_uuid });
 					fs.access(
-						"./uploads/N" + (value.invoice_number || "") + "-{" + (value?.order_uuid || "") + "}.pdf",
+						"uploads/N" + (value.invoice_number || "") + "-{" + (value?.order_uuid || "") + "}.pdf",
 						err => {
 							if (err) {
 								console.log(err);
 								return;
 							}
 							fs.unlink(
-								"./uploads/N" +
-									(value.invoice_number || "") +
-									"-{" +
-									(value?.order_uuid || "") +
-									"}.pdf",
+								"uploads/N" + (value.invoice_number || "") + "-{" + (value?.order_uuid || "") + "}.pdf",
 								err => {
 									if (err) {
 										console.log(err);
@@ -744,7 +736,7 @@ router.put("/putOrders", async (req, res) => {
 			if (value.edit) {
 				try {
 					const filename = `N${value.invoice_number || ""}-${value?.order_uuid || ""}.pdf`;
-					if (!fs.existsSync(`./uploads/${filename}`))
+					if (!fs.existsSync(`uploads/${filename}`))
 						await generatePDFs([{ filename, order_id: value.order_uuid }]);
 				} catch (err) {
 					console.log(err);

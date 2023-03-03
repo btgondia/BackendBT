@@ -41,11 +41,11 @@ const OrderForm = require("./Routes/OrderForm");
 const multer = require("multer");
 const fs = require("fs");
 
-if (!fs.existsSync("./uploads")) fs.mkdirSync("./uploads");
+if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
 const storage = multer.diskStorage({
 	destination: function (req, file, cb) {
-		cb(null, "./uploads");
+		cb(null, "uploads");
 	},
 	filename: function (req, file, cb) {
 		console.log(file);
@@ -112,8 +112,7 @@ app.get("/MinLevelUpdate", async (req, res, next) => {
 app.get("/stream/:text", async (req, res) => {
 	try {
 		let { text } = await req.params;
-		let extra =
-			", extra audio text, extra audio text, extra audio text, extra audio text, extra";
+		let extra = ", extra audio text, extra audio text, extra audio text, extra audio text, extra";
 		const gtts = new gTTS(`${text?.replaceAll("_", " ")}` + extra, "en");
 		res.set({ "Content-Type": "audio/mpeg" });
 		gtts.stream().pipe(res);
@@ -134,9 +133,7 @@ const MinLevelUpdateAutomation = async () => {
 
 	for (let warehouseItem of warehouseData) {
 		let time = new Date().getTime();
-		let FiteenDaysTime = new Date(
-			time - 86400000 * (warehouseItem?.compare_stock_level || 0)
-		).toDateString();
+		let FiteenDaysTime = new Date(time - 86400000 * (warehouseItem?.compare_stock_level || 0)).toDateString();
 		FiteenDaysTime = new Date(FiteenDaysTime + " 00:00:00 AM").getTime();
 		let ordersData = await OrderCompleted.find({
 			"status.time": { $gt: FiteenDaysTime },
@@ -151,9 +148,7 @@ const MinLevelUpdateAutomation = async () => {
 			from_warehouse: warehouseItem.warehouse_uuid,
 		});
 		ordersData = JSON.parse(JSON.stringify(ordersData));
-		ordersData = ordersData.filter(
-			a => a.status.filter(b => +b.stage === 1 && b.time > FiteenDaysTime).length
-		);
+		ordersData = ordersData.filter(a => a.status.filter(b => +b.stage === 1 && b.time > FiteenDaysTime).length);
 		cancelOrdersData = JSON.parse(JSON.stringify(cancelOrdersData));
 		cancelOrdersData = cancelOrdersData.filter(
 			a => a.status.filter(b => +b.stage === 1 && b.time > FiteenDaysTime).length
@@ -225,15 +220,11 @@ const MinLevelUpdateAutomation = async () => {
 		for (let item of result) {
 			let min_level = +item.b * +item.conversion + +item.p;
 			min_level = Math.floor(
-				min_level *
-					((warehouseItem?.maintain_stock_days || 0) /
-						(warehouseItem?.compare_stock_level || 1))
+				min_level * ((warehouseItem?.maintain_stock_days || 0) / (warehouseItem?.compare_stock_level || 1))
 			);
 			let stock = item.stock;
 			stock = stock?.filter(a => a.warehouse_uuid === warehouseItem.warehouse_uuid)?.length
-				? stock.map(a =>
-						a.warehouse_uuid === warehouseItem.warehouse_uuid ? { ...a, min_level } : a
-				  )
+				? stock.map(a => (a.warehouse_uuid === warehouseItem.warehouse_uuid ? { ...a, min_level } : a))
 				: stock?.length
 				? [
 						...stock,

@@ -25,7 +25,7 @@ const generatePDFs = async data => {
 				console.log("BROWSER.STATE:", BROWSER.STATE);
 				continue;
 			}
-			const filepath = `./uploads/${filename}`;
+			const filepath = `uploads/${filename}`;
 			console.time("PROCESS");
 			const website_url = "https://btgondia.com/pdf/" + order_id;
 			await BROWSER.PAGE.goto(website_url, { waitUntil: "networkidle0" });
@@ -63,7 +63,7 @@ const generatePDFs = async data => {
 const checkPDFs = async data => {
 	console.log(data.length);
 	const _data = data
-		?.filter(order => order.order_uuid && !fs.existsSync(`./uploads/${getFileName(order)}`))
+		?.filter(order => order.order_uuid && !fs.existsSync(`uploads/${getFileName(order)}`))
 		?.map(order => ({
 			filename: getFileName(order),
 			order_id: order.order_uuid,

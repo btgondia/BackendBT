@@ -61,12 +61,12 @@ router.post("/sendMsg", async (req, res) => {
 		if (value.type === "order") {
 			setTimeout(() => {
 				for (let messageobj of value.message) {
-					fs.access("./uploads/" + (messageobj.uuid || "") + ".png", err => {
+					fs.access("uploads/" + (messageobj.uuid || "") + ".png", err => {
 						if (err) {
 							console.log(err);
 							return;
 						}
-						fs.unlink("./uploads/" + (messageobj.uuid || "") + ".png", err => {
+						fs.unlink("uploads/" + (messageobj.uuid || "") + ".png", err => {
 							if (err) {
 								console.log(err);
 								return;
@@ -91,12 +91,12 @@ router.delete("/DeleteCampaigns", async (req, res) => {
 			campaign_uuid: value.campaign_uuid,
 		});
 		for (let item of data.message) {
-			fs.access("./uploads/" + (item.uuid || "") + ".png", err => {
+			fs.access("uploads/" + (item.uuid || "") + ".png", err => {
 				if (err) {
 					console.log(err);
 					return;
 				}
-				fs.unlink("./uploads/" + (item.uuid || "") + ".png", err => {
+				fs.unlink("uploads/" + (item.uuid || "") + ".png", err => {
 					if (err) {
 						console.log(err);
 						return;
@@ -130,12 +130,12 @@ router.put("/UpdateCampaigns", async (req, res) => {
 			}, {});
 		console.log(value);
 		for (let item of value.message.filter(a => a.delete)) {
-			fs.access("./uploads/" + (item.uuid || "") + ".png", err => {
+			fs.access("uploads/" + (item.uuid || "") + ".png", err => {
 				if (err) {
 					console.log(err);
 					return;
 				}
-				fs.unlink("./uploads/" + (item.uuid || "") + ".png", err => {
+				fs.unlink("uploads/" + (item.uuid || "") + ".png", err => {
 					if (err) {
 						console.log(err);
 						return;
