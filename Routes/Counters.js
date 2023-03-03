@@ -213,6 +213,7 @@ router.get("/GetCounterData", async (req, res) => {
       {},
       {
         counter_title: 1,
+        trip_uuid: 1,
         counter_code: 1,
         sort_order: 1,
         notes: 1,

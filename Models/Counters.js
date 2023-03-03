@@ -10,6 +10,9 @@ const CounterSchema = new mongoose.Schema({
   form_uuid: {
     type: String,
   },
+  trip_uuid: {
+    type: String,
+  },
   short_link: {
     type: String,
   },
