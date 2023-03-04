@@ -53,7 +53,10 @@ router.post("/postOrder", async (req, res) => {
 				{ trip_uuid: 1 }
 			);
 			if (counterData?.trip_uuid) {
-				let tripData = await Trips.findOne({ trip_uuid: counterData.trip_uuid }, { warehouse_uuid: 1 });
+				let tripData = await Trips.findOne(
+					{ trip_uuid: counterData.trip_uuid },
+					{ warehouse_uuid: 1 }
+				);
 				value = {
 					...value,
 					trip_uuid: counterData?.trip_uuid,
@@ -91,7 +94,9 @@ router.post("/postOrder", async (req, res) => {
 			.filter(
 				a =>
 					a.counters.filter(b => b === value.counter_uuid).length ||
-					a.counter_groups.filter(b => counterGroupsData?.counter_group_uuid?.find(c => b === c)).length
+					a.counter_groups.filter(b =>
+						counterGroupsData?.counter_group_uuid?.find(c => b === c)
+					).length
 			);
 		let rangeOrderIncentive = incentiveData.filter(
 			a => a.users.filter(b => b === user_uuid).length && a.type === "range-order"
@@ -108,8 +113,9 @@ router.post("/postOrder", async (req, res) => {
 					(incentive_item.items.find(b => b === a.item_uuid) ||
 						incentive_item.item_groups.find(
 							b =>
-								itemsData.find(c => c.item_uuid === a.item_uuid)?.item_group_uuid.filter(d => b === d)
-									.length
+								itemsData
+									.find(c => c.item_uuid === a.item_uuid)
+									?.item_group_uuid.filter(d => b === d).length
 						))
 			);
 			if (+incentive_item.min_range <= eligibleItems.length) {
@@ -145,7 +151,10 @@ router.post("/postOrder", async (req, res) => {
 						let itemData = await Item.findOne({
 							item_uuid: item.item_uuid,
 						});
-						amt = +amt + ((+item.b * +itemData.conversion || 0) + item.p) * +incentive_item.value;
+						amt =
+							+amt +
+							((+item.b * +itemData.conversion || 0) + item.p) *
+								+incentive_item.value;
 					}
 				}
 
@@ -195,7 +204,9 @@ router.post("/postOrder", async (req, res) => {
 					console.log("Stock", stock);
 					let qty = +item.b * +itemData.conversion + +item.p + (+item.free || 0);
 					stock = stock?.filter(a => a.warehouse_uuid === warehouse_uuid)?.length
-						? stock.map(a => (a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a))
+						? stock.map(a =>
+								a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a
+						  )
 						: stock?.length
 						? [
 								...stock,
@@ -235,7 +246,10 @@ router.post("/postOrder", async (req, res) => {
 			});
 
 		if (response) {
-			await Details.updateMany({}, { next_invoice_number: +invoice_number.next_invoice_number + 1 });
+			await Details.updateMany(
+				{},
+				{ next_invoice_number: +invoice_number.next_invoice_number + 1 }
+			);
 			if (+orderStage === 2) {
 				let WhatsappNotification = await whatsapp_notifications.findOne({
 					notification_uuid: "out-for-delivery",
@@ -302,7 +316,9 @@ router.post("/sendMsg", async (req, res) => {
 			{ mobile: 1, counter_title: 1, short_link: 1 }
 		);
 
-		let mobile = counterData.mobile.filter(a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification));
+		let mobile = counterData.mobile.filter(
+			a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification)
+		);
 		if (WhatsappNotification?.status && mobile?.length) {
 			sendMessages({ value, WhatsappNotification, counterData });
 			res.json({ success: true, message: "Message Sent Successfully" });
@@ -327,7 +343,9 @@ router.post("/sendPdf", async (req, res) => {
 			{ mobile: 1, counter_title: 1, short_link: 1 }
 		);
 
-		let mobile = counterData.mobile.filter(a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification));
+		let mobile = counterData.mobile.filter(
+			a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification)
+		);
 		if (!mobile?.length) {
 			return res.json({
 				success: false,
@@ -388,14 +406,22 @@ router.put("/putOrders", async (req, res) => {
 
 					await Orders.deleteOne({ order_uuid: value.order_uuid });
 					fs.access(
-						"uploads/N" + (value.invoice_number || "") + "-{" + (value?.order_uuid || "") + "}.pdf",
+						"uploads/N" +
+							(value.invoice_number || "") +
+							"-" +
+							(value?.order_uuid || "") +
+							".pdf",
 						err => {
 							if (err) {
 								console.log(err);
 								return;
 							}
 							fs.unlink(
-								"uploads/N" + (value.invoice_number || "") + "-{" + (value?.order_uuid || "") + "}.pdf",
+								"uploads/N" +
+									(value.invoice_number || "") +
+									"-" +
+									(value?.order_uuid || "") +
+									".pdf",
 								err => {
 									if (err) {
 										console.log(err);
@@ -423,7 +449,11 @@ router.put("/putOrders", async (req, res) => {
 							// console.log("Stock", stock);
 							let qty = +item.b * +itemData.conversion + +item.p + (+item.free || 0);
 							stock = stock?.filter(a => a.warehouse_uuid === warehouse_uuid)?.length
-								? stock.map(a => (a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a))
+								? stock.map(a =>
+										a.warehouse_uuid === warehouse_uuid
+											? { ...a, qty: a.qty - qty }
+											: a
+								  )
 								: stock?.length
 								? [
 										...stock,
@@ -457,14 +487,22 @@ router.put("/putOrders", async (req, res) => {
 					});
 					await Orders.deleteOne({ order_uuid: value.order_uuid });
 					fs.access(
-						"uploads/N" + (value.invoice_number || "") + "-{" + (value?.order_uuid || "") + "}.pdf",
+						"uploads/N" +
+							(value.invoice_number || "") +
+							"-" +
+							(value?.order_uuid || "") +
+							".pdf",
 						err => {
 							if (err) {
 								console.log(err);
 								return;
 							}
 							fs.unlink(
-								"uploads/N" + (value.invoice_number || "") + "-{" + (value?.order_uuid || "") + "}.pdf",
+								"uploads/N" +
+									(value.invoice_number || "") +
+									"-" +
+									(value?.order_uuid || "") +
+									".pdf",
 								err => {
 									if (err) {
 										console.log(err);
@@ -499,16 +537,20 @@ router.put("/putOrders", async (req, res) => {
 					incentiveData = incentiveData.filter(
 						a =>
 							a.counters.filter(b => b === value.counter_uuid).length ||
-							a.counter_groups.filter(b => counterGroupsData?.counter_group_uuid?.find(c => b === c))
-								.length
+							a.counter_groups.filter(b =>
+								counterGroupsData?.counter_group_uuid?.find(c => b === c)
+							).length
 					);
 					let rangeOrderIncentive = incentiveData.filter(
-						a => a.users.filter(b => b === user_range_order).length && a.type === "range-order"
+						a =>
+							a.users.filter(b => b === user_range_order).length &&
+							a.type === "range-order"
 					);
 
 					let rangeDeliveryIntensive = incentiveData.filter(
 						a =>
-							a.users.filter(b => b === user_delivery_intensive).length && a.type === "delivery-incentive"
+							a.users.filter(b => b === user_delivery_intensive).length &&
+							a.type === "delivery-incentive"
 					);
 					if (!rangeDeliveryIntensive?.length) {
 						user_delivery_intensive = tripData?.users?.length ? tripData?.users[0] : "";
@@ -519,7 +561,9 @@ router.put("/putOrders", async (req, res) => {
 						);
 					}
 					let rangeItemIntensive = incentiveData.filter(
-						a => a.users.filter(b => b === user_range_order).length && a.type === "item-incentive"
+						a =>
+							a.users.filter(b => b === user_range_order).length &&
+							a.type === "item-incentive"
 					);
 
 					for (let incentive_item of rangeOrderIncentive) {
@@ -541,9 +585,14 @@ router.put("/putOrders", async (req, res) => {
 							});
 							userData = JSON.parse(JSON.stringify(userData));
 							let amt = eligibleItems.length * incentive_item.amt;
-							let incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2);
+							let incentive_balance = (
+								+(userData.incentive_balance || 0) + amt
+							).toFixed(2);
 
-							await Users.updateMany({ user_uuid: user_range_order }, { incentive_balance });
+							await Users.updateMany(
+								{ user_uuid: user_range_order },
+								{ incentive_balance }
+							);
 							let time = new Date();
 							let statment = await IncentiveStatment.create({
 								user_uuid: user_range_order,
@@ -564,8 +613,12 @@ router.put("/putOrders", async (req, res) => {
 							let amt = 0;
 							let incentive_balance = 0;
 							if (incentive_item.calculation === "amt" && incentive_item.value) {
-								amt = (incentive_item.value / 100) * (value.order_grandtotal || value.order_grandtotal);
-								incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2);
+								amt =
+									(incentive_item.value / 100) *
+									(value.order_grandtotal || value.order_grandtotal);
+								incentive_balance = (
+									+(userData.incentive_balance || 0) + amt
+								).toFixed(2);
 							}
 							if (incentive_item.calculation === "qty" && incentive_item.value) {
 								amt =
@@ -576,18 +629,24 @@ router.put("/putOrders", async (req, res) => {
 												.map(a => {
 													return (
 														(+a.b *
-															+itemData.find(c => c.item_uuid === a.item_uuid)
-																.conversion || 0) + a.p
+															+itemData.find(
+																c => c.item_uuid === a.item_uuid
+															).conversion || 0) + a.p
 													);
 												})
 												.reduce((a, b) => a + b)
 										: value.item_details.length
 										? (+value.item_details[0].b *
-												+itemData.find(c => c.item_uuid === value.item_details[0].item_uuid)
-													.conversion || 0) + value.item_details[0].p
+												+itemData.find(
+													c =>
+														c.item_uuid ===
+														value.item_details[0].item_uuid
+												).conversion || 0) + value.item_details[0].p
 										: 0);
 
-								incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2);
+								incentive_balance = (
+									+(userData.incentive_balance || 0) + amt
+								).toFixed(2);
 							}
 
 							if (tripData?.users?.length > 1) {
@@ -596,7 +655,9 @@ router.put("/putOrders", async (req, res) => {
 										{ user_uuid: tripUser },
 										{
 											$inc: {
-												incentive_balance: (amt / tripData?.users.length).toFixed(2),
+												incentive_balance: (
+													amt / tripData?.users.length
+												).toFixed(2),
 											},
 										}
 									);
@@ -660,12 +721,19 @@ router.put("/putOrders", async (req, res) => {
 										item_uuid: item.item_uuid,
 									});
 									amt =
-										+amt + ((+item.b * +itemData.conversion || 0) + item.p) * +incentive_item.value;
+										+amt +
+										((+item.b * +itemData.conversion || 0) + item.p) *
+											+incentive_item.value;
 								}
 							}
-							incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2);
+							incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(
+								2
+							);
 
-							await Users.updateMany({ user_uuid: user_range_order }, { incentive_balance });
+							await Users.updateMany(
+								{ user_uuid: user_range_order },
+								{ incentive_balance }
+							);
 							let time = new Date();
 							let statment = await IncentiveStatment.create({
 								user_uuid: user_range_order,
@@ -735,7 +803,9 @@ router.put("/putOrders", async (req, res) => {
 
 			if (value.edit) {
 				try {
-					const filename = `N${value.invoice_number || ""}-${value?.order_uuid || ""}.pdf`;
+					const filename = `N${value.invoice_number || ""}-${
+						value?.order_uuid || ""
+					}.pdf`;
 					if (!fs.existsSync(`uploads/${filename}`))
 						await generatePDFs([{ filename, order_id: value.order_uuid }]);
 				} catch (err) {
@@ -857,7 +927,8 @@ router.get("/getPendingEntry", async (req, res) => {
 						outstandindData?.find(
 							b =>
 								b.invoice_number === order.invoice_number ||
-								(b.order_uuid === order.order_uuid && b.counter_uuid === order.counter_uuid)
+								(b.order_uuid === order.order_uuid &&
+									b.counter_uuid === order.counter_uuid)
 						)?.amount || 0,
 				};
 			}),
@@ -917,7 +988,8 @@ router.put("/putOrderNotes", async (req, res) => {
 			invoice_number: value.invoice_number,
 		});
 		let data = {};
-		if (orderData) data = await Orders.updateOne({ invoice_number: value.invoice_number }, value);
+		if (orderData)
+			data = await Orders.updateOne({ invoice_number: value.invoice_number }, value);
 		else data = await OrderCompleted.updateOne({ invoice_number: value.invoice_number }, value);
 		if (data.acknowledged) {
 			res.json({
@@ -1122,12 +1194,15 @@ router.get("/GetOrder/:order_uuid", async (req, res) => {
 				?.map(a => ({
 					...a,
 					category_title: categoryData.find(
-						b => b.category_uuid === itemData.find(b => b.item_uuid === a.item_uuid).category_uuid
+						b =>
+							b.category_uuid ===
+							itemData.find(b => b.item_uuid === a.item_uuid).category_uuid
 					)?.category_title,
 				}))
 				.sort(
 					(a, b) =>
-						a?.category_title?.localeCompare(b.category_title) || a?.item_title?.localeCompare(b.item_title)
+						a?.category_title?.localeCompare(b.category_title) ||
+						a?.item_title?.localeCompare(b.item_title)
 				),
 		};
 
@@ -1306,11 +1381,16 @@ router.post("/getCompleteOrderList", async (req, res) => {
 		console.log(value);
 		let endDate = +value.endDate + 86400000;
 		console.log(endDate, value.startDate);
-		let response = await OrderCompleted.find(!req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid });
+		let response = await OrderCompleted.find(
+			!req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid }
+		);
 
 		response = JSON.parse(JSON.stringify(response));
 		response = response?.filter(
-			order => order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate).length
+			order =>
+				order.status.filter(
+					a => +a.stage === 1 && a.time > value.startDate && a.time < endDate
+				).length
 		);
 
 		response = response.map(order => ({
@@ -1351,11 +1431,17 @@ router.post("/getStockDetails", async (req, res) => {
 		});
 		let responseVoucher = await Vochers.find({
 			"item_details.item_uuid": value.item_uuid,
-			"$or": [{ from_warehouse: value.warehouse_uuid }, { to_warehouse: value.warehouse_uuid }],
+			"$or": [
+				{ from_warehouse: value.warehouse_uuid },
+				{ to_warehouse: value.warehouse_uuid },
+			],
 		});
 		response = JSON.parse(JSON.stringify(response));
 		response = response?.filter(
-			order => order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate).length
+			order =>
+				order.status.filter(
+					a => +a.stage === 1 && a.time > value.startDate && a.time < endDate
+				).length
 		);
 		const counterData = await Counters.find(
 			{
@@ -1391,8 +1477,11 @@ router.post("/getStockDetails", async (req, res) => {
 					date: item.created_at,
 					to:
 						"Warehouse:" +
-						warehouseData?.find(a => a.warehouse_uuid === (added ? item.from_warehouse : item.to_warehouse))
-							?.warehouse_title,
+						warehouseData?.find(
+							a =>
+								a.warehouse_uuid ===
+								(added ? item.from_warehouse : item.to_warehouse)
+						)?.warehouse_title,
 					added: added ? (orderItem?.b || 0) + ":" + (orderItem.p || 0) : 0,
 					reduce: added ? 0 : (orderItem?.b || 0) + ":" + (orderItem.p || 0),
 				};
@@ -1487,10 +1576,17 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
 							? response.map(a => +a?.amt || 0).reduce((a, b) => a + b)
 							: response[0]?.amt || 0,
 					total_cash:
-						cash.length > 1 ? cash.map(a => +a?.amt || 0).reduce((a, b) => a + b) : amt[0]?.cash || 0,
+						cash.length > 1
+							? cash.map(a => +a?.amt || 0).reduce((a, b) => a + b)
+							: amt[0]?.cash || 0,
 					total_cheque:
-						cheque.length > 1 ? cheque.map(a => +a?.amt || 0).reduce((a, b) => a + b) : cheque[0]?.amt || 0,
-					total_upi: upi.length > 1 ? upi.map(a => +a?.amt || 0).reduce((a, b) => a + b) : upi[0]?.amt || 0,
+						cheque.length > 1
+							? cheque.map(a => +a?.amt || 0).reduce((a, b) => a + b)
+							: cheque[0]?.amt || 0,
+					total_upi:
+						upi.length > 1
+							? upi.map(a => +a?.amt || 0).reduce((a, b) => a + b)
+							: upi[0]?.amt || 0,
 					total_unpaid:
 						response.length > 1
 							? response.map(a => +a?.unpaid || 0).reduce((a, b) => a + b)
@@ -1520,7 +1616,10 @@ router.post("/getCounterLedger", async (req, res) => {
 		});
 		response = JSON.parse(JSON.stringify(response));
 		response = response.filter(
-			order => order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate).length
+			order =>
+				order.status.filter(
+					a => +a.stage === 1 && a.time > value.startDate && a.time < endDate
+				).length
 		);
 		response = [...receiptsData, ...response];
 		response = response.map(order => ({
@@ -1564,7 +1663,10 @@ router.post("/getOrderItemReport", async (req, res) => {
 		counterData = JSON.parse(JSON.stringify(counterData));
 		response = response
 			.filter(
-				order => order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate).length
+				order =>
+					order.status.filter(
+						a => +a.stage === 1 && a.time > value.startDate && a.time < endDate
+					).length
 			)
 			.filter(
 				a =>
@@ -1617,10 +1719,14 @@ router.post("/getOrderItemReport", async (req, res) => {
 		itemsData = JSON.parse(JSON.stringify(itemsData));
 
 		let data = [];
-		for (let a of itemsData.filter(a => !value.company_uuid || a.company_uuid === value.company_uuid)) {
+		for (let a of itemsData.filter(
+			a => !value.company_uuid || a.company_uuid === value.company_uuid
+		)) {
 			let salesData = sales.filter(b => b.item_uuid === a.item_uuid);
 			let deliver_returnData = deliver_return.filter(b => b.item_uuid === a.item_uuid);
-			let processing_canceledData = processing_canceled.filter(b => b.item_uuid === a.item_uuid);
+			let processing_canceledData = processing_canceled.filter(
+				b => b.item_uuid === a.item_uuid
+			);
 			let auto_addedData = auto_added.filter(b => b.item_uuid === a.item_uuid);
 
 			let obj = {
@@ -1691,7 +1797,8 @@ router.post("/getOrderItemReport", async (req, res) => {
 		}
 		let FinalData = data.map(a => ({
 			...a,
-			sales: +a.salesB + parseInt(+a.salesP / +a.conversion) + ":" + (+a.salesP % +a.conversion),
+			sales:
+				+a.salesB + parseInt(+a.salesP / +a.conversion) + ":" + (+a.salesP % +a.conversion),
 			deliver_return:
 				+a.deliver_returnB +
 				parseInt(+a.deliver_returnP / +a.conversion) +
@@ -1703,9 +1810,14 @@ router.post("/getOrderItemReport", async (req, res) => {
 				":" +
 				(+a.processing_canceledP % +a.conversion),
 			auto_added:
-				+a.auto_addedB + parseInt(+a.auto_addedP / +a.conversion) + ":" + (+a.auto_addedP % +a.conversion),
+				+a.auto_addedB +
+				parseInt(+a.auto_addedP / +a.conversion) +
+				":" +
+				(+a.auto_addedP % +a.conversion),
 			deliver_return_percentage: (
-				Math.abs(((+a.deliver_returnB * (+a.conversion || 1) || 0) + a.deliver_returnP) * 100) /
+				Math.abs(
+					((+a.deliver_returnB * (+a.conversion || 1) || 0) + a.deliver_returnP) * 100
+				) /
 					(+a.salesB * (+a.conversion || 0) +
 						a.salesP +
 						(a.deliver_returnB * a.conversion + a.deliver_returnP) +
@@ -1716,20 +1828,25 @@ router.post("/getOrderItemReport", async (req, res) => {
 					(a.salesB * a.conversion +
 						a.salesP +
 						(a.deliver_returnB * a.conversion + a.deliver_returnP) +
-						((+a.processing_canceledB || 0) * (+a.conversion || 1) + (+a.processing_canceledP || 0)) ||
-						1) || 0
+						((+a.processing_canceledB || 0) * (+a.conversion || 1) +
+							(+a.processing_canceledP || 0)) || 1) || 0
 			).toFixed(2),
 
 			auto_added_percentage: (
-				((a.auto_addedB * a.conversion + a.auto_addedP) * 100) / (a.salesB * a.conversion + a.salesP || 1) || 0
+				((a.auto_addedB * a.conversion + a.auto_addedP) * 100) /
+					(a.salesB * a.conversion + a.salesP || 1) || 0
 			).toFixed(2),
 			deliver_return_amt: (
-				Math.abs(a.sales_amt * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)) || 0
+				Math.abs(a.sales_amt * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)) ||
+				0
 			).toFixed(2),
 			processing_canceled_amt: (
-				a.sales_amt * (+a.conversion * (+a.processing_canceledB + a.processing_canceledP)) || 0
+				a.sales_amt *
+					(+a.conversion * (+a.processing_canceledB + a.processing_canceledP)) || 0
 			).toFixed(2),
-			auto_added_amt: (a.sales_amt * (+a.conversion * +a.auto_addedB + a.auto_addedP) || 0).toFixed(2),
+			auto_added_amt: (
+				a.sales_amt * (+a.conversion * +a.auto_addedB + a.auto_addedP) || 0
+			).toFixed(2),
 		}));
 		if (FinalData) {
 			res.json({ success: true, result: FinalData });

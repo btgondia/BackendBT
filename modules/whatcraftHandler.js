@@ -8,7 +8,7 @@ const whatcraft_ip = "http://3.111.81.7:2000";
 const filterContacts = coll => coll?.filter(i => i?.mobile && i?.lable?.find(a => a.type === "wa" && +a.varification));
 
 const callAPI = async ({ file, data }) => {
-	return console.log("WHATCRAFT API ACCESS CURRENTLY UNAVAILABLE.");
+	return console.yellow("WHATCRAFT API ACCESS CURRENTLY UNAVAILABLE.");
 	// try {
 	// 	if (file.length) {
 	// 		const form = new FormData();
@@ -94,16 +94,18 @@ const sendMessages = async ({ counterData = {}, value = {}, WhatsappNotification
 			await generatePDFs([{ filename, order_id: value.order_uuid }]);
 		}
 
-		const response = await contactsProcessHandler(
-			filterContacts(counterData?.mobile),
-			WhatsappNotification.message,
-			counterData,
-			value,
-			{ notify: WhatsappNotification?.checkbox }
-		);
+		if (WhatsappNotification?.message) {
+			const response = await contactsProcessHandler(
+				filterContacts(counterData?.mobile),
+				WhatsappNotification?.message,
+				counterData,
+				value,
+				{ notify: WhatsappNotification?.checkbox }
+			);
 
-		data = data.concat(response.data);
-		file = file.concat(response.file);
+			data = data.concat(response.data);
+			file = file.concat(response.file);
+		}
 
 		await callAPI({ file, data });
 	} catch (err) {
