@@ -9,6 +9,7 @@ let BROWSER_CLOSE_TIMER = null;
 
 const generatePDFs = async data => {
 	try {
+		if (!data?.length) return console.log("PDF GENERATION TERMINATED. NO PARAMS PROVIDED.", data?.length);
 		clearTimeout(BROWSER_CLOSE_TIMER);
 		if (!BROWSER_INSTANCE?.isConnected()) {
 			console.green("LAUNCING BROWSER INSTANCE. CONNECTION STATE: " + +BROWSER_INSTANCE?.isConnected());
@@ -74,8 +75,7 @@ const checkPDFs = async data => {
 				order_id: order.order_uuid,
 			}));
 
-		if (!_data) return;
-		await generatePDFs(_data);
+		if (_data) await generatePDFs(_data);
 	} catch (error) {
 		console.red("ERROR IN PDFs CHECKING; ERROR: " + error.message);
 		console.log(error);
