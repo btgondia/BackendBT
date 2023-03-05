@@ -14,16 +14,17 @@ const generatePDFs = async data => {
 		clearTimeout(browser_close_timer);
 		if (BROWSER.STATE !== 1) {
 			console.green("LAUNCING BROWSER INSTANCE; CURRENT STATE: " + BROWSER.STATE);
+			BROWSER.STATE = 1;
 			BROWSER.INSTANCE = await puppeteer.launch({ args: ["--no-sandbox"] });
 			BROWSER.PAGE = await BROWSER.INSTANCE.newPage();
-			BROWSER.STATE = 1;
 			BROWSER.INSTANCE.on("disconnected", () => {
 				BROWSER.STATE = 0;
+				console.yellow("BROWSER INSTANCE CLOSED. CURRENT STATE: " + BROWSER.STATE);
 			});
 		}
 		for (const { filename, order_id } of data) {
 			if (BROWSER.STATE !== 1) {
-				console.red("PROCESS FAILED! BROWSER.STATE: " + BROWSER.STATE);
+				console.red("PROCESS FAILED! CURRENT STATE: " + BROWSER.STATE);
 				continue;
 			}
 			const filepath = `uploads/${filename}`;
