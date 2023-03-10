@@ -1,9 +1,8 @@
 const App = require("./App.js");
 
-console.logEscape = console.log.bind(console);
 console.logCopy = console.log.bind(console);
 console.log = function (...data) {
-	var currentDate = "[" + new Date().toUTCString() + "] ";
+	let currentDate = "[" + new Date().toUTCString() + "] ";
 	this.logCopy(currentDate, ...data);
 };
 
@@ -25,13 +24,5 @@ console.blue = str => console.log(colors.blue, str, colors.white);
 console.magenta = str => console.log(colors.magenta, str, colors.white);
 console.cyan = str => console.log(colors.cyan, str, colors.white);
 console.gray = str => console.log(colors.gray, str, colors.white);
-console._time = str => {
-	console.time(colors.yellow + str);
-	console.logEscape(colors.white);
-};
-console._timeEnd = str => {
-	console.timeEnd(colors.yellow + str);
-	console.logEscape(colors.white);
-};
 
 App.listen(9000, () => console.log("Server running on port 9000"));

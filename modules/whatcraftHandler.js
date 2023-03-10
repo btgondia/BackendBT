@@ -3,31 +3,33 @@ const FormData = require("form-data");
 const axios = require("axios");
 const Notification_logs = require("../Models/notification_log");
 const { getFileName, generatePDFs } = require("./puppeteerUtilities");
-// const whatcraft_ip = "http://localhost:2000";
-const whatcraft_ip = "http://3.111.81.7:2000";
+const whatcraft_ip = "http://localhost:2000";
+// const whatcraft_ip = "http://15.207.39.69:2000";
 const filterContacts = coll => coll?.filter(i => i?.mobile && i?.lable?.find(a => a.type === "wa" && +a.varification));
 
 const callAPI = async ({ file, data }) => {
-	return console.yellow("WHATCRAFT API ACCESS CURRENTLY UNAVAILABLE.");
-	// try {
-	// 	if (file.length) {
-	// 		const form = new FormData();
-	// 		form.append("instructions", JSON.stringify(data));
-	// 		for (let item of file) form.append("file", fs.createReadStream("uploads/" + (item || "")));
-	// 		const result = await axios.post(`${whatcraft_ip}/send`, form, form.getHeaders());
-	// 		console.log(result.data, data);
-	// 	} else {
-	// 		let msgResponse = await axios({
-	// 			url: `${whatcraft_ip}/sendMessage`,
-	// 			method: "post",
-	// 			data,
-	// 		});
-	// 		console.log(msgResponse.data, data);
-	// 	}
-	// } catch (error) {
-	// 	console.log("ERROR IN WHATCRAFT API REQUEST.");
-	// 	console.error(error.message);
-	// }
+	// return console.yellow("WHATCRAFT API ACCESS CURRENTLY UNAVAILABLE.");
+	try {
+		if (file.length) {
+			const form = new FormData();
+			form.append("instructions", JSON.stringify(data));
+			for (let item of file) form.append("file", fs.createReadStream("uploads/" + (item || "")));
+			const result = await axios.post(`${whatcraft_ip}/send`, form, form.getHeaders());
+			console.yellow("WHATCRAFT API RESPONDED:");
+			console.log(result.data, data);
+		} else {
+			let msgResponse = await axios({
+				url: `${whatcraft_ip}/sendMessage`,
+				method: "post",
+				data,
+			});
+			console.yellow("WHATCRAFT API RESPONDED:");
+			console.log(msgResponse.data, data);
+		}
+	} catch (error) {
+		console.red("ERROR IN WHATCRAFT API REQUEST.");
+		console.error(error.message);
+	}
 };
 
 const contactsProcessHandler = async (contacts, messagesCollection, counterData, value, options = {}) => {
