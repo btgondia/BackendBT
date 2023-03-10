@@ -37,15 +37,7 @@ const generatePDFs = async data => {
 			await verifyInstance();
 		} else if (!BROWSER_INSTANCE?.isConnected()) {
 			BROWSER_INITIALIZING_INPROGRESS = true;
-
 			console.green("LAUNCING BROWSER INSTANCE. CONNECTION STATE: " + +BROWSER_INSTANCE?.isConnected());
-
-			await new Promise((resolve, reject) => {
-				setTimeout(() => {
-					resolve();
-				}, 10000);
-			});
-
 			BROWSER_INSTANCE = await puppeteer.launch({ args: ["--no-sandbox"] });
 			BROWSER_PAGE = await BROWSER_INSTANCE.newPage();
 			BROWSER_INITIALIZING_INPROGRESS = false;
