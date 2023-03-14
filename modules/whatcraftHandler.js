@@ -3,8 +3,8 @@ const FormData = require("form-data");
 const axios = require("axios");
 const Notification_logs = require("../Models/notification_log");
 const { getFileName, generatePDFs } = require("./puppeteerUtilities");
-const whatcraft_ip = "http://localhost:2000";
-// const whatcraft_ip = "http://15.207.39.69:2000";
+//  const whatcraft_ip = "http://localhost:2000";
+const whatcraft_ip = "http://15.207.39.69:2000";
 const filterContacts = coll => coll?.filter(i => i?.mobile && i?.lable?.find(a => a.type === "wa" && +a.varification));
 
 const callAPI = async ({ file, data }) => {
@@ -121,4 +121,4 @@ const compaignShooter = async ({ counterData = {}, value = {} }) => {
 	await callAPI(response);
 };
 
-module.exports = { sendMessages, compaignShooter };
+module.exports = { sendMessages, compaignShooter,whatcraft_ip };

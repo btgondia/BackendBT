@@ -14,6 +14,7 @@ const notification_log = require("../Models/notification_log");
 const axios = require("axios");
 const orderForms = require("../Models/orderForms");
 const Campaigns = require("../Models/Campaigns");
+const { whatcraft_ip } = require("../modules/whatcraftHandler");
 var msg91 = require("msg91-templateid")(
   "312759AUCbnlpoZeD61714959P1",
   "foodDo",
@@ -681,7 +682,7 @@ router.post("/sendWhatsappOtp", async (req, res) => {
       });
 
       let msgResponse = await axios({
-        url: "http://3.111.81.7:2000/sendMessage",
+        url: `${whatcraft_ip}/sendMessage`,
         method: "post",
         data,
       });
