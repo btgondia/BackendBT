@@ -941,6 +941,9 @@ router.get("/getPendingEntry", async (req, res) => {
         order_grandtotal: 1,
         item_details: 1,
         status: 1,
+        replacement: 1,
+        shortage: 1,
+        adjustment: 1,
       }
     );
     data = JSON.parse(JSON.stringify(data));
@@ -966,7 +969,7 @@ router.get("/getPendingEntry", async (req, res) => {
             (b.order_uuid === order.order_uuid &&
               b.counter_uuid === order.counter_uuid)
         );
-
+console.log(order);
         return {
           ...order,
           modes: receipt?.modes || [],
