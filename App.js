@@ -40,6 +40,7 @@ const campaigns = require("./Routes/campaigns");
 const OrderForm = require("./Routes/OrderForm");
 const multer = require("multer");
 const fs = require("fs");
+const CashRegister = require("./Routes/cash_regiterations");
 
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
@@ -105,6 +106,7 @@ app.use("/counter_scheme", Counter_scheme);
 app.use("/whatsapp_notifications", whatsapp_notifications);
 app.use("/campaigns", campaigns);
 app.use("/orderForm", OrderForm);
+app.use("/cashRegistrations", CashRegister);
 app.get("/MinLevelUpdate", async (req, res, next) => {
 	const response = await MinLevelUpdateAutomation();
 	res.json({ success: true, message: "Updated", result: response });

@@ -3,10 +3,12 @@ const Counters = require("../Models/Counters");
 const OrderCompleted = require("../Models/OrderCompleted");
 const Orders = require("../Models/Orders");
 const Users = require("../Models/Users");
-
+const { v4: uuid } = require("uuid");
 const router = express.Router();
 const Receipts = require("../Models/Receipts");
 const Details = require("../Models/Details");
+const CashRegister = require("../Models/cash_register");
+const cash_register_transections = require("../Models/cash_register_transections");
 
 router.get("/getPendingEntry", async (req, res) => {
   try {
@@ -27,6 +29,31 @@ router.post("/postReceipt", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
+    let cashAmount =
+      value.modes.find(
+        (b) => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002" && b.amt
+      )?.amt || 0;
+    let cash_register = await CashRegister.findOne({
+      created_by: value.user_uuid,
+      status: 1,
+    });
+    if (cashAmount && cash_register) {
+      await CashRegister.updateMany(
+        {
+          created_by: value.user_uuid,
+          status: 1,
+        },
+        { $inc: { balance: cashAmount } }
+      );
+      await cash_register_transections.create({
+        order_uuid: value.order_uuid,
+        amount:cashAmount,
+        created_at: new Date().getTime(),
+        type:"in",
+        register_uuid:cash_register.register_uuid,
+        transaction_uuid:uuid()
+      })
+    }
     let resciptJson = await Receipts.findOne({
       $or: [
         { invoice_number: value.invoice_number },
@@ -144,7 +171,9 @@ router.put("/putCompleteOrder", async (req, res) => {
       { receipt_number: value.receipt_number },
       { modes: 1 }
     );
-    let pending = receiptData?.modes?.find((b) => b.status === 0 && b.amt) ? 0 : 1;
+    let pending = receiptData?.modes?.find((b) => b.status === 0 && b.amt)
+      ? 0
+      : 1;
     let data = await Receipts.updateOne(
       { receipt_number: value.receipt_number },
       { ...value, pending }

@@ -262,7 +262,7 @@ router.get("/minValue/:warhouse_uuid/:item_uuid", async (req, res) => {
 router.get("/GetItemStockList/:warhouse_uuid", async (req, res) => {
 	try {
 		console.log(req.params.warhouse_uuid);
-		let data = await Item.find({});
+		let data = await Item.find({status:1});
 		data = JSON.parse(JSON.stringify(data));
 		if (req.params.warhouse_uuid)
 			data = data.map(a => ({
