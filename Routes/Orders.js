@@ -21,7 +21,7 @@ const whatsapp_notifications = require("../Models/whatsapp_notifications");
 const Campaigns = require("../Models/Campaigns");
 const fs = require("fs");
 const ItemCategories = require("../Models/ItemCategories");
-const { sendMessages } = require("../modules/whatcraftHandler");
+const { sendMessages } = require("../modules/messagesHandler");
 const { generatePDFs, checkPDFs } = require("../modules/puppeteerUtilities");
 
 router.post("/postOrder", async (req, res) => {

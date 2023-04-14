@@ -1,3 +1,4 @@
+require("dotenv").config();
 const App = require("./App.js");
 
 console.logCopy = console.log.bind(console);
@@ -25,4 +26,5 @@ console.magenta = str => console.log(colors.magenta, str, colors.white);
 console.cyan = str => console.log(colors.cyan, str, colors.white);
 console.gray = str => console.log(colors.gray, str, colors.white);
 
-App.listen(9000, () => console.log("Server running on port 9000"));
+const PORT = process.env.PORT || 9000;
+App.listen(PORT, () => console.log(`Server running on port ${PORT}`));

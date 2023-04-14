@@ -5,7 +5,7 @@ const { v4: uuid } = require("uuid");
 const Campaigns = require("../Models/Campaigns");
 const Counters = require("../Models/Counters");
 const fs = require("fs");
-const { compaignShooter } = require("../modules/whatcraftHandler");
+const { compaignShooter } = require("../modules/messagesHandler");
 
 router.post("/CreateCampaigns", async (req, res) => {
 	try {

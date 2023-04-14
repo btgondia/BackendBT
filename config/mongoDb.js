@@ -1,11 +1,12 @@
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 
+console.log(process.env.MONGO_URI);
 const connectDB = async () => {
-    const conn = await mongoose.connect("mongodb+srv://btgondia:UfWmWi7kuoMkfo1i@cluster0.tp4tb.mongodb.net/BT", {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    });
-    console.log(`connected to mongoDB atlas ${conn.connection.host}`)
-}
+	const conn = await mongoose.connect(process.env.MONGO_URI, {
+		useNewUrlParser: true,
+		useUnifiedTopology: true,
+	});
+	console.log(`Connected to mongoDB atlas ${conn.connection.host}`);
+};
 
 module.exports = connectDB;

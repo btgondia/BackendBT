@@ -1,46 +1,49 @@
 const cors = require("cors");
 const express = require("express");
-const connectDB = require("./config/mongoDb");
 const morgan = require("morgan");
 const gTTS = require("gtts");
-const Routes = require("./Routes/Routes");
-const ItemCategories = require("./Routes/ItemCategories");
-const Companies = require("./Routes/Companies");
-const CounterGroup = require("./Routes/CounterGroup");
-const ItemGroup = require("./Routes/ItemGroup");
-const Counter = require("./Routes/Counters");
-const TestCounter = require("./Routes/TestCounter");
-const Users = require("./Routes/Users");
-const Item = require("./Routes/Item");
-const ItemModel = require("./Models/Item");
-const Vouchers = require("./Routes/Vouchers");
-const Warehouse = require("./Routes/Warehouse");
-const WarehouseModel = require("./Models/Warehouse");
-const Tasks = require("./Routes/Tasks");
-const AutoBill = require("./Routes/AutoBill");
-const Orders = require("./Routes/Orders");
-const Trips = require("./Routes/Trips");
-const UserActivity = require("./Routes/UserActivity");
-const PaymentModes = require("./Routes/PaymentModes");
-const Receipts = require("./Routes/Receipts");
-const Outstanding = require("./Routes/Outstanding");
-const Details = require("./Routes/Details");
-const DetailsModel = require("./Models/Details");
-var bodyParser = require("body-parser");
-const Incentive = require("./Routes/Incentives");
-const IncentiveStatment = require("./Routes/IncentiveStatment");
-const OrderCompleted = require("./Models/OrderCompleted");
-const CancelOrders = require("./Routes/CancelOrder");
-const CancelOrdersModel = require("./Models/CancelOrders");
-const Vochers = require("./Models/Vochers");
-const CollectionTags = require("./Routes/collectionTag");
-const Counter_scheme = require("./Routes/counter_schemes");
-const whatsapp_notifications = require("./Routes/whatsapp_notifications");
-const campaigns = require("./Routes/campaigns");
-const OrderForm = require("./Routes/OrderForm");
 const multer = require("multer");
 const fs = require("fs");
-const CashRegister = require("./Routes/cash_regiterations");
+const bodyParser = require("body-parser");
+
+const connectDB = require("./config/mongoDb");
+
+const WarehouseModel = require("./Models/Warehouse");
+const ItemModel = require("./Models/Item");
+const DetailsModel = require("./Models/Details");
+const OrderCompleted = require("./Models/OrderCompleted");
+const CancelOrdersModel = require("./Models/CancelOrders");
+const Vochers = require("./Models/Vochers");
+
+const Routes = require("./routes/Routes");
+const ItemCategories = require("./routes/ItemCategories");
+const Companies = require("./routes/Companies");
+const CounterGroup = require("./routes/CounterGroup");
+const ItemGroup = require("./routes/ItemGroup");
+const Counter = require("./routes/Counters");
+const TestCounter = require("./routes/TestCounter");
+const Users = require("./routes/Users");
+const Item = require("./routes/Item");
+const Vouchers = require("./routes/Vouchers");
+const Warehouse = require("./routes/Warehouse");
+const Tasks = require("./routes/Tasks");
+const AutoBill = require("./routes/AutoBill");
+const Orders = require("./routes/Orders");
+const Trips = require("./routes/Trips");
+const UserActivity = require("./routes/UserActivity");
+const PaymentModes = require("./routes/PaymentModes");
+const Receipts = require("./routes/Receipts");
+const Outstanding = require("./routes/Outstanding");
+const Details = require("./routes/Details");
+const Incentive = require("./routes/Incentives");
+const IncentiveStatment = require("./routes/IncentiveStatment");
+const CancelOrders = require("./routes/CancelOrder");
+const CollectionTags = require("./routes/collectionTag");
+const Counter_scheme = require("./routes/counter_schemes");
+const whatsapp_notifications = require("./routes/whatsapp_notifications");
+const campaigns = require("./routes/campaigns");
+const OrderForm = require("./routes/OrderForm");
+const CashRegister = require("./routes/cash_regiterations");
 
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
@@ -64,7 +67,6 @@ app.use(
 	})
 );
 
-// app.use(express.json());
 app.use(bodyParser.json({ limit: "100mb" }));
 app.use(
 	bodyParser.urlencoded({
@@ -135,7 +137,9 @@ const MinLevelUpdateAutomation = async () => {
 
 	for (let warehouseItem of warehouseData) {
 		let time = new Date().getTime();
-		let FiteenDaysTime = new Date(time - 86400000 * (warehouseItem?.compare_stock_level || 0)).toDateString();
+		let FiteenDaysTime = new Date(
+			time - 86400000 * (warehouseItem?.compare_stock_level || 0)
+		).toDateString();
 		FiteenDaysTime = new Date(FiteenDaysTime + " 00:00:00 AM").getTime();
 		let ordersData = await OrderCompleted.find({
 			"status.time": { $gt: FiteenDaysTime },
@@ -150,7 +154,9 @@ const MinLevelUpdateAutomation = async () => {
 			from_warehouse: warehouseItem.warehouse_uuid,
 		});
 		ordersData = JSON.parse(JSON.stringify(ordersData));
-		ordersData = ordersData.filter(a => a.status.filter(b => +b.stage === 1 && b.time > FiteenDaysTime).length);
+		ordersData = ordersData.filter(
+			a => a.status.filter(b => +b.stage === 1 && b.time > FiteenDaysTime).length
+		);
 		cancelOrdersData = JSON.parse(JSON.stringify(cancelOrdersData));
 		cancelOrdersData = cancelOrdersData.filter(
 			a => a.status.filter(b => +b.stage === 1 && b.time > FiteenDaysTime).length
@@ -222,11 +228,14 @@ const MinLevelUpdateAutomation = async () => {
 		for (let item of result) {
 			let min_level = +item.b * +item.conversion + +item.p;
 			min_level = Math.floor(
-				min_level * ((warehouseItem?.maintain_stock_days || 0) / (warehouseItem?.compare_stock_level || 1))
+				min_level *
+					((warehouseItem?.maintain_stock_days || 0) / (warehouseItem?.compare_stock_level || 1))
 			);
 			let stock = item.stock;
 			stock = stock?.filter(a => a.warehouse_uuid === warehouseItem.warehouse_uuid)?.length
-				? stock.map(a => (a.warehouse_uuid === warehouseItem.warehouse_uuid ? { ...a, min_level } : a))
+				? stock.map(a =>
+						a.warehouse_uuid === warehouseItem.warehouse_uuid ? { ...a, min_level } : a
+				  )
 				: stock?.length
 				? [
 						...stock,
