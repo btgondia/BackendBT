@@ -6,7 +6,7 @@ const multer = require("multer");
 const fs = require("fs");
 const bodyParser = require("body-parser");
 
-const connectDB = require("./config/mongoDb");
+const connectDB = require("./config/mongo");
 
 const WarehouseModel = require("./Models/Warehouse");
 const ItemModel = require("./Models/Item");
@@ -44,6 +44,7 @@ const whatsapp_notifications = require("./routes/whatsapp_notifications");
 const campaigns = require("./routes/campaigns");
 const OrderForm = require("./routes/OrderForm");
 const CashRegister = require("./routes/cash_regiterations");
+const xpressRoutes = require("./routes/xpress");
 
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
@@ -80,6 +81,7 @@ app.post("/uploadImage", upload.single("file"), (req, res) => {
 	res.json({ success: true });
 });
 
+app.use("/xpress", xpressRoutes);
 app.use("/routes", Routes);
 app.use("/itemCategories", ItemCategories);
 app.use("/companies", Companies);

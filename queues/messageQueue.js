@@ -19,6 +19,7 @@ if (process.env?.NODE_ENV !== "development")
 	});
 
 const messageEnque = async doc => {
+	if (doc.message) doc.message = await doc.message.replaceAll("\n", "%0A");
 	console.log("MESSAGE ENQUE ", doc);
 	await queue.add("Message", doc);
 };

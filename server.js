@@ -27,4 +27,4 @@ console.cyan = str => console.log(colors.cyan, str, colors.white);
 console.gray = str => console.log(colors.gray, str, colors.white);
 
 const PORT = process.env.PORT || 9000;
-App.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+App.listen(PORT, () => console.green(`Server running on port ${PORT}`));
