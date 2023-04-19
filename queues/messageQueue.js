@@ -18,10 +18,17 @@ if (process.env?.NODE_ENV !== "development")
 		},
 	});
 
+const getRandomBetween = (max = processingGap, min = processingGap - 1000) =>
+	~~(Math.random() * (max - min) + min);
+
 const messageEnque = async doc => {
+	const job_count = (await queue.getJobCounts("delayed"))?.delayed;
+	const delay = job_count * 2000 + getRandomBetween((job_count + 1) * 100, job_count * 100);
+
 	if (doc.message) doc.message = await doc.message.replaceAll("\n", "%0A");
 	console.log("MESSAGE ENQUE ", doc);
-	await queue.add("Message", doc);
+	console.log("PROCESSING DELAY:", delay, { job_count });
+	await queue.add("Message", doc, { delay });
 };
 
 const getParams = (_params = params) => {
@@ -34,8 +41,9 @@ const getParams = (_params = params) => {
 	);
 };
 
-if (process.env?.NODE_ENV !== "development")
-	new Worker(
+let worker;
+if (process.env?.NODE_ENV !== "development") {
+	worker = new Worker(
 		"Messages",
 		async job => {
 			try {
@@ -73,5 +81,6 @@ if (process.env?.NODE_ENV !== "development")
 			connection: redisConnection,
 		}
 	);
+}
 
 module.exports = { messageEnque };
