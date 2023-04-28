@@ -22,7 +22,7 @@ const Campaigns = require("../Models/Campaigns")
 const fs = require("fs")
 const ItemCategories = require("../Models/ItemCategories")
 const { sendMessages, compaignShooter } = require("../modules/messagesHandler")
-const { generatePDFs, checkPDFs } = require("../modules/puppeteerUtilities")
+const { generatePDFs, checkPDFs, getFileName } = require("../modules/puppeteerUtilities")
 
 router.post("/postOrder", async (req, res) => {
 	try {
@@ -346,7 +346,7 @@ router.post("/sendPdf", async (req, res) => {
 			})
 		}
 
-		await compaignShooter({ counterData, value, options: { notify: true } })
+		await compaignShooter({ counterData, value, options: { orderPDF: true } })
 		res.json({ success: true, message: "Message Sent Successfully" })
 	} catch (err) {
 		res.status(500).json({ success: false, message: err.message })
@@ -399,28 +399,11 @@ router.put("/putOrders", async (req, res) => {
 					data = await CancelOrders.create(value)
 
 					await Orders.deleteOne({ order_uuid: value.order_uuid })
-					fs.access(
-						"uploads/N" + (value.invoice_number || "") + "-" + (value?.order_uuid || "") + ".pdf",
-						err => {
-							if (err) {
-								console.log(err)
-								return
-							}
-							fs.unlink(
-								"uploads/N" +
-									(value.invoice_number || "") +
-									"-" +
-									(value?.order_uuid || "") +
-									".pdf",
-								err => {
-									if (err) {
-										console.log(err)
-										return
-									}
-								}
-							)
-						}
-					)
+					const filepath = `uploads/${getFileName(value)}`
+					fs.access(filepath, err => {
+						if (err) return console.log(err)
+						fs.unlink(filepath, err => err && console.log(err))
+					})
 				}
 				// console.log("length", value?.item_details?.length);
 				// console.log("Old Data",data)
@@ -478,28 +461,12 @@ router.put("/putOrders", async (req, res) => {
 						entry: +orderStage === 5 ? 1 : 0,
 					})
 					await Orders.deleteOne({ order_uuid: value.order_uuid })
-					fs.access(
-						"uploads/N" + (value.invoice_number || "") + "-" + (value?.order_uuid || "") + ".pdf",
-						err => {
-							if (err) {
-								console.log(err)
-								return
-							}
-							fs.unlink(
-								"uploads/N" +
-									(value.invoice_number || "") +
-									"-" +
-									(value?.order_uuid || "") +
-									".pdf",
-								err => {
-									if (err) {
-										console.log(err)
-										return
-									}
-								}
-							)
-						}
-					)
+
+					const filepath = `uploads/${getFileName(value)}`
+					fs.access(filepath, err => {
+						if (err) return console.log(err)
+						fs.unlink(filepath, err => err && console.log(err))
+					})
 				}
 				// console.log("New DAta", data);
 				if (+orderStage === 4) {
@@ -768,7 +735,7 @@ router.put("/putOrders", async (req, res) => {
 
 			if (value.edit) {
 				try {
-					const filename = `N${value.invoice_number || ""}-${value?.order_uuid || ""}.pdf`
+					const filename = getFileName(value)
 					if (!fs.existsSync(`uploads/${filename}`))
 						await generatePDFs([{ filename, order_id: value.order_uuid }])
 				} catch (err) {

@@ -40,18 +40,25 @@ const contactsProcessHandler = async (contacts, messagesCollection, counterData,
 				}
 			}
 
-		if (options.notify && value?.order_uuid && fs.existsSync(`./uploads/${getFileName(value)}`)) {
+		if (
+			(options.notify || options?.orderPDF) &&
+			value?.order_uuid &&
+			fs.existsSync(`./uploads/${getFileName(value)}`)
+		) {
 			const doc = {
 				number: `${contact.mobile}`,
 				type: "media",
 				filename: getFileName(value),
 				message: value.invoice_number || "",
 			}
+
+			if (options?.orderPDF) doc.message = value.caption || ""
+			else doc.message = value.invoice_number || ""
+
 			console.log("sending message:", doc)
 			messages.push(doc)
 			await messageEnque(doc)
 		}
-
 		await Notification_logs.create({
 			contact: contact.mobile,
 			notification_uuid: value.notifiacation_uuid,
