@@ -681,6 +681,7 @@ router.put("/putOrders", async (req, res) => {
 
 				if (data) response.push(data)
 			} else {
+				if (value?.preventPrintUpdate) delete value.to_print
 				let data = await Orders.updateOne({ order_uuid: value.order_uuid }, value)
 				if (data.acknowledged) response.push(value)
 				else {
