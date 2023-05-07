@@ -17,7 +17,9 @@ const OrdersSchema = new mongoose.Schema({
 	to_print: { type: String },
 	opened_by: { type: String },
 	notes: [{ type: String }],
-	priority: { type: String },
+	priority: { type: Number },
+	time_1: { type: Number },
+	time_2: { type: Number },
 	item_details: [
 		{
 			item_uuid: { type: String },
