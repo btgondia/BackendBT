@@ -53,10 +53,7 @@ router.post("/postOrder", async (req, res) => {
 				{ trip_uuid: 1 }
 			)
 			if (counterData?.trip_uuid) {
-				let tripData = await Trips.findOne(
-					{ trip_uuid: counterData.trip_uuid },
-					{ warehouse_uuid: 1 }
-				)
+				let tripData = await Trips.findOne({ trip_uuid: counterData.trip_uuid }, { warehouse_uuid: 1 })
 				value = {
 					...value,
 					trip_uuid: counterData?.trip_uuid,
@@ -66,11 +63,7 @@ router.post("/postOrder", async (req, res) => {
 		}
 		console.log(value)
 		let invoice_number = await Details.findOne({})
-		let orderStage = value.status
-			? value?.status?.length > 1
-				? +value.status.map(c => +c.stage).reduce((c, d) => Math.max(c, d))
-				: +value?.status[0]?.stage
-			: ""
+		let orderStage = value.status ? (value?.status?.length > 1 ? +value.status.map(c => +c.stage).reduce((c, d) => Math.max(c, d)) : +value?.status[0]?.stage) : ""
 		let response
 		let incentives = 0
 		let counterGroupsData = await Counters.findOne(
@@ -91,31 +84,17 @@ router.post("/postOrder", async (req, res) => {
 		let user_uuid = value.status.find(c => +c.stage === 1)?.user_uuid
 		incentiveData = incentiveData
 			.filter(a => a.users.filter(b => b === user_uuid).length)
-			.filter(
-				a =>
-					a.counters.filter(b => b === value.counter_uuid).length ||
-					a.counter_groups.filter(b => counterGroupsData?.counter_group_uuid?.find(c => b === c))
-						.length
-			)
-		let rangeOrderIncentive = incentiveData.filter(
-			a => a.users.filter(b => b === user_uuid).length && a.type === "range-order"
-		)
+			.filter(a => a.counters.filter(b => b === value.counter_uuid).length || a.counter_groups.filter(b => counterGroupsData?.counter_group_uuid?.find(c => b === c)).length)
+		let rangeOrderIncentive = incentiveData.filter(a => a.users.filter(b => b === user_uuid).length && a.type === "range-order")
 
-		let rangeItemIntensive = incentiveData.filter(
-			a => a.users.filter(b => b === user_uuid).length && a.type === "item-incentive"
-		)
+		let rangeItemIntensive = incentiveData.filter(a => a.users.filter(b => b === user_uuid).length && a.type === "item-incentive")
 		for (let incentive_item of rangeOrderIncentive) {
 			let eligibleItems = value.item_details.filter(
 				a =>
 					+a.status !== 3 &&
 					(a.b || a.p) &&
 					(incentive_item.items.find(b => b === a.item_uuid) ||
-						incentive_item.item_groups.find(
-							b =>
-								itemsData
-									.find(c => c.item_uuid === a.item_uuid)
-									?.item_group_uuid.filter(d => b === d).length
-						))
+						incentive_item.item_groups.find(b => itemsData.find(c => c.item_uuid === a.item_uuid)?.item_group_uuid.filter(d => b === d).length))
 			)
 			if (+incentive_item.min_range <= eligibleItems.length) {
 				let amt = eligibleItems.length * incentive_item.amt
@@ -130,12 +109,7 @@ router.post("/postOrder", async (req, res) => {
 						+a.status !== 3 &&
 						(a.b || a.p) &&
 						(incentive_item.items.find(b => b === a.item_uuid) ||
-							incentive_item.item_groups.find(
-								b =>
-									itemsData
-										.find(c => c.item_uuid === a.item_uuid)
-										?.item_group_uuid.filter(d => b === d).length
-							))
+							incentive_item.item_groups.find(b => itemsData.find(c => c.item_uuid === a.item_uuid)?.item_group_uuid.filter(d => b === d).length))
 				)
 
 				let amt = 0
@@ -200,9 +174,7 @@ router.post("/postOrder", async (req, res) => {
 					console.log("Stock", stock)
 					let qty = +item.b * +itemData.conversion + +item.p + (+item.free || 0)
 					stock = stock?.filter(a => a.warehouse_uuid === warehouse_uuid)?.length
-						? stock.map(a =>
-								a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a
-						  )
+						? stock.map(a => (a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a))
 						: stock?.length
 						? [
 								...stock,
@@ -272,9 +244,7 @@ router.post("/postOrder", async (req, res) => {
 				console.log(campaignData, value.counter_uuid)
 				campaignData = JSON.parse(JSON.stringify(campaignData))
 				if (campaignData?.counter_status?.length) {
-					let counter_status = campaignData.counter_status.map(a =>
-						a.counter_uuid === value.counter_uuid ? { ...a, status: 1 } : a
-					)
+					let counter_status = campaignData.counter_status.map(a => (a.counter_uuid === value.counter_uuid ? { ...a, status: 1 } : a))
 					console.log(counter_status)
 					await Campaigns.updateOne(
 						{
@@ -309,9 +279,7 @@ router.post("/sendMsg", async (req, res) => {
 			{ mobile: 1, counter_title: 1, short_link: 1 }
 		)
 
-		let mobile = counterData.mobile.filter(
-			a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification)
-		)
+		let mobile = counterData.mobile.filter(a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification))
 		if (WhatsappNotification?.status && mobile?.length) {
 			sendMessages({ value, WhatsappNotification, counterData })
 			res.json({ success: true, message: "Message Sent Successfully" })
@@ -331,14 +299,9 @@ router.post("/sendPdf", async (req, res) => {
 		let value = req.body
 		if (!value) res.json({ success: false, message: "Invalid Data" })
 
-		let counterData = await Counters.findOne(
-			{ counter_uuid: value.counter_uuid },
-			{ mobile: 1, counter_title: 1, short_link: 1 }
-		)
+		let counterData = await Counters.findOne({ counter_uuid: value.counter_uuid }, { mobile: 1, counter_title: 1, short_link: 1 })
 
-		let mobile = counterData.mobile.filter(
-			a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification)
-		)
+		let mobile = counterData.mobile.filter(a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification))
 		if (!mobile?.length) {
 			return res.json({
 				success: false,
@@ -362,6 +325,7 @@ router.put("/putOrders", async (req, res) => {
 			let prevData = await Orders.findOne({
 				invoice_number: value.invoice_number,
 			})
+
 			prevData = JSON.parse(JSON.stringify(prevData))
 			value = Object.keys(value)
 				.filter(key => key !== "_id")
@@ -369,17 +333,20 @@ router.put("/putOrders", async (req, res) => {
 					obj[key] = value[key]
 					return obj
 				}, {})
+
 			let itemData = value?.item_details?.length
 				? await Item.find({
 						item_uuid: { $in: value.item_details.map(a => a.item_details) },
 				  })
 				: []
+
 			let prevorderStage = prevData
 				? +Math.max.apply(
 						null,
 						prevData?.status?.map(a => +a.stage)
 				  )
 				: 0
+
 			let orderStage = +Math.max.apply(
 				null,
 				value?.status?.map(a => +a.stage)
@@ -390,24 +357,19 @@ router.put("/putOrders", async (req, res) => {
 				tripData = await Trips.findOne({ trip_uuid: value.trip_uuid })
 				tripData = JSON.parse(JSON.stringify(tripData))
 			}
+
 			if (+orderStage === 4 || +orderStage === 5 || value?.item_details?.length === 0) {
 				let data = await OrderCompleted.findOne({
 					order_uuid: value.order_uuid,
 				})
-				// console.log(orderStage);
+
 				if (+orderStage === 5 || value?.item_details?.length === 0) {
 					data = await CancelOrders.create(value)
 
 					await Orders.deleteOne({ order_uuid: value.order_uuid })
 					const filepath = `uploads/${getFileName(value)}`
-					fs.access(filepath, err => {
-						if (err) return console.log(err)
-						fs.unlink(filepath, err => err && console.log(err))
-					})
-				}
-				// console.log("length", value?.item_details?.length);
-				// console.log("Old Data",data)
-				else if (data) {
+					if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+				} else if (data) {
 					await OrderCompleted.updateOne({ order_uuid: value.order_uuid }, value)
 				} else {
 					let warehouse_uuid = value.warehouse_uuid || tripData?.warehouse_uuid
@@ -422,9 +384,7 @@ router.put("/putOrders", async (req, res) => {
 							// console.log("Stock", stock);
 							let qty = +item.b * +itemData.conversion + +item.p + (+item.free || 0)
 							stock = stock?.filter(a => a.warehouse_uuid === warehouse_uuid)?.length
-								? stock.map(a =>
-										a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a
-								  )
+								? stock.map(a => (a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a))
 								: stock?.length
 								? [
 										...stock,
@@ -455,20 +415,21 @@ router.put("/putOrders", async (req, res) => {
 						...value,
 						entry: +orderStage === 5 ? 1 : 0,
 					})
+
 					data = await OrderCompleted.create({
 						...prevData,
 						...value,
 						entry: +orderStage === 5 ? 1 : 0,
 					})
-					await Orders.deleteOne({ order_uuid: value.order_uuid })
 
+					await Orders.deleteOne({ order_uuid: value.order_uuid })
 					const filepath = `uploads/${getFileName(value)}`
 					fs.access(filepath, err => {
 						if (err) return console.log(err)
 						fs.unlink(filepath, err => err && console.log(err))
 					})
 				}
-				// console.log("New DAta", data);
+
 				if (+orderStage === 4) {
 					let counterGroupsData = await Counters.findOne(
 						{
@@ -490,32 +451,16 @@ router.put("/putOrders", async (req, res) => {
 					let user_delivery_intensive = value.status.find(c => +c.stage === 4)?.user_uuid
 
 					incentiveData = incentiveData.filter(
-						a =>
-							a.counters.filter(b => b === value.counter_uuid).length ||
-							a.counter_groups.filter(b =>
-								counterGroupsData?.counter_group_uuid?.find(c => b === c)
-							).length
+						a => a.counters.filter(b => b === value.counter_uuid).length || a.counter_groups.filter(b => counterGroupsData?.counter_group_uuid?.find(c => b === c)).length
 					)
-					let rangeOrderIncentive = incentiveData.filter(
-						a => a.users.filter(b => b === user_range_order).length && a.type === "range-order"
-					)
+					let rangeOrderIncentive = incentiveData.filter(a => a.users.filter(b => b === user_range_order).length && a.type === "range-order")
 
-					let rangeDeliveryIntensive = incentiveData.filter(
-						a =>
-							a.users.filter(b => b === user_delivery_intensive).length &&
-							a.type === "delivery-incentive"
-					)
+					let rangeDeliveryIntensive = incentiveData.filter(a => a.users.filter(b => b === user_delivery_intensive).length && a.type === "delivery-incentive")
 					if (!rangeDeliveryIntensive?.length) {
 						user_delivery_intensive = tripData?.users?.length ? tripData?.users[0] : ""
-						rangeDeliveryIntensive = incentiveData.filter(
-							a =>
-								a.users.filter(b => b === user_delivery_intensive).length &&
-								a.type === "delivery-incentive"
-						)
+						rangeDeliveryIntensive = incentiveData.filter(a => a.users.filter(b => b === user_delivery_intensive).length && a.type === "delivery-incentive")
 					}
-					let rangeItemIntensive = incentiveData.filter(
-						a => a.users.filter(b => b === user_range_order).length && a.type === "item-incentive"
-					)
+					let rangeItemIntensive = incentiveData.filter(a => a.users.filter(b => b === user_range_order).length && a.type === "item-incentive")
 
 					for (let incentive_item of rangeOrderIncentive) {
 						let eligibleItems = value.item_details.filter(
@@ -523,12 +468,7 @@ router.put("/putOrders", async (req, res) => {
 								+a.status !== 3 &&
 								(a.b || a.p) &&
 								(incentive_item.items.find(b => b === a.item_uuid) ||
-									incentive_item.item_groups.find(
-										b =>
-											itemsData
-												.find(c => c.item_uuid === a.item_uuid)
-												?.item_group_uuid.filter(d => b === d).length
-									))
+									incentive_item.item_groups.find(b => itemsData.find(c => c.item_uuid === a.item_uuid)?.item_group_uuid.filter(d => b === d).length))
 						)
 						if (+incentive_item.min_range <= eligibleItems.length) {
 							let userData = await Users.findOne({
@@ -559,9 +499,7 @@ router.put("/putOrders", async (req, res) => {
 							let amt = 0
 							let incentive_balance = 0
 							if (incentive_item.calculation === "amt" && incentive_item.value) {
-								amt =
-									(incentive_item.value / 100) *
-									(value.order_grandtotal || value.order_grandtotal)
+								amt = (incentive_item.value / 100) * (value.order_grandtotal || value.order_grandtotal)
 								incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2)
 							}
 							if (incentive_item.calculation === "qty" && incentive_item.value) {
@@ -571,18 +509,11 @@ router.put("/putOrders", async (req, res) => {
 										? value.item_details
 												.filter(a => +a.status !== 3)
 												.map(a => {
-													return (
-														(+a.b *
-															+itemData.find(c => c.item_uuid === a.item_uuid)
-																.conversion || 0) + a.p
-													)
+													return (+a.b * +itemData.find(c => c.item_uuid === a.item_uuid).conversion || 0) + a.p
 												})
 												.reduce((a, b) => a + b)
 										: value.item_details.length
-										? (+value.item_details[0].b *
-												+itemData.find(
-													c => c.item_uuid === value.item_details[0].item_uuid
-												).conversion || 0) + value.item_details[0].p
+										? (+value.item_details[0].b * +itemData.find(c => c.item_uuid === value.item_details[0].item_uuid).conversion || 0) + value.item_details[0].p
 										: 0)
 
 								incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2)
@@ -610,10 +541,7 @@ router.put("/putOrders", async (req, res) => {
 									console.log(update, statment, amt, incentive_balance)
 								}
 							} else {
-								let update = await Users.updateMany(
-									{ user_uuid: user_delivery_intensive },
-									{ incentive_balance }
-								)
+								let update = await Users.updateMany({ user_uuid: user_delivery_intensive }, { incentive_balance })
 								let time = new Date()
 								let statment = await IncentiveStatment.create({
 									user_uuid: user_delivery_intensive,
@@ -634,12 +562,7 @@ router.put("/putOrders", async (req, res) => {
 									+a.status !== 3 &&
 									(a.b || a.p) &&
 									(incentive_item.items.find(b => b === a.item_uuid) ||
-										incentive_item.item_groups.find(
-											b =>
-												itemsData
-													.find(c => c.item_uuid === a.item_uuid)
-													?.item_group_uuid.filter(d => b === d).length
-										))
+										incentive_item.item_groups.find(b => itemsData.find(c => c.item_uuid === a.item_uuid)?.item_group_uuid.filter(d => b === d).length))
 							)
 							let userData = await Users.findOne({
 								user_uuid: user_range_order,
@@ -657,10 +580,7 @@ router.put("/putOrders", async (req, res) => {
 									let itemData = await Item.findOne({
 										item_uuid: item.item_uuid,
 									})
-									amt =
-										+amt +
-										((+item.b * +itemData.conversion || 0) + item.p) *
-											+incentive_item.value
+									amt = +amt + ((+item.b * +itemData.conversion || 0) + item.p) * +incentive_item.value
 								}
 							}
 							incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2)
@@ -689,7 +609,7 @@ router.put("/putOrders", async (req, res) => {
 					if (data.acknowledged) response.push(value)
 				}
 			}
-			console.log(orderStage, prevorderStage)
+
 			if (+orderStage === 2 && prevorderStage === 1) {
 				let WhatsappNotification = await whatsapp_notifications.findOne({
 					notification_uuid: "out-for-delivery",
@@ -711,9 +631,7 @@ router.put("/putOrders", async (req, res) => {
 			}
 
 			if (value.accept_notification) {
-				let notification_uuid = +value.accept_notification
-					? "order-accept-notification"
-					: "order-decline-notification"
+				let notification_uuid = +value.accept_notification ? "order-accept-notification" : "order-decline-notification"
 				let WhatsappNotification = await whatsapp_notifications.findOne({
 					notification_uuid,
 				})
@@ -734,14 +652,12 @@ router.put("/putOrders", async (req, res) => {
 				}
 			}
 
-			if (value.edit) {
-				try {
-					const filename = getFileName(value)
-					if (!fs.existsSync(`uploads/${filename}`))
-						await generatePDFs([{ filename, order_id: value.order_uuid }])
-				} catch (err) {
-					console.log(err)
-				}
+			try {
+				const filename = getFileName(value)
+				if (fs.existsSync(`uploads/${filename}`)) fs.unlinkSync(`uploads/${filename}`)
+				await generatePDFs([{ filename, order_id: value.order_uuid }])
+			} catch (err) {
+				console.log(err)
 			}
 		}
 		if (response.length) {
@@ -786,17 +702,9 @@ router.get("/getSignedBills", async (req, res) => {
 			let invoice_number = orderData?.invoice_number || 0
 			let counter_title = counterData?.counter_title || ""
 			let qty =
-				(orderData?.item_details?.length > 1
-					? orderData.item_details.map(a => a.b).reduce((a, b) => +a + b)
-					: orderData?.item_details?.length
-					? orderData?.item_details[0]?.b
-					: 0) +
+				(orderData?.item_details?.length > 1 ? orderData.item_details.map(a => a.b).reduce((a, b) => +a + b) : orderData?.item_details?.length ? orderData?.item_details[0]?.b : 0) +
 				":" +
-				(orderData?.item_details?.length > 1
-					? orderData.item_details.map(a => a.p).reduce((a, b) => +a + b)
-					: orderData?.item_details?.length
-					? orderData?.item_details[0]?.p
-					: 0)
+				(orderData?.item_details?.length > 1 ? orderData.item_details.map(a => a.p).reduce((a, b) => +a + b) : orderData?.item_details?.length ? orderData?.item_details[0]?.p : 0)
 			response.push({
 				...item,
 				...orderData,
@@ -849,22 +757,13 @@ router.get("/getPendingEntry", async (req, res) => {
 		res.json({
 			success: true,
 			result: data.map(order => {
-				let receipt = receiptData?.find(
-					b =>
-						b.invoice_number === order.invoice_number ||
-						(b.order_uuid === order.order_uuid && b.counter_uuid === order.counter_uuid)
-				)
+				let receipt = receiptData?.find(b => b.invoice_number === order.invoice_number || (b.order_uuid === order.order_uuid && b.counter_uuid === order.counter_uuid))
 				console.log(order)
 				return {
 					...order,
 					modes: receipt?.modes || [],
 					counter_uuid: order?.counter_uuid || receipt?.counter_uuid || "",
-					unpaid:
-						outstandindData?.find(
-							b =>
-								b.invoice_number === order.invoice_number ||
-								(b.order_uuid === order.order_uuid && b.counter_uuid === order.counter_uuid)
-						)?.amount || 0,
+					unpaid: outstandindData?.find(b => b.invoice_number === order.invoice_number || (b.order_uuid === order.order_uuid && b.counter_uuid === order.counter_uuid))?.amount || 0,
 				}
 			}),
 		})
@@ -877,10 +776,7 @@ router.put("/putCompleteSignedBills", async (req, res) => {
 		let value = req.body
 		console.log(value)
 		let time = new Date()
-		let data = await SignedBills.updateOne(
-			{ order_uuid: value.order_uuid },
-			{ status: value.status, received_time: time.getTime() }
-		)
+		let data = await SignedBills.updateOne({ order_uuid: value.order_uuid }, { status: value.status, received_time: time.getTime() })
 		if (data.acknowledged) {
 			res.json({
 				success: true,
@@ -962,9 +858,7 @@ router.get("/GetOrderRunningList", async (req, res) => {
 				.filter(a => a.item_details.length)
 				.map(a => ({
 					...a,
-					counter_title: a.counter_uuid
-						? counterData.find(b => b.counter_uuid === a.counter_uuid)?.counter_title
-						: "",
+					counter_title: a.counter_uuid ? counterData.find(b => b.counter_uuid === a.counter_uuid)?.counter_title : "",
 				})),
 		})
 	} catch (err) {
@@ -1027,9 +921,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
 				.filter(a => a.item_details.length)
 				.map(a => ({
 					...a,
-					counter_title: a.counter_uuid
-						? counterData.find(b => b.counter_uuid === a.counter_uuid)?.counter_title
-						: "",
+					counter_title: a.counter_uuid ? counterData.find(b => b.counter_uuid === a.counter_uuid)?.counter_title : "",
 				})),
 		})
 	} catch (err) {
@@ -1053,11 +945,7 @@ router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
 				}
 			)
 			counterData = JSON.parse(JSON.stringify(counterData))
-			counterData = counterData.filter(
-				a =>
-					userData.routes.filter(b => b === a.route_uuid).length ||
-					(userData.routes.filter(b => b === "none").length && !a.route_uuid)
-			)
+			counterData = counterData.filter(a => userData.routes.filter(b => b === a.route_uuid).length || (userData.routes.filter(b => b === "none").length && !a.route_uuid))
 			data = await Orders.find({
 				counter_uuid: {
 					$in: counterData.filter(a => a.counter_uuid).map(a => a.counter_uuid),
@@ -1093,9 +981,7 @@ router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
 				.filter(a => a.item_details.length)
 				.map(a => ({
 					...a,
-					counter_title: a.counter_uuid
-						? counterData.find(b => b.counter_uuid === a.counter_uuid)?.counter_title
-						: "",
+					counter_title: a.counter_uuid ? counterData.find(b => b.counter_uuid === a.counter_uuid)?.counter_title : "",
 				})),
 		})
 	} catch (err) {
@@ -1114,28 +1000,16 @@ router.get("/GetOrder/:order_uuid", async (req, res) => {
 				order_uuid: req.params.order_uuid,
 			})
 		data = JSON.parse(JSON.stringify(data))
-		let itemData = await Item.find(
-			{ item_uuid: { $in: data.item_details.map(a => a.item_uuid) } },
-			{ item_uuid: 1, category_uuid: 1 }
-		)
-		let categoryData = await ItemCategories.find(
-			{ category_uuid: { $in: itemData.map(a => a.category_uuid) } },
-			{ category_title: 1, category_uuid: 1 }
-		)
+		let itemData = await Item.find({ item_uuid: { $in: data.item_details.map(a => a.item_uuid) } }, { item_uuid: 1, category_uuid: 1 })
+		let categoryData = await ItemCategories.find({ category_uuid: { $in: itemData.map(a => a.category_uuid) } }, { category_title: 1, category_uuid: 1 })
 		data = {
 			...data,
 			item_details: data?.item_details
 				?.map(a => ({
 					...a,
-					category_title: categoryData.find(
-						b => b.category_uuid === itemData.find(b => b.item_uuid === a.item_uuid).category_uuid
-					)?.category_title,
+					category_title: categoryData.find(b => b.category_uuid === itemData.find(b => b.item_uuid === a.item_uuid).category_uuid)?.category_title,
 				}))
-				.sort(
-					(a, b) =>
-						a?.category_title?.localeCompare(b.category_title) ||
-						a?.item_title?.localeCompare(b.item_title)
-				),
+				.sort((a, b) => a?.category_title?.localeCompare(b.category_title) || a?.item_title?.localeCompare(b.item_title)),
 		}
 
 		res.json({
@@ -1196,11 +1070,7 @@ router.post("/GetOrderProcessingList", async (req, res) => {
 					sort_order: a.counter_uuid ? counter?.sort_order : "",
 				}
 			})
-			?.filter(a =>
-				a.status.length > 1
-					? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 1
-					: +a?.status[0]?.stage === 1
-			)
+			?.filter(a => (a.status.length > 1 ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 1 : +a?.status[0]?.stage === 1))
 
 		res.json({
 			success: true,
@@ -1242,12 +1112,7 @@ router.post("/GetOrderCheckingList", async (req, res) => {
 					sort_order: a.counter_uuid ? counter?.sort_order : "",
 				}
 			})
-			?.filter(
-				a =>
-					(a.status.length > 1
-						? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 2
-						: +a?.status[0]?.stage === 2) && a.item_details.length
-			)
+			?.filter(a => (a.status.length > 1 ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 2 : +a?.status[0]?.stage === 2) && a.item_details.length)
 
 		res.json({
 			success: true,
@@ -1292,12 +1157,7 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
 					sort_order: a.counter_uuid ? counter?.sort_order : "",
 				}
 			})
-			?.filter(
-				a =>
-					(a.status.length > 1
-						? +a.status.map(c => +c.stage).reduce((c, d) => Math.max(c, d)) === 3
-						: +a?.status[0]?.stage === 3) && a.item_details.length
-			)
+			?.filter(a => (a.status.length > 1 ? +a.status.map(c => +c.stage).reduce((c, d) => Math.max(c, d)) === 3 : +a?.status[0]?.stage === 3) && a.item_details.length)
 
 		res.json({
 			success: true,
@@ -1314,16 +1174,10 @@ router.post("/getCompleteOrderList", async (req, res) => {
 		console.log(value)
 		let endDate = +value.endDate + 86400000
 		console.log(endDate, value.startDate)
-		let response = await OrderCompleted.find(
-			!req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid }
-		)
+		let response = await OrderCompleted.find(!req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid })
 
 		response = JSON.parse(JSON.stringify(response))
-		response = response?.filter(
-			order =>
-				order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate)
-					.length
-		)
+		response = response?.filter(order => order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate).length)
 
 		response = response.map(order => ({
 			...order,
@@ -1331,17 +1185,9 @@ router.post("/getCompleteOrderList", async (req, res) => {
 			order_date: order.status.find(a => +a.stage === 1)?.time,
 			delivery_date: order.status.find(a => +a.stage === 4)?.time,
 			qty:
-				(order?.item_details?.length > 1
-					? order.item_details.map(a => a.b).reduce((a, b) => +a + b)
-					: order?.item_details?.length
-					? order?.item_details[0]?.b
-					: 0) +
+				(order?.item_details?.length > 1 ? order.item_details.map(a => a.b).reduce((a, b) => +a + b) : order?.item_details?.length ? order?.item_details[0]?.b : 0) +
 				":" +
-				(order?.item_details?.length > 1
-					? order.item_details.map(a => a.p).reduce((a, b) => +a + b)
-					: order?.item_details?.length
-					? order?.item_details[0]?.p
-					: 0),
+				(order?.item_details?.length > 1 ? order.item_details.map(a => a.p).reduce((a, b) => +a + b) : order?.item_details?.length ? order?.item_details[0]?.p : 0),
 			amt: order.order_grandtotal || 0,
 		}))
 		if (response?.length) {
@@ -1366,11 +1212,7 @@ router.post("/getStockDetails", async (req, res) => {
 			$or: [{ from_warehouse: value.warehouse_uuid }, { to_warehouse: value.warehouse_uuid }],
 		})
 		response = JSON.parse(JSON.stringify(response))
-		response = response?.filter(
-			order =>
-				order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate)
-					.length
-		)
+		response = response?.filter(order => order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate).length)
 		const counterData = await Counters.find(
 			{
 				counter_uuid: { $in: response.map(a => a.counter_uuid) },
@@ -1379,9 +1221,7 @@ router.post("/getStockDetails", async (req, res) => {
 		)
 		const warehouseData = await WarehouseModel.find({})
 		responseVoucher = JSON.parse(JSON.stringify(responseVoucher))
-		responseVoucher = responseVoucher?.filter(
-			order => order.created_at > value.startDate && order.created_at < endDate
-		)
+		responseVoucher = responseVoucher?.filter(order => order.created_at > value.startDate && order.created_at < endDate)
 		let data = []
 		for (let item of response) {
 			let orderItem = item?.item_details?.find(a => a.item_uuid === value.item_uuid)
@@ -1403,11 +1243,7 @@ router.post("/getStockDetails", async (req, res) => {
 
 				let obj = {
 					date: item.created_at,
-					to:
-						"Warehouse:" +
-						warehouseData?.find(
-							a => a.warehouse_uuid === (added ? item.from_warehouse : item.to_warehouse)
-						)?.warehouse_title,
+					to: "Warehouse:" + warehouseData?.find(a => a.warehouse_uuid === (added ? item.from_warehouse : item.to_warehouse))?.warehouse_title,
 					added: added ? (orderItem?.b || 0) + ":" + (orderItem.p || 0) : 0,
 					reduce: added ? 0 : (orderItem?.b || 0) + ":" + (orderItem.p || 0),
 				}
@@ -1449,27 +1285,13 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
 			order_date: order.status.find(a => +a.stage === 1)?.time,
 			delivery_date: order.status.find(a => +a.stage === 4)?.time,
 			qty:
-				(order?.item_details?.length > 1
-					? order.item_details.map(a => a.b).reduce((a, b) => +a + b)
-					: order?.item_details?.length
-					? order?.item_details[0]?.b
-					: 0) +
+				(order?.item_details?.length > 1 ? order.item_details.map(a => a.b).reduce((a, b) => +a + b) : order?.item_details?.length ? order?.item_details[0]?.b : 0) +
 				":" +
-				(order?.item_details?.length > 1
-					? order.item_details.map(a => a.p).reduce((a, b) => +a + b)
-					: order?.item_details?.length
-					? order?.item_details[0]?.p
-					: 0),
+				(order?.item_details?.length > 1 ? order.item_details.map(a => a.p).reduce((a, b) => +a + b) : order?.item_details?.length ? order?.item_details[0]?.p : 0),
 			amt: order.order_grandtotal || 0,
-			cash: receiptData
-				.find(b => b.order_uuid === order.order_uuid)
-				?.modes?.find(b => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002")?.amt,
-			cheque: receiptData
-				.find(b => b.order_uuid === order.order_uuid)
-				?.modes.find(b => b.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002")?.amt,
-			upi: receiptData
-				.find(b => b.order_uuid === order.order_uuid)
-				?.modes?.find(b => b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002")?.amt,
+			cash: receiptData.find(b => b.order_uuid === order.order_uuid)?.modes?.find(b => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002")?.amt,
+			cheque: receiptData.find(b => b.order_uuid === order.order_uuid)?.modes.find(b => b.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002")?.amt,
+			upi: receiptData.find(b => b.order_uuid === order.order_uuid)?.modes?.find(b => b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002")?.amt,
 
 			unpaid: outstandindData.find(b => b.order_uuid === order.order_uuid)?.amount || 0,
 		}))
@@ -1497,26 +1319,11 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
 				success: true,
 				result: response,
 				total: {
-					total_amt:
-						response.length > 1
-							? response.map(a => +a?.amt || 0).reduce((a, b) => a + b)
-							: response[0]?.amt || 0,
-					total_cash:
-						cash.length > 1
-							? cash.map(a => +a?.amt || 0).reduce((a, b) => a + b)
-							: amt[0]?.cash || 0,
-					total_cheque:
-						cheque.length > 1
-							? cheque.map(a => +a?.amt || 0).reduce((a, b) => a + b)
-							: cheque[0]?.amt || 0,
-					total_upi:
-						upi.length > 1
-							? upi.map(a => +a?.amt || 0).reduce((a, b) => a + b)
-							: upi[0]?.amt || 0,
-					total_unpaid:
-						response.length > 1
-							? response.map(a => +a?.unpaid || 0).reduce((a, b) => a + b)
-							: response[0]?.unpaid || 0,
+					total_amt: response.length > 1 ? response.map(a => +a?.amt || 0).reduce((a, b) => a + b) : response[0]?.amt || 0,
+					total_cash: cash.length > 1 ? cash.map(a => +a?.amt || 0).reduce((a, b) => a + b) : amt[0]?.cash || 0,
+					total_cheque: cheque.length > 1 ? cheque.map(a => +a?.amt || 0).reduce((a, b) => a + b) : cheque[0]?.amt || 0,
+					total_upi: upi.length > 1 ? upi.map(a => +a?.amt || 0).reduce((a, b) => a + b) : upi[0]?.amt || 0,
+					total_unpaid: response.length > 1 ? response.map(a => +a?.unpaid || 0).reduce((a, b) => a + b) : response[0]?.unpaid || 0,
 				},
 			})
 		} else res.json({ success: false, message: "Order Not Found" })
@@ -1541,26 +1348,15 @@ router.post("/getCounterLedger", async (req, res) => {
 			counter_uuid: req.body.counter_uuid,
 		})
 		response = JSON.parse(JSON.stringify(response))
-		response = response.filter(
-			order =>
-				order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate)
-					.length
-		)
+		response = response.filter(order => order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate).length)
 		response = [...receiptsData, ...response]
 		response = response.map(order => ({
 			...order,
-			reference_number: order.receipt_number
-				? order.receipt_number + " (" + order?.invoice_number + ")"
-				: order?.invoice_number || "-",
+			reference_number: order.receipt_number ? order.receipt_number + " (" + order?.invoice_number + ")" : order?.invoice_number || "-",
 			order_date: order?.status?.find(a => +a.stage === 1)?.time || order?.time || "",
 
 			amt1: order?.order_grandtotal || "",
-			amt2:
-				order?.modes?.length > 1
-					? order?.modes?.map(a => a.amt || 0).reduce((a, b) => a + b)
-					: order?.modes?.length
-					? order?.modes[0]?.amt
-					: "0",
+			amt2: order?.modes?.length > 1 ? order?.modes?.map(a => a.amt || 0).reduce((a, b) => a + b) : order?.modes?.length ? order?.modes[0]?.amt : "0",
 		}))
 		if (response.length) {
 			res.json({ success: true, result: response })
@@ -1587,20 +1383,8 @@ router.post("/getOrderItemReport", async (req, res) => {
 		response = JSON.parse(JSON.stringify(response))
 		counterData = JSON.parse(JSON.stringify(counterData))
 		response = response
-			.filter(
-				order =>
-					order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate)
-						.length
-			)
-			.filter(
-				a =>
-					!value.counter_group_uuid ||
-					counterData.filter(
-						b =>
-							a.counter_uuid === b.counter_uuid &&
-							b.counter_group_uuid.filter(c => c === value.counter_group_uuid).length
-					).length
-			)
+			.filter(order => order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate).length)
+			.filter(a => !value.counter_group_uuid || counterData.filter(b => a.counter_uuid === b.counter_uuid && b.counter_group_uuid.filter(c => c === value.counter_group_uuid).length).length)
 			.filter(a => !value.counter_uuid || a.counter_uuid === value.counter_uuid)
 		response = response.map(a => ({
 			...a,
@@ -1655,62 +1439,21 @@ router.post("/getOrderItemReport", async (req, res) => {
 				item_price: a.item_price,
 				item_uuid: a.item_uuid,
 				item_title: a.item_title,
-				sales_amt:
-					salesData.length > 1
-						? salesData.map(b => b.item_total || 0).reduce((a, b) => +a + b)
-						: salesData.length
-						? salesData[0].item_total || 0
-						: 0,
-				salesB:
-					salesData.length > 1
-						? salesData.map(b => b.b || 0).reduce((a, b) => +a + b)
-						: salesData.length
-						? salesData[0].b || 0
-						: 0,
-				salesP:
-					salesData.length > 1
-						? salesData.map(b => b.p || 0).reduce((a, b) => +a + b)
-						: salesData.length
-						? salesData[0].p || 0
-						: 0,
+				sales_amt: salesData.length > 1 ? salesData.map(b => b.item_total || 0).reduce((a, b) => +a + b) : salesData.length ? salesData[0].item_total || 0 : 0,
+				salesB: salesData.length > 1 ? salesData.map(b => b.b || 0).reduce((a, b) => +a + b) : salesData.length ? salesData[0].b || 0 : 0,
+				salesP: salesData.length > 1 ? salesData.map(b => b.p || 0).reduce((a, b) => +a + b) : salesData.length ? salesData[0].p || 0 : 0,
 				deliver_returnB: Math.abs(
-					deliver_returnData.length > 1
-						? deliver_returnData.map(b => b.b || 0).reduce((a, b) => +a + b)
-						: deliver_returnData.length
-						? deliver_returnData[0].b || 0
-						: 0
+					deliver_returnData.length > 1 ? deliver_returnData.map(b => b.b || 0).reduce((a, b) => +a + b) : deliver_returnData.length ? deliver_returnData[0].b || 0 : 0
 				),
 				deliver_returnP: Math.abs(
-					deliver_returnData.length > 1
-						? deliver_returnData.map(b => b.p || 0).reduce((a, b) => +a + b)
-						: deliver_returnData.length
-						? deliver_returnData[0].p || 0
-						: 0
+					deliver_returnData.length > 1 ? deliver_returnData.map(b => b.p || 0).reduce((a, b) => +a + b) : deliver_returnData.length ? deliver_returnData[0].p || 0 : 0
 				),
 				processing_canceledB:
-					processing_canceledData.length > 1
-						? processing_canceledData.map(b => b.b || 0).reduce((a, b) => +a + b)
-						: processing_canceledData.length
-						? processing_canceledData[0].b || 0
-						: 0,
+					processing_canceledData.length > 1 ? processing_canceledData.map(b => b.b || 0).reduce((a, b) => +a + b) : processing_canceledData.length ? processing_canceledData[0].b || 0 : 0,
 				processing_canceledP:
-					processing_canceledData.length > 1
-						? processing_canceledData.map(b => b.p || 0).reduce((a, b) => +a + b)
-						: processing_canceledData.length
-						? processing_canceledData[0].p || 0
-						: 0,
-				auto_addedB:
-					auto_addedData.length > 1
-						? auto_addedData.map(b => b.b || 0).reduce((a, b) => +a + b)
-						: auto_addedData.length
-						? auto_addedData[0].b || 0
-						: 0,
-				auto_addedP:
-					auto_addedData.length > 1
-						? auto_addedData.map(b => b.p || 0).reduce((a, b) => +a + b)
-						: auto_addedData.length
-						? auto_addedData[0].p || 0
-						: 0,
+					processing_canceledData.length > 1 ? processing_canceledData.map(b => b.p || 0).reduce((a, b) => +a + b) : processing_canceledData.length ? processing_canceledData[0].p || 0 : 0,
+				auto_addedB: auto_addedData.length > 1 ? auto_addedData.map(b => b.b || 0).reduce((a, b) => +a + b) : auto_addedData.length ? auto_addedData[0].b || 0 : 0,
+				auto_addedP: auto_addedData.length > 1 ? auto_addedData.map(b => b.p || 0).reduce((a, b) => +a + b) : auto_addedData.length ? auto_addedData[0].p || 0 : 0,
 			}
 
 			data.push(obj)
@@ -1718,47 +1461,24 @@ router.post("/getOrderItemReport", async (req, res) => {
 		let FinalData = data.map(a => ({
 			...a,
 			sales: +a.salesB + parseInt(+a.salesP / +a.conversion) + ":" + (+a.salesP % +a.conversion),
-			deliver_return:
-				+a.deliver_returnB +
-				parseInt(+a.deliver_returnP / +a.conversion) +
-				":" +
-				(+a.deliver_returnP % +a.conversion),
-			processing_canceled:
-				+a.processing_canceledB +
-				parseInt(+a.processing_canceledP / +a.conversion) +
-				":" +
-				(+a.processing_canceledP % +a.conversion),
-			auto_added:
-				+a.auto_addedB +
-				parseInt(+a.auto_addedP / +a.conversion) +
-				":" +
-				(+a.auto_addedP % +a.conversion),
+			deliver_return: +a.deliver_returnB + parseInt(+a.deliver_returnP / +a.conversion) + ":" + (+a.deliver_returnP % +a.conversion),
+			processing_canceled: +a.processing_canceledB + parseInt(+a.processing_canceledP / +a.conversion) + ":" + (+a.processing_canceledP % +a.conversion),
+			auto_added: +a.auto_addedB + parseInt(+a.auto_addedP / +a.conversion) + ":" + (+a.auto_addedP % +a.conversion),
 			deliver_return_percentage: (
 				Math.abs(((+a.deliver_returnB * (+a.conversion || 1) || 0) + a.deliver_returnP) * 100) /
-					(+a.salesB * (+a.conversion || 0) +
-						a.salesP +
-						(a.deliver_returnB * a.conversion + a.deliver_returnP) +
-						(a.processing_canceledB * a.conversion + a.processing_canceledP) || 1) || 0
+					(+a.salesB * (+a.conversion || 0) + a.salesP + (a.deliver_returnB * a.conversion + a.deliver_returnP) + (a.processing_canceledB * a.conversion + a.processing_canceledP) || 1) || 0
 			).toFixed(2),
 			processing_canceled_percentage: (
 				((a.processing_canceledB * a.conversion + a.processing_canceledP) * 100) /
 					(a.salesB * a.conversion +
 						a.salesP +
 						(a.deliver_returnB * a.conversion + a.deliver_returnP) +
-						((+a.processing_canceledB || 0) * (+a.conversion || 1) +
-							(+a.processing_canceledP || 0)) || 1) || 0
+						((+a.processing_canceledB || 0) * (+a.conversion || 1) + (+a.processing_canceledP || 0)) || 1) || 0
 			).toFixed(2),
 
-			auto_added_percentage: (
-				((a.auto_addedB * a.conversion + a.auto_addedP) * 100) /
-					(a.salesB * a.conversion + a.salesP || 1) || 0
-			).toFixed(2),
-			deliver_return_amt: (
-				Math.abs(a.sales_amt * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)) || 0
-			).toFixed(2),
-			processing_canceled_amt: (
-				a.sales_amt * (+a.conversion * (+a.processing_canceledB + a.processing_canceledP)) || 0
-			).toFixed(2),
+			auto_added_percentage: (((a.auto_addedB * a.conversion + a.auto_addedP) * 100) / (a.salesB * a.conversion + a.salesP || 1) || 0).toFixed(2),
+			deliver_return_amt: (Math.abs(a.sales_amt * (+a.conversion * +a.deliver_returnB + a.deliver_returnP)) || 0).toFixed(2),
+			processing_canceled_amt: (a.sales_amt * (+a.conversion * (+a.processing_canceledB + a.processing_canceledP)) || 0).toFixed(2),
 			auto_added_amt: (a.sales_amt * (+a.conversion * +a.auto_addedB + a.auto_addedP) || 0).toFixed(2),
 		}))
 		if (FinalData) {
