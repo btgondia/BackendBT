@@ -34,8 +34,7 @@ const generatePDFs = async data => {
 	try {
 		if (process.env?.NODE_ENV === "development") return
 
-		if (!data?.length)
-			return console.gray("PDF GENERATION TERMINATED. NO PARAMS PROVIDED." + data?.length)
+		if (!data?.length) return console.gray("PDF GENERATION TERMINATED. NO PARAMS PROVIDED." + data?.length)
 		else if (BROWSER_INITIALIZING_INPROGRESS) {
 			console.yellow(`BROWSER INITIALIZING INPROGRESS...`)
 			await verifyInstance()
@@ -51,9 +50,7 @@ const generatePDFs = async data => {
 			})
 		}
 
-		if (!BROWSER_INSTANCE?.isConnected())
-			return console.red("PROCESS FAILED! CONNECTION STATE: " + +BROWSER_INSTANCE?.isConnected())
-
+		if (!BROWSER_INSTANCE?.isConnected()) return console.red("PROCESS FAILED! CONNECTION STATE: " + +BROWSER_INSTANCE?.isConnected())
 		await processEnque(data)
 	} catch (err) {
 		console.red("ERROR IN PDF GENERATION. ERROR: " + err.message)
@@ -115,9 +112,7 @@ if (process.env?.NODE_ENV !== "development")
 				BROWSER_CLOSE_TIMER = setTimeout(async () => {
 					try {
 						if (!BROWSER_INSTANCE?.isConnected()) return
-						console.yellow(
-							"TERMINATING INSTANCE. CONNECTION STATE: " + +BROWSER_INSTANCE?.isConnected()
-						)
+						console.yellow("TERMINATING INSTANCE. CONNECTION STATE: " + +BROWSER_INSTANCE?.isConnected())
 						await BROWSER_PAGE.close()
 						await BROWSER_INSTANCE.close()
 						BROWSER_CLOSE_TIMER = null

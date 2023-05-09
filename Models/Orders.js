@@ -18,6 +18,7 @@ const OrdersSchema = new mongoose.Schema({
 	opened_by: { type: String },
 	notes: [{ type: String }],
 	priority: { type: Number },
+	payment_pending: { type: Number, default: 0 },
 	time_1: { type: Number },
 	time_2: { type: Number },
 	item_details: [
