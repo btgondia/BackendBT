@@ -3,11 +3,17 @@ const { redisConnection } = require("../config/redis")
 
 const fs = require("fs")
 const axios = require("axios")
+const Details = require("../Models/Details")
 const host = "https://xpressdigitalservices.com/api"
-const params = {
-	access_token: process.env.XPRESS_ACCESS_TOKEN,
-	instance_id: process.env.XPRESS_INSTANCE_ID,
+
+const params = {}
+const storeParams = async () => {
+	const result = await Details.findOne()
+	params.access_token = await result.xpress_access_token
+	params.instance_id = await result.xpress_instance_id
+	console.log(params)
 }
+storeParams()
 
 let queue
 if (process.env?.NODE_ENV !== "development")
@@ -18,8 +24,7 @@ if (process.env?.NODE_ENV !== "development")
 		},
 	})
 
-const getRandomBetween = (max = processingGap, min = processingGap - 1000) =>
-	~~(Math.random() * (max - min) + min)
+const getRandomBetween = (max = processingGap, min = processingGap - 1000) => ~~(Math.random() * (max - min) + min)
 
 const messageEnque = async doc => {
 	const job_count = (await queue.getJobCounts("delayed"))?.delayed
@@ -31,7 +36,8 @@ const messageEnque = async doc => {
 	await queue.add("Message", doc, { delay })
 }
 
-const getParams = (_params = params) => {
+const getParams = async (_params = params) => {
+	if (!params?.access_token) await storeParams()
 	return (
 		"?" +
 		Object.keys(_params)
@@ -55,7 +61,7 @@ if (process.env?.NODE_ENV !== "development") {
 				}
 
 				let init_time = Date.now()
-				const query = getParams({
+				const query = await getParams({
 					...params,
 					...job.data,
 					media_url: `${process.env.HOST}/${filename}`,
