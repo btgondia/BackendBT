@@ -63,6 +63,9 @@ router.post("/postOrder", async (req, res) => {
 		}
 		console.log(value)
 		let invoice_number = await Details.findOne({})
+		const _invoice_number =
+			value?.order_type === "E" ? invoice_number?.next_estimate_number : invoice_number?.next_invoice_number
+
 		let orderStage = value.status
 			? value?.status?.length > 1
 				? +value.status.map(c => +c.stage).reduce((c, d) => Math.max(c, d))
@@ -161,7 +164,7 @@ router.post("/postOrder", async (req, res) => {
 				...value,
 				time: time.getTime(),
 				receipt_number: next_receipt_number,
-				invoice_number: invoice_number.next_invoice_number || 0,
+				invoice_number: _invoice_number || 0,
 			})
 			next_receipt_number = "R" + (+next_receipt_number.match(/\d+/)[0] + 1)
 			await Details.updateMany({}, { next_receipt_number })
@@ -173,7 +176,7 @@ router.post("/postOrder", async (req, res) => {
 					counter_uuid: value.counter_uuid,
 					user_uuid: value.user_uuid,
 					order_uuid: value.order_uuid,
-					invoice_number: invoice_number.next_invoice_number || 0,
+					invoice_number: _invoice_number || 0,
 					status: 0,
 					amount: value.OutStanding,
 				}
@@ -224,18 +227,22 @@ router.post("/postOrder", async (req, res) => {
 			console.log(+orderStage)
 			response = await OrderCompleted.create({
 				...value,
-				invoice_number: invoice_number.next_invoice_number || 0,
+				invoice_number: _invoice_number || 0,
 				order_status: "R",
 				entry: +orderStage === 5 ? 1 : 0,
 			})
 		} else
 			response = await Orders.create({
 				...value,
-				invoice_number: invoice_number.next_invoice_number || 0,
+				invoice_number: _invoice_number || 0,
 			})
 
 		if (response) {
-			await Details.updateMany({}, { next_invoice_number: +invoice_number.next_invoice_number + 1 })
+			const update = {}
+			if (value?.order_type === "I") update.next_invoice_number = +invoice_number.next_invoice_number + 1
+			else if (value?.order_type === "E") update.next_estimate_number = +invoice_number.next_estimate_number + 1
+			await Details.updateMany({}, update)
+
 			if (+orderStage === 2) {
 				let WhatsappNotification = await whatsapp_notifications.findOne({
 					notification_uuid: "out-for-delivery",
