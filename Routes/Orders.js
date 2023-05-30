@@ -360,6 +360,8 @@ router.put("/putOrders", async (req, res) => {
 			})
 
 			prevData = JSON.parse(JSON.stringify(prevData))
+			delete prevData._id
+
 			value = Object.keys(value)
 				.filter(key => key !== "_id")
 				.reduce((obj, key) => {
