@@ -62,9 +62,9 @@ router.post("/postOrder", async (req, res) => {
 			}
 		}
 		console.log(value)
-		let invoice_number = await Details.findOne({})
+		const details = await Details.findOne({})
 		const _invoice_number =
-			value?.order_type === "E" ? invoice_number?.next_estimate_number : invoice_number?.next_invoice_number
+			value?.order_type === "E" ? +details?.next_estimate_number : +details?.next_invoice_number
 
 		let orderStage = value.status
 			? value?.status?.length > 1
@@ -239,9 +239,10 @@ router.post("/postOrder", async (req, res) => {
 
 		if (response) {
 			const update = {}
-			if (value?.order_type === "I") update.next_invoice_number = +invoice_number.next_invoice_number + 1
-			else if (value?.order_type === "E") update.next_estimate_number = +invoice_number.next_estimate_number + 1
-			await Details.updateMany({}, update)
+			if (value?.order_type === "I") update.next_invoice_number = _invoice_number + 1
+			else if (value?.order_type === "E") update.next_estimate_number = _invoice_number + 1
+			console.log({ update })
+			await Details.findByIdAndUpdate(details?._id, update)
 
 			if (+orderStage === 2) {
 				let WhatsappNotification = await whatsapp_notifications.findOne({
