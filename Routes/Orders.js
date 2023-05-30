@@ -239,8 +239,9 @@ router.post("/postOrder", async (req, res) => {
 
 		if (response) {
 			const update = {}
-			if (value?.order_type === "I") update.next_invoice_number = _invoice_number + 1
-			else if (value?.order_type === "E") update.next_estimate_number = _invoice_number + 1
+			if (value?.order_type?.toUpperCase() === "E") update.next_estimate_number = _invoice_number + 1
+			else update.next_invoice_number = _invoice_number + 1
+
 			console.log({ update })
 			await Details.findByIdAndUpdate(details?._id, update)
 
