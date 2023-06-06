@@ -456,7 +456,7 @@ router.put("/putOrders", async (req, res) => {
 					data = await OrderCompleted.create({
 						...prevData,
 						...value,
-						entry: +orderStage === 5 ? 1 : 0,
+						entry: value?.order_type === "E" ? 2 : +orderStage === 5 ? 1 : 0,
 					})
 
 					await Orders.deleteOne({ order_uuid: value.order_uuid })
