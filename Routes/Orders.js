@@ -362,7 +362,7 @@ router.put("/putOrders", async (req, res) => {
 			})
 
 			prevData = JSON.parse(JSON.stringify(prevData))
-			delete prevData._id
+			delete prevData?._id
 
 			value = Object.keys(value)
 				.filter(key => key !== "_id")
@@ -737,7 +737,8 @@ router.put("/putOrders", async (req, res) => {
 			res.json({ success: true, result: response })
 		} else res.json({ success: false, message: "Order Not updated" })
 	} catch (err) {
-		res.status(500).json({ success: false, message: err })
+		console.log(err)
+		res.status(500).json({ success: false, message: err?.message })
 	}
 })
 
