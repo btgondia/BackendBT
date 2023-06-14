@@ -64,7 +64,7 @@ if (process.env?.NODE_ENV !== "development") {
 				const query = await getParams({
 					...params,
 					...job.data,
-					media_url: `${process.env.HOST}/${filename}`,
+					...(filename ? { media_url: `${process.env.HOST}/${filename}` } : {}),
 				})
 
 				console.log({ query })
