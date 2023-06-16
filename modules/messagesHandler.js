@@ -2,8 +2,7 @@ const fs = require("fs")
 const Notification_logs = require("../Models/notification_log")
 const { getFileName, generatePDFs } = require("./puppeteerUtilities")
 const { messageEnque } = require("../queues/messageQueue")
-const filterContacts = coll =>
-	coll?.filter(i => i?.mobile && i?.lable?.find(a => a.type === "wa" && +a.varification))
+const filterContacts = coll => coll?.filter(i => i?.mobile && i?.lable?.find(a => a.type === "wa" && +a.varification))
 
 const contactsProcessHandler = async (contacts, messagesCollection, counterData, value, options = {}) => {
 	for (let contact of contacts) {
@@ -16,14 +15,13 @@ const contactsProcessHandler = async (contacts, messagesCollection, counterData,
 			for (let messageobj of messagesCollection) {
 				let message = ""
 				if (messageobj?.type === "text") {
+					const amt_value = value.order_grandtotal || value?.amount || value?.amt || ""
 					message = messageobj.text
 						?.replace(/{counter_title}/g, counterData?.counter_title || "")
-						?.replace(
-							/{short_link}/g,
-							"https://btgondia.com/counter/" + counterData?.short_link || ""
-						)
+						?.replace(/{short_link}/g, "https://btgondia.com/counter/" + counterData?.short_link || "")
 						?.replace(/{invoice_number}/g, value?.invoice_number || "")
-						?.replace(/{amount}/g, value.order_grandtotal || value?.amount || value?.amt || "")
+						?.replace(/{amount}/g, amt_value)
+					// * {details} is handled on the initial route level.
 
 					const doc = { number: `${contact.mobile}`, type: "text", message }
 					messages.push(doc)

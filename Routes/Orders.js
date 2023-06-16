@@ -19,10 +19,30 @@ const WarehouseModel = require("../Models/Warehouse")
 const Vochers = require("../Models/Vochers")
 const whatsapp_notifications = require("../Models/whatsapp_notifications")
 const Campaigns = require("../Models/Campaigns")
-const fs = require("fs")
 const ItemCategories = require("../Models/ItemCategories")
+const fs = require("fs")
+const { getReceipts } = require("../modules/index")
 const { sendMessages, compaignShooter } = require("../modules/messagesHandler")
 const { generatePDFs, checkPDFs, getFileName } = require("../modules/puppeteerUtilities")
+
+// const textTable = unpaid_receipts => {
+// 	console.log(JSON.stringify(unpaid_receipts))
+
+// 	const heads = ["Order Date", "Order Number", "Amount"]
+// 	const padding = length => (length > 0 ? Array(length).fill(" ").join("") : "")
+// 	const rows = unpaid_receipts?.map(i => [
+// 		new Date(+i?.order_date).toDateString(),
+// 		i?.invoice_number?.toString(),
+// 		i?.amt?.toString(),
+// 	])
+
+// 	const max_length = Math.max(...heads.map(i => i.length).concat(rows.map(i => Math.max(...i.map(_i => _i?.length)))))
+// 	const getString = str => str + padding(max_length - str.length)
+// 	const messages =
+// 		`\n${heads?.map(getString).join(" | ")}\n\n` + rows?.map(i => i.map(getString)?.join(" | "))?.join("\n")
+
+// 	return messages
+// }
 
 router.post("/postOrder", async (req, res) => {
 	try {
@@ -296,20 +316,33 @@ router.post("/postOrder", async (req, res) => {
 })
 
 router.post("/sendMsg", async (req, res) => {
-	res.status(400).json({ Message: "Currently Unavailable" })
 	try {
 		let value = req.body
-		if (!value) res.json({ success: false, message: "Invalid Data" })
-
-		let WhatsappNotification = await whatsapp_notifications.findOne({
-			notification_uuid: value.notification_uuid,
-		})
+		if (!value) return res.json({ success: false, message: "Invalid Data" })
+		let WhatsappNotification = await whatsapp_notifications.findOne({ notification_uuid: value.notification_uuid })
 		let counterData = await Counters.findOne(
-			{
-				counter_uuid: value.counter_uuid,
-			},
+			{ counter_uuid: value.counter_uuid },
 			{ mobile: 1, counter_title: 1, short_link: 1 }
 		)
+
+		console.log({ consolidated_payment_reminder: value?.consolidated_payment_reminder })
+		if (value?.consolidated_payment_reminder) {
+			const unpaid_receipts = (await getReceipts())?.result?.filter(i => i.counter_uuid === value.counter_uuid)
+			WhatsappNotification.message = WhatsappNotification.message?.map(i => ({
+				...i,
+				text: i?.text?.replace(
+					/{details}/g,
+					unpaid_receipts
+						?.map(
+							(_i, idx) =>
+								`\n${new Date(+_i?.order_date).toDateString()}       ${_i?.invoice_number}       ${
+									_i?.amt
+								}`
+						)
+						?.join("")
+				),
+			}))
+		}
 
 		let mobile = counterData.mobile.filter(a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification))
 		if (WhatsappNotification?.status && mobile?.length) {
@@ -322,7 +355,8 @@ router.post("/sendMsg", async (req, res) => {
 			})
 		}
 	} catch (err) {
-		res.status(500).json({ success: false, message: err })
+		console.error(err)
+		res.status(500).json({ success: false, message: err?.message })
 	}
 })
 
