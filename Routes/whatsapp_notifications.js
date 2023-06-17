@@ -116,7 +116,13 @@ router.get("/getWhatsapp_notifications", async (req, res) => {
 router.get("/pending_payments_counters/:user_uuid", async (req, res) => {
 	try {
 		const { user_uuid } = req.params
-		const result = await getRunningOrders({ user_uuid, getCounters: true })
+		const result = await getRunningOrders({
+			user_uuid,
+			getCounters: true,
+			condition: {
+				payment_pending: 1,
+			},
+		})
 		res.json(result?.counterData)
 	} catch (error) {}
 })
