@@ -15,7 +15,7 @@ const contactsProcessHandler = async (contacts, messagesCollection, counterData,
 			for (let messageobj of messagesCollection) {
 				let message = ""
 				if (messageobj?.type === "text") {
-					const amt_value = value.order_grandtotal || value?.amount || value?.amt || ""
+					const amt_value = value?.order_grandtotal || value?.amount || value?.amt || ""
 					message = messageobj.text
 						?.replace(/{counter_title}/g, counterData?.counter_title || "")
 						?.replace(/{short_link}/g, "https://btgondia.com/counter/" + counterData?.short_link || "")
@@ -57,13 +57,15 @@ const contactsProcessHandler = async (contacts, messagesCollection, counterData,
 			messages.push(doc)
 			await messageEnque(doc)
 		}
-		await Notification_logs.create({
-			contact: contact.mobile,
-			notification_uuid: value.notifiacation_uuid,
-			messages: messages?.filter(i => i.message)?.map(i => ({ text: i.message })),
-			invoice_number: value.invoice_number,
-			created_at: new Date().getTime(),
-		})
+
+		if (value?.notifiacation_uuid)
+			await Notification_logs.create({
+				contact: contact.mobile,
+				notification_uuid: value?.notifiacation_uuid,
+				messages: messages?.filter(i => i.message)?.map(i => ({ text: i.message })),
+				invoice_number: value?.invoice_number,
+				created_at: new Date().getTime(),
+			})
 	}
 }
 
