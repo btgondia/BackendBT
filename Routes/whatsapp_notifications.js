@@ -131,7 +131,9 @@ router.post("/send_payment_reminders", async (req, res) => {
 	try {
 		const { notification_uuid, counter_ids } = req.body
 		const getRow = i =>
-			`\n${new Date(+i?.time_1).toDateString()}       ${i?.order_type + i?.invoice_number}       ${i?.order_grandtotal}`
+			`\n${new Date(+i?.time_1).toLocaleDateString()}       ${
+				(i?.order_type === "I" ? "N" : i?.order_type) + i?.invoice_number
+			}       ${i?.order_grandtotal}`
 
 		let orders = await Orders.find({
 			counter_uuid: { $in: counter_ids },

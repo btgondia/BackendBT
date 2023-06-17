@@ -330,7 +330,7 @@ router.post("/sendMsg", async (req, res) => {
 					/{details}/g,
 					unpaid_receipts
 						?.sort((a, b) => +a.order_date - +b.order_date)
-						?.map(_i => `\n${new Date(+_i?.order_date).toDateString()}       ${_i?.invoice_number}       ${_i?.amt}`)
+						?.map(_i => `\n${new Date(+_i?.order_date).toLocaleDateString()}       ${_i?.invoice_number}       ${_i?.amt}`)
 						?.join("")
 				),
 			}))
