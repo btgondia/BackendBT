@@ -21,7 +21,7 @@ const whatsapp_notifications = require("../Models/whatsapp_notifications")
 const Campaigns = require("../Models/Campaigns")
 const ItemCategories = require("../Models/ItemCategories")
 const fs = require("fs")
-const { getReceipts, getRunningOrders } = require("../modules/index")
+const { getReceipts, getRunningOrders, getDate } = require("../modules/index")
 const { sendMessages, compaignShooter } = require("../modules/messagesHandler")
 const { generatePDFs, checkPDFs, getFileName } = require("../modules/puppeteerUtilities")
 
@@ -324,14 +324,24 @@ router.post("/sendMsg", async (req, res) => {
 		console.log({ consolidated_payment_reminder: value?.consolidated_payment_reminder })
 		if (value?.consolidated_payment_reminder) {
 			const unpaid_receipts = (await getReceipts())?.result?.filter(i => i.counter_uuid === value.counter_uuid)
+			const orders = await Orders.find(
+				{ order_uuid: { $in: unpaid_receipts?.map(i => i.order_uuid) } },
+				{ order_type: 1 }
+			)
+
 			WhatsappNotification.message = WhatsappNotification.message?.map(i => ({
 				...i,
 				text: i?.text?.replace(
 					/{details}/g,
 					unpaid_receipts
 						?.sort((a, b) => +a.order_date - +b.order_date)
-						?.map(_i => `\n${new Date(+_i?.order_date).toLocaleDateString()}       ${_i?.invoice_number}       ${_i?.amt}`)
-						?.join("")
+						?.map(
+							_i =>
+								`\n${getDate(+_i?.order_date)}       ${
+									orders?.find(o => o.order_uuid === _i.order_uuid)?.order_type === "E" ? "E" : "N"
+								}${_i?.invoice_number}       Rs.${_i?.amt}`
+						)
+						?.join("") + `\n*TOTAL: Rs.${unpaid_receipts?.reduce((sum, _i) => sum + +_i?.amt, 0)}*`
 				),
 			}))
 		}

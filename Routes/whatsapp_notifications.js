@@ -4,7 +4,7 @@ const router = express.Router()
 const { v4: uuid } = require("uuid")
 const Whatsapp_notifications = require("../Models/whatsapp_notifications")
 const fs = require("fs")
-const { getRunningOrders } = require("../modules")
+const { getRunningOrders, getDate } = require("../modules")
 const whatsapp_notifications = require("../Models/whatsapp_notifications")
 const { sendMessages } = require("../modules/messagesHandler")
 const Counters = require("../Models/Counters")
@@ -131,9 +131,9 @@ router.post("/send_payment_reminders", async (req, res) => {
 	try {
 		const { notification_uuid, counter_ids } = req.body
 		const getRow = i =>
-			`\n${new Date(+i?.time_1).toLocaleDateString()}       ${
-				(i?.order_type === "I" ? "N" : i?.order_type) + i?.invoice_number
-			}       ${i?.order_grandtotal}`
+			`\n${getDate(+i?.time_1)}       ${(i?.order_type === "I" ? "N" : i?.order_type) + i?.invoice_number}       Rs.${
+				i?.order_grandtotal
+			}`
 
 		let orders = await Orders.find({
 			counter_uuid: { $in: counter_ids },
@@ -157,7 +157,10 @@ router.post("/send_payment_reminders", async (req, res) => {
 			const orders = unpaid_counter_orders[counter_id]?.sort((a, b) => +a.time_1 - +b.time_1)
 			const message = notification.message.map(i => ({
 				...i,
-				text: i?.text?.replace(/{details}/g, orders?.map(getRow).join("")),
+				text: i?.text?.replace(
+					/{details}/g,
+					orders?.map(getRow).join("") + `\n*TOTAL: Rs.${orders.reduce((sum, i) => sum + +i?.order_grandtotal, 0)}*`
+				),
 			}))
 
 			sendMessages({

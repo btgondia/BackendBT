@@ -91,7 +91,13 @@ const getRunningOrders = async ({ user_uuid, doCheckPDF, condition = {}, getCoun
 	return { success: true, result: data }
 }
 
+const getDate = i => {
+	const date = new Date(i)
+	return [date.getDate(), date.getMonth() + 1, date.getFullYear()].map(i => i.toString().padStart(2, "0")).join("/")
+}
+
 module.exports = {
+	getDate,
 	getReceipts,
 	getRunningOrders,
 }
