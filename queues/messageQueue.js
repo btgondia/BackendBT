@@ -4,7 +4,7 @@ const { redisConnection } = require("../config/redis")
 const fs = require("fs")
 const axios = require("axios")
 const Details = require("../Models/Details")
-const host = process.env.XPRESSHOST
+const MessageHost = process.env.XPRESSHOST
 
 const params = {}
 const storeParams = async () => {
@@ -67,11 +67,11 @@ if (process.env?.NODE_ENV !== "development") {
 					...(filename ? { media_url: `${process.env.HOST}/${filename}` } : {}),
 				})
 
-				console.log(host + query)
-				const response = await axios.get(host + query)
+				console.log(MessageHost + query)
+				const response = await axios.get(MessageHost + query)
 				queue.remove(job.id)
 				console.yellow(`JOB: ${job.id} TOOK ${Date.now() - init_time}ms`)
-				console.log(response?.data?.slice(0, 50))
+				console.log(response?.data)
 			} catch (error) {
 				console.log("ERROR IN MESSAGE PROCESSING:", {
 					message: error?.message,
