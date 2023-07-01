@@ -67,8 +67,8 @@ if (process.env?.NODE_ENV !== "development") {
 					...(filename ? { media_url: `${process.env.HOST}/${filename}` } : {}),
 				})
 
-				console.log({ query })
-				const response = await axios.get(host + "/send" + query)
+				console.log(host + query)
+				const response = await axios.get(host + query)
 				queue.remove(job.id)
 				console.yellow(`JOB: ${job.id} TOOK ${Date.now() - init_time}ms`)
 				console.log(response?.data?.slice(0, 50))
