@@ -277,16 +277,9 @@ router.get("/getCounterSales/:days", async (req, res) => {
 						[],
 						counterOrders?.map(a => a.item_details)
 					)
-					?.filter(
-						a => Company.company_uuid === ItemsData?.find(b => b.item_uuid === a.item_uuid)?.company_uuid
-					)
-					?.map(
-						a =>
-							+(+a.b + +(ItemsData?.find(b => b.item_uuid === a.item_uuid)?.conversion || 0) + +a.p) *
-							+a.price
-					)
-				let value =
-					orderItems.length > 1 ? orderItems.reduce((a, b) => a + b) : orderItems?.length ? orderItems[0] : 0
+					?.filter(a => Company.company_uuid === ItemsData?.find(b => b.item_uuid === a.item_uuid)?.company_uuid)
+					?.map(a => +(+a.b + +(ItemsData?.find(b => b.item_uuid === a.item_uuid)?.conversion || 0) + +a.p) * +a.price)
+				let value = orderItems.length > 1 ? orderItems.reduce((a, b) => a + b) : orderItems?.length ? orderItems[0] : 0
 				value =
 					value - Math.floor(value) !== 0
 						? value.toString().match(new RegExp("^-?\\d+(?:.\\d{0," + (2 || -1) + "})?"))[0]
@@ -310,7 +303,6 @@ router.get("/getCounterSales/:days", async (req, res) => {
 router.post("/GetCounter", async (req, res) => {
 	try {
 		let data = await Counter.findOne({ counter_uuid: req.body.counter_uuid })
-
 		if (data) res.json({ success: true, result: data })
 		else res.json({ success: false, message: "Counter Not found" })
 	} catch (err) {
@@ -675,11 +667,7 @@ router.post("/verifyOtp", async (req, res) => {
 									...a,
 									mobile: value.mobile,
 									lable: a.lable.find(b => b.type === value.lable)
-										? a.lable.map(b =>
-												b.type === value.lable
-													? { ...b, type: value.lable, varification: 1 }
-													: b
-										  )
+										? a.lable.map(b => (b.type === value.lable ? { ...b, type: value.lable, varification: 1 } : b))
 										: [...(a.lable || []), { type: value.lable, varification: 1 }],
 							  }
 							: a

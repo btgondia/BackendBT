@@ -367,6 +367,15 @@ router.post("/sendPdf", async (req, res) => {
 		let value = req.body
 		if (!value) res.json({ success: false, message: "Invalid Data" })
 
+		let { additional_users, additional_numbers = [] } = await value
+		if (additional_users?.length) {
+			additional_users = await Users.find({ user_uuid: { $in: additional_users } }, { user_mobile: 1 })
+			additional_numbers = await additional_numbers
+				?.concat(additional_users?.map(_i => _i?.user_mobile))
+				?.filter(_i => _i?.toString()?.length === 10)
+				?.map(_i => +_i)
+		}
+
 		let counterData = await Counters.findOne(
 			{ counter_uuid: value.counter_uuid },
 			{ mobile: 1, counter_title: 1, short_link: 1 }
@@ -380,7 +389,7 @@ router.post("/sendPdf", async (req, res) => {
 			})
 		}
 
-		await compaignShooter({ counterData, value, options: { orderPDF: true } })
+		await compaignShooter({ counterData, value: { ...value, additional_numbers }, options: { orderPDF: true } })
 		res.json({ success: true, message: "Message Sent Successfully" })
 	} catch (err) {
 		res.status(500).json({ success: false, message: err.message })
@@ -1268,8 +1277,14 @@ router.post("/getCompleteOrderList", async (req, res) => {
 		let endDate = +value.endDate + 86400000
 		console.log(endDate, value.startDate)
 		let response = await OrderCompleted.find(!req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid })
+		let cancelled_orders = await CancelOrders.find(
+			!req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid }
+		)
 
-		response = JSON.parse(JSON.stringify(response))
+		response = await JSON.parse(JSON.stringify(response))
+		cancelled_orders = await JSON.parse(JSON.stringify(cancelled_orders))
+		response = response.concat(cancelled_orders || [])
+
 		response = response?.filter(
 			order => order.status.filter(a => +a.stage === 1 && a.time > value.startDate && a.time < endDate).length
 		)

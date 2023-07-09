@@ -166,7 +166,7 @@ router.get("/getDetails", async (req, res) => {
 				conversion: 1,
 				barcode: 1,
 				item_group_uuid: 1,
-				// stock: 1,
+				stock: 1,
 				created_at: 1,
 			}
 		)

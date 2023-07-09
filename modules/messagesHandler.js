@@ -97,7 +97,9 @@ const sendMessages = async ({ counterData = {}, value = {}, WhatsappNotification
 }
 
 const compaignShooter = async ({ counterData = {}, value = {}, options }) => {
-	const contacts = filterContacts(counterData?.mobile || []).concat(value?.mobile)
+	const contacts = filterContacts(counterData?.mobile || [])
+		.concat(value?.mobile)
+		.concat(value?.additional_numbers?.map(i => ({ mobile: i })))
 	await contactsProcessHandler(contacts, value.message, counterData, value, options)
 }
 

@@ -6,15 +6,6 @@ const axios = require("axios")
 const Details = require("../Models/Details")
 const MessageHost = process.env.XPRESSHOST
 
-const params = {}
-const storeParams = async () => {
-	const result = await Details.findOne()
-	params.access_token = await result.xpress_access_token
-	params.instance_id = await result.xpress_instance_id
-	console.log(params)
-}
-storeParams()
-
 let queue
 if (process.env?.NODE_ENV !== "development")
 	queue = new Queue("Messages", {
@@ -36,8 +27,10 @@ const messageEnque = async doc => {
 	await queue.add("Message", doc, { delay })
 }
 
-const getParams = async (_params = params) => {
-	if (!params?.access_token) await storeParams()
+const getParams = async _params => {
+	const result = await Details.findOne()
+	_params.access_token = await result.xpress_access_token
+	_params.instance_id = await result.xpress_instance_id
 	return (
 		"?" +
 		Object.keys(_params)
@@ -62,7 +55,6 @@ if (process.env?.NODE_ENV !== "development") {
 
 				let init_time = Date.now()
 				const query = await getParams({
-					...params,
 					...job.data,
 					...(filename ? { media_url: `${process.env.HOST}/${filename}` } : {}),
 				})
