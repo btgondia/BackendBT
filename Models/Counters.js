@@ -2,134 +2,135 @@ const mongoose = require("mongoose")
 
 const CounterSchema = new mongoose.Schema({
 	counter_title: {
-		type: String,
+		type: String
 	},
 	counter_code: {
-		type: String,
+		type: String
 	},
 	form_uuid: {
-		type: String,
+		type: String
 	},
 	trip_uuid: {
-		type: String,
+		type: String
 	},
 	short_link: {
-		type: String,
+		type: String
 	},
 	sort_order: {
-		type: Number,
+		type: Number
 	},
 	payment_reminder_days: {
-		type: Number,
+		type: Number
 	},
 	outstanding_type: {
-		type: Number,
+		type: Number
 	},
 	credit_allowed: {
-		type: String,
+		type: String
 	},
 	gst: {
-		type: String,
+		type: String
 	},
 	food_license: {
-		type: String,
+		type: String
 	},
 	counter_uuid: {
-		type: String,
+		type: String
 	},
 	remarks: {
-		type: String,
+		type: String
 	},
 	status: {
-		type: Number,
+		type: Number
 	},
 	route_uuid: {
-		type: String,
+		type: String
 	},
 	address: {
-		type: String,
+		type: String
 	},
 	mobile: [
 		{
 			mobile: {
-				type: String,
+				type: String
 			},
 			lable: [
 				{
 					type: {
-						type: String,
+						type: String
 					},
 					varification: {
-						type: Number,
-					},
-				},
+						type: Number
+					}
+				}
 			],
 			uuid: {
-				type: String,
-			},
-		},
+				type: String
+			}
+		}
 	],
 	company_discount: [
 		{
 			company_uuid: {
-				type: String,
+				type: String
 			},
 			discount: {
-				type: String,
-			},
-		},
+				type: String
+			}
+		}
 	],
 	average_lines_company: [
 		{
 			company_uuid: {
-				type: String,
+				type: String
 			},
 			lines: {
-				type: Number,
-			},
-		},
+				type: Number
+			}
+		}
 	],
 	average_lines_category: [
 		{
 			category_uuid: {
-				type: String,
+				type: String
 			},
 			lines: {
-				type: Number,
-			},
-		},
+				type: Number
+			}
+		}
 	],
 	item_special_price: [
 		{
 			item_uuid: {
-				type: String,
+				type: String
 			},
 			price: {
-				type: Number,
-			},
-		},
+				type: Number
+			}
+		}
 	],
 	item_special_discount: [
 		{
 			item_uuid: {
-				type: String,
+				type: String
 			},
 			discount: {
-				type: String,
-			},
-		},
+				type: String
+			}
+		}
 	],
 	counter_group_uuid: [
 		{
-			type: String,
-		},
+			type: String
+		}
 	],
 	payment_modes: [
 		{
-			type: String,
-		},
+			type: String
+		}
 	],
-	notes: [{ type: String }],
+	location_coords: { latitude: Number, longitude: Number },
+	notes: [{ type: String }]
 })
 
 module.exports = mongoose.model("counters", CounterSchema)

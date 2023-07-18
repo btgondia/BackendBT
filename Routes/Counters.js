@@ -47,10 +47,10 @@ router.delete("/deleteCounter", async (req, res) => {
 		if (!counter_uuid) res.json({ success: false, message: "Invalid Data" })
 		let response = { acknowledged: false }
 		let orderData = await Orders.find({
-			counter_uuid,
+			counter_uuid
 		})
 		let CompleteOrderData = await OrderCompleted.find({
-			counter_uuid,
+			counter_uuid
 		})
 		if (!(orderData.length || CompleteOrderData.length)) response = await Counter.deleteOne({ counter_uuid })
 		if (response.acknowledged) {
@@ -85,16 +85,16 @@ router.get("/GetCounterList", async (req, res) => {
 				item_special_price: 1,
 				item_special_discount: 1,
 				counter_group_uuid: 1,
-				payment_modes: 1,
+				payment_modes: 1
 			}
 		)
 		data = JSON.parse(JSON.stringify(data))
 		let RoutesData = await Routes.find({
-			route_uuid: { $in: data.map(a => a.route_uuid) },
+			route_uuid: { $in: data.map(a => a.route_uuid) }
 		})
 		data = data.map(a => ({
 			...a,
-			route_title: RoutesData.find(b => b.route_uuid === a.route_uuid)?.route_title || "",
+			route_title: RoutesData.find(b => b.route_uuid === a.route_uuid)?.route_title || ""
 		}))
 		if (data.length) res.json({ success: true, result: data })
 		else res.json({ success: false, message: "Counters Not found" })
@@ -127,16 +127,16 @@ router.get("/GetCounter/:counter_uuid", async (req, res) => {
 				item_special_price: 1,
 				item_special_discount: 1,
 				counter_group_uuid: 1,
-				payment_modes: 1,
+				payment_modes: 1
 			}
 		)
 		data = JSON.parse(JSON.stringify(data))
 		let RoutesData = await Routes.findOne({
-			route_uuid: data.route_uuid,
+			route_uuid: data.route_uuid
 		})
 		data = data.map(a => ({
 			...a,
-			route_title: RoutesData?.route_title || "",
+			route_title: RoutesData?.route_title || ""
 		}))
 		if (data.length) res.json({ success: true, result: data })
 		else res.json({ success: false, message: "Counters Not found" })
@@ -170,18 +170,18 @@ router.post("/GetCounterList", async (req, res) => {
 			item_special_price: 1,
 			item_special_discount: 1,
 			counter_group_uuid: 1,
-			payment_modes: 1,
+			payment_modes: 1
 		})
 		data = JSON.parse(JSON.stringify(data))
 		let RoutesData = await Routes.find(
 			{
-				route_uuid: { $in: data.map(a => a.route_uuid) },
+				route_uuid: { $in: data.map(a => a.route_uuid) }
 			},
 			{ route_title: 1, route_uuid: 1 }
 		)
 		data = data.map(a => ({
 			...a,
-			route_title: RoutesData.find(b => b.route_uuid === a.route_uuid)?.route_title || "",
+			route_title: RoutesData.find(b => b.route_uuid === a.route_uuid)?.route_title || ""
 		}))
 		if (data.length) res.json({ success: true, result: data })
 		else res.json({ success: false, message: "Counters Not found" })
@@ -218,7 +218,7 @@ router.get("/GetCounterData", async (req, res) => {
 				item_special_price: 1,
 				item_special_discount: 1,
 				counter_group_uuid: 1,
-				payment_modes: 1,
+				payment_modes: 1
 			}
 		)
 
@@ -261,7 +261,7 @@ router.get("/getCounterSales/:days", async (req, res) => {
 		data = JSON.parse(JSON.stringify(data))
 
 		let RoutesData = await Routes.find({
-			route_uuid: { $in: data.map(a => a.route_uuid) },
+			route_uuid: { $in: data.map(a => a.route_uuid) }
 		})
 		let CompaniesData = await Companies.find({})
 		CompaniesData = JSON.parse(JSON.stringify(CompaniesData))
@@ -289,7 +289,7 @@ router.get("/getCounterSales/:days", async (req, res) => {
 			let obj = {
 				...item,
 				route_title: RoutesData.find(b => b.route_uuid === item.route_uuid)?.route_title || "",
-				sales,
+				sales
 			}
 			result.push(obj)
 		}
@@ -320,7 +320,7 @@ router.post("/GetCounterByLink", async (req, res) => {
 				route_uuid: 1,
 				form_uuid: 1,
 				item_special_price: 1,
-				company_discount: 1,
+				company_discount: 1
 			}
 		)
 		let form_uuid = counterData.form_uuid
@@ -345,14 +345,14 @@ router.post("/GetCounterByLink", async (req, res) => {
 		if (counterData?.route_uuid) {
 			let routeData = await Routes.findOne(
 				{
-					route_uuid: counterData?.route_uuid,
+					route_uuid: counterData?.route_uuid
 				},
 				{ order_status: 1 }
 			)
 
 			let orderFormData = await orderForms.findOne(
 				{
-					form_uuid,
+					form_uuid
 				},
 				{ company_uuid: 1 }
 			)
@@ -382,7 +382,7 @@ router.post("/GetCounterByLink", async (req, res) => {
 						item_price: 1,
 						item_gst: 1,
 						conversion: 1,
-						img_status: 1,
+						img_status: 1
 					}
 				)
 
@@ -398,8 +398,8 @@ router.post("/GetCounterByLink", async (req, res) => {
 						company: companiesData,
 						items: ItemData,
 						ItemCategories: CategoryData,
-						order_status: +routeData?.order_status,
-					},
+						order_status: +routeData?.order_status
+					}
 				})
 			} else res.json({ success: false, message: "No Order Form Applied" })
 		} else res.json({ success: false, message: "Counter Not found" })
@@ -439,7 +439,7 @@ router.put("/CalculateLines", async (req, res) => {
 		var priorDate = new Date(new Date().setDate(today.getDate() - (days || 0))).getTime()
 
 		let orderData = await OrderCompleted.find({
-			"status.time": { $gt: priorDate },
+			"status.time": { $gt: priorDate }
 		})
 		orderData = JSON.parse(JSON.stringify(orderData))
 		orderData = orderData.filter(a => a.status.find(b => +b.stage === 1 && +b.time > priorDate))
@@ -448,7 +448,7 @@ router.put("/CalculateLines", async (req, res) => {
 			orderData.map(a => a.item_details)
 		)
 		let ItemsData = await Item.find({
-			item_uuid: { $in: itemsJsons.map(a => a.item_uuid) },
+			item_uuid: { $in: itemsJsons.map(a => a.item_uuid) }
 		})
 		ItemsData = JSON.parse(JSON.stringify(ItemsData))
 
@@ -475,7 +475,7 @@ router.put("/CalculateLines", async (req, res) => {
 				item_special_price: 1,
 				item_special_discount: 1,
 				counter_group_uuid: 1,
-				payment_modes: 1,
+				payment_modes: 1
 			}
 		)
 		counterData = JSON.parse(JSON.stringify(counterData))
@@ -513,8 +513,8 @@ router.put("/CalculateLines", async (req, res) => {
 						{
 							[type === "company" ? "company_uuid" : "category_uuid"]:
 								company[type === "company" ? "company_uuid" : "category_uuid"],
-							lines: data.length > 1 ? data.reduce((a, b) => a + b) / data.length : data[0],
-						},
+							lines: data.length > 1 ? data.reduce((a, b) => a + b) / data.length : data[0]
+						}
 					]
 				} else {
 					average_lines = [
@@ -522,8 +522,8 @@ router.put("/CalculateLines", async (req, res) => {
 						{
 							[type === "company" ? "company_uuid" : "category_uuid"]:
 								company[type === "company" ? "company_uuid" : "category_uuid"],
-							lines: 0,
-						},
+							lines: 0
+						}
 					]
 				}
 			}
@@ -531,7 +531,7 @@ router.put("/CalculateLines", async (req, res) => {
 				await Counter.updateMany(
 					{ counter_uuid: counter.counter_uuid },
 					{
-						[type === "company" ? "average_lines_company" : "average_lines_category"]: average_lines,
+						[type === "company" ? "average_lines_company" : "average_lines_category"]: average_lines
 					}
 				)
 			}
@@ -566,7 +566,7 @@ router.put("/putCounter/sortOrder", async (req, res) => {
 			} catch (error) {
 				result.failed.push({
 					failed: counter.counter_uuid,
-					error: error.message,
+					error: error.message
 				})
 				respond()
 			}
@@ -592,7 +592,7 @@ router.post("/sendWhatsappOtp", async (req, res) => {
 			await Otp.create({
 				mobile: value.mobile,
 				counter_uuid: value.counter_uuid,
-				otp,
+				otp
 			})
 
 			await messageEnque(data)
@@ -602,7 +602,7 @@ router.post("/sendWhatsappOtp", async (req, res) => {
 				notification_uuid: "Whatsapp Otp",
 				message: [{ text: message }],
 				// invoice_number: value.invoice_number,
-				created_at: new Date().getTime(),
+				created_at: new Date().getTime()
 			})
 
 			console.log(data, msgResponse)
@@ -629,14 +629,14 @@ router.post("/sendCallOtp", async (req, res) => {
 			await Otp.create({
 				mobile: value.mobile,
 				counter_uuid: value.counter_uuid,
-				otp,
+				otp
 			})
 			await notification_log.create({
 				contact: value.mobile,
 				notification_uuid: "Whatsapp Otp",
 				message: [{ text: message }],
 				// invoice_number: value.invoice_number,
-				created_at: new Date().getTime(),
+				created_at: new Date().getTime()
 			})
 
 			let msgResponse = await msg91.send(mobileNo, message, "1307160922320559546", function (err, response) {
@@ -668,7 +668,7 @@ router.post("/verifyOtp", async (req, res) => {
 									mobile: value.mobile,
 									lable: a.lable.find(b => b.type === value.lable)
 										? a.lable.map(b => (b.type === value.lable ? { ...b, type: value.lable, varification: 1 } : b))
-										: [...(a.lable || []), { type: value.lable, varification: 1 }],
+										: [...(a.lable || []), { type: value.lable, varification: 1 }]
 							  }
 							: a
 				  )
@@ -677,8 +677,8 @@ router.post("/verifyOtp", async (req, res) => {
 						{
 							mobile: value.mobile,
 							uuid: value.uuid || uuid(),
-							lable: [{ type: value.lable, varification: 1 }],
-						},
+							lable: [{ type: value.lable, varification: 1 }]
+						}
 				  ]
 			console.log(mobile)
 			let response = await Counter.updateOne({ counter_uuid: value.counter_uuid }, { mobile })
@@ -720,6 +720,17 @@ router.patch("/delete_special_price", async (req, res) => {
 		const result = await Counter.updateOne({ counter_uuid }, { item_special_price: counter.item_special_price })
 
 		if (result.acknowledged) res.json({ success: true, counter })
+		else throw Error("Failed")
+	} catch (error) {
+		res.status(500).json({ error: error.message })
+	}
+})
+
+router.patch("/update_location_coords", async (req, res) => {
+	try {
+		const { counter_uuid, location_coords } = await req.body
+		const result = await Counter.updateOne({ counter_uuid }, { location_coords })
+		if (result.acknowledged) res.json({ success: true })
 		else throw Error("Failed")
 	} catch (error) {
 		res.status(500).json({ error: error.message })
