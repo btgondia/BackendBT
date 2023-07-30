@@ -5,8 +5,8 @@ const OrdersSchema = new mongoose.Schema({
 		{
 			stage: { type: String },
 			time: { type: Number },
-			user_uuid: { type: String },
-		},
+			user_uuid: { type: String }
+		}
 	],
 	replacement: { type: Number },
 	replacement_mrp: { type: Number },
@@ -17,7 +17,7 @@ const OrdersSchema = new mongoose.Schema({
 	to_print: { type: String },
 	opened_by: { type: String },
 	notes: [{ type: String }],
-	priority: { type: Number },
+	priority: { type: Number, default: 0 },
 	order_type: { type: String, default: "I" },
 	payment_pending: { type: Number, default: 0 },
 	time_1: { type: Number },
@@ -38,64 +38,64 @@ const OrdersSchema = new mongoose.Schema({
 			charges_discount: [
 				{
 					title: { type: String },
-					value: { type: Number },
-				},
-			],
-		},
+					value: { type: Number }
+				}
+			]
+		}
 	],
 	auto_added: [
 		{
 			item_uuid: { type: String },
 			b: { type: Number },
-			p: { type: Number },
-		},
+			p: { type: Number }
+		}
 	],
 	processing_canceled: [
 		{
 			item_uuid: { type: String },
 			b: { type: Number },
-			p: { type: Number },
-		},
+			p: { type: Number }
+		}
 	],
 	fulfillment: [
 		{
 			item_uuid: { type: String },
 			b: { type: Number },
-			p: { type: Number },
-		},
+			p: { type: Number }
+		}
 	],
 	delivery_return: [
 		{
 			item_uuid: { type: String },
 			b: { type: Number },
-			p: { type: Number },
-		},
+			p: { type: Number }
+		}
 	],
 
 	order_uuid: {
-		type: String,
+		type: String
 	},
 	invoice_number: {
-		type: Number,
+		type: Number
 	},
 	warehouse_uuid: {
-		type: String,
+		type: String
 	},
 	order_status: {
-		type: String,
+		type: String
 	},
 	counter_uuid: {
-		type: String,
+		type: String
 	},
 	hold: {
-		type: String,
+		type: String
 	},
 	trip_uuid: {
-		type: String,
+		type: String
 	},
 	order_grandtotal: {
-		type: Number,
-	},
+		type: Number
+	}
 })
 
 module.exports = mongoose.model("orders", OrdersSchema)
