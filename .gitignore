@@ -10,6 +10,7 @@ remote-test.json
 /coverage
 
 # production
+deploy.txt
 /build
 
 # misc
