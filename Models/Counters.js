@@ -129,7 +129,10 @@ const CounterSchema = new mongoose.Schema({
 			type: String
 		}
 	],
-	location_coords: { latitude: Number, longitude: Number },
+	location_coords: {
+		latitude: { type: Number },
+		longitude: { type: Number }
+	},
 	notes: [{ type: String }]
 })
 

@@ -737,4 +737,15 @@ router.patch("/update_location_coords", async (req, res) => {
 	}
 })
 
+router.patch("/delete_location_coords/:counter_uuid", async (req, res) => {
+	try {
+		const { counter_uuid } = req.params
+		const result = await Counter.updateOne({ counter_uuid }, { location_coords: null })
+		if (result.acknowledged) res.json({ success: true })
+		else throw Error("Failed")
+	} catch (error) {
+		res.status(500).json({ error: error.message })
+	}
+})
+
 module.exports = router

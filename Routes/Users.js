@@ -84,7 +84,7 @@ router.get("/GetUser/:user_uuid", async (req, res) => {
 	try {
 		let data = await User.findOne({
 			user_uuid: req.params.user_uuid,
-			status: 1,
+			status: 1
 		})
 		console.log(req.params.user_uuid.data)
 		if (data) res.json({ success: true, result: data })
@@ -140,6 +140,7 @@ router.get("/getDetails", async (req, res) => {
 				item_special_discount: 1,
 				counter_group_uuid: 1,
 				payment_modes: 1,
+				location_coords: 1
 			}
 		)
 		counter = counter.filter(a => a.counter_uuid)
@@ -167,7 +168,7 @@ router.get("/getDetails", async (req, res) => {
 				barcode: 1,
 				item_group_uuid: 1,
 				stock: 1,
-				created_at: 1,
+				created_at: 1
 			}
 		)
 		items = items.filter(a => a.item_uuid && companies?.find(i => i?.company_uuid === a?.company_uuid))
@@ -187,11 +188,11 @@ router.get("/getDetails", async (req, res) => {
 			items,
 			routes,
 			payment_modes,
-			warehouse,
+			warehouse
 		}
 		res.json({
 			success: true,
-			result,
+			result
 		})
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
