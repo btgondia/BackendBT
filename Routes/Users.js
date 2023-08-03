@@ -12,6 +12,10 @@ const Routes = require("../Models/Routes")
 const User = require("../Models/Users")
 const PaymentModes = require("../Models/PaymentModes")
 const Warehouse = require("../Models/Warehouse")
+const OrderCompleted = require("../Models/OrderCompleted")
+const CancelOrders = require("../Models/CancelOrders")
+const Orders = require("../Models/Orders")
+const Users = require("../Models/Users")
 
 router.post("/postUser", async (req, res) => {
 	try {
@@ -28,6 +32,7 @@ router.post("/postUser", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.put("/putUser", async (req, res) => {
 	try {
 		let value = req.body
@@ -60,6 +65,7 @@ router.get("/GetUserList", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.get("/GetActiveUserList", async (req, res) => {
 	try {
 		let data = await User.find({ status: 1 })
@@ -70,6 +76,7 @@ router.get("/GetActiveUserList", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.get("/GetNormalUserList", async (req, res) => {
 	try {
 		let data = await User.find({ user_type: 1 })
@@ -80,6 +87,7 @@ router.get("/GetNormalUserList", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.get("/GetUser/:user_uuid", async (req, res) => {
 	try {
 		let data = await User.findOne({
@@ -110,6 +118,7 @@ router.post("/login", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.get("/getDetails", async (req, res) => {
 	try {
 		let autobill = await AutoBill.find({})
@@ -196,6 +205,65 @@ router.get("/getDetails", async (req, res) => {
 		})
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
+	}
+})
+
+router.get("/performance-summary", async (req, res) => {
+	try {
+		const { from_date, to_date } = req.query
+		const query = [
+			{
+				"status.time": {
+					$gte: new Date(+from_date).setHours(0, 0, 0, 0),
+					$lt: +to_date + 1000 * 60 * 60 * 24
+				}
+			},
+			{
+				_id: 0,
+				order_uuid: 1,
+				status: 1,
+				order_grandtotal: 1
+			}
+		]
+
+		const [completedOrders, cancelledOrders, runningOrders] = await Promise.all([
+			OrderCompleted.find(...query),
+			CancelOrders.find(...query),
+			Orders.find(...query)
+		])
+
+		const orders = [...completedOrders, ...cancelledOrders, ...runningOrders]
+		const users = {}
+		const stages = [
+			{ id: 1, stage: "placed" },
+			{ id: 2, stage: "processed" },
+			{ id: 3, stage: "checked" },
+			{ id: 3.5, stage: "delivered" },
+			{ id: 4, stage: "completed" }
+		]
+
+		for (const order of orders) {
+			for (const { stage, user_uuid } of order.status) {
+				const _stage = stages.find(i => i.id === +stage)?.stage
+				if (!_stage) continue
+
+				if (!users[user_uuid]) users[user_uuid] = {}
+				if (!users[user_uuid][_stage]) users[user_uuid][_stage] = { count: 0, amount: 0 }
+
+				users[user_uuid][_stage].count += 1
+				users[user_uuid][_stage].amount += +order.order_grandtotal || 0
+			}
+		}
+
+		for (const user_uuid in users) if (!Object.values(users[user_uuid]).some(i => i.count > 0)) delete users[user_uuid]
+		const usersTitles = await Users.find({ user_uuid: { $in: Object.keys(users) } }, { user_title: 1, user_uuid: 1 })
+		for (const { user_title, user_uuid } of usersTitles) {
+			users[user_uuid].user_title = await user_title
+		}
+
+		res.json(users)
+	} catch (err) {
+		res.status(500).json({ success: false, message: err?.message })
 	}
 })
 
