@@ -65,7 +65,8 @@ const OrdersSchema = new mongoose.Schema({
 		}
 	],
 	order_uuid: {
-		type: String
+		type: String,
+		unique: true
 	},
 	invoice_number: {
 		type: Number
