@@ -174,15 +174,30 @@ router.get("/suggestions/:warehouse_uuid", async (req, res) => {
 
 		for (const item of dbItems) {
 			const { item_uuid, stock, conversion } = item
-			const findItem = data => data.item_details.find(i => i.item_uuid === item_uuid)
 			const { min_level: required, qty: available } = stock.find(i => i.warehouse_uuid === warehouse_uuid)
 
-			if (+required === 0) continue
+			if (+required < +available || +required === 0) continue
 
+			const findItem = data => data.item_details.find(i => i.item_uuid === item_uuid)
 			const added = await voucherItems.reduce((sum, voucher) => sum + calculatePieces(findItem(voucher), conversion), 0)
 			const used = await orderItems.reduce((sum, order) => sum + calculatePieces(findItem(order), conversion), 0)
-			const suggested = parseInt(+required - (+available - used + added))
+			let suggested = parseInt(parseInt(+required - (+available - used + added)) / +conversion)
+			if (suggested <= 0) continue
+
 			suggestions_data.push({ ...JSON.parse(JSON.stringify(item)), b: suggested })
+			// suggestions_data.push({
+			// 	item_uuid,
+			// 	item_title: item?.item_title,
+			// 	calculation_details: {
+			// 		required,
+			// 		available,
+			// 		used,
+			// 		added,
+			// 		suggested,
+			// 		conversion: +conversion,
+			// 		formula: "required - (available - used + added)"
+			// 	}
+			// })
 		}
 
 		res.json(suggestions_data)
