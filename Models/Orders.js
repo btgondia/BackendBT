@@ -17,6 +17,7 @@ const OrdersSchema = new mongoose.Schema({
 	to_print: { type: String },
 	opened_by: { type: String },
 	notes: [{ type: String }],
+	counter_charges: [{ type: String }],
 	priority: { type: Number, default: 0 },
 	order_type: { type: String, default: "I" },
 	payment_pending: { type: Number, default: 0 },
@@ -71,7 +72,6 @@ const OrdersSchema = new mongoose.Schema({
 			p: { type: Number }
 		}
 	],
-
 	order_uuid: {
 		type: String
 	},

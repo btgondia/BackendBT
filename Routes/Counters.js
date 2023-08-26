@@ -245,6 +245,15 @@ router.post("/GetCounterData", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+router.get("/minimum_details", async (req, res) => {
+	try {
+		let data = await Counter.find({}, { counter_uuid: 1, counter_title: 1 })
+		if (data.length) res.json({ success: true, result: data })
+		else res.json({ success: false, message: "Counters Not found" })
+	} catch (err) {
+		res.status(500).json({ success: false, message: err })
+	}
+})
 router.get("/getCounterSales/:days", async (req, res) => {
 	try {
 		let days = req.params.days
@@ -281,9 +290,7 @@ router.get("/getCounterSales/:days", async (req, res) => {
 					?.map(a => +(+a.b + +(ItemsData?.find(b => b.item_uuid === a.item_uuid)?.conversion || 0) + +a.p) * +a.price)
 				let value = orderItems.length > 1 ? orderItems.reduce((a, b) => a + b) : orderItems?.length ? orderItems[0] : 0
 				value =
-					value - Math.floor(value) !== 0
-						? value.toString().match(new RegExp("^-?\\d+(?:.\\d{0," + (2 || -1) + "})?"))[0]
-						: value
+					value - Math.floor(value) !== 0 ? value.toString().match(new RegExp("^-?\\d+(?:.\\d{0," + (2 || -1) + "})?"))[0] : value
 				sales.push({ company_uuid: Company?.company_uuid, value })
 			}
 			let obj = {
@@ -494,9 +501,7 @@ router.put("/CalculateLines", async (req, res) => {
 						let ItemData = ItemsData.find(
 							a =>
 								a.item_uuid === item.item_uuid &&
-								(type === "company"
-									? a.company_uuid === company.company_uuid
-									: a.category_uuid === company.category_uuid)
+								(type === "company" ? a.company_uuid === company.company_uuid : a.category_uuid === company.category_uuid)
 						)
 
 						if (ItemData) {
