@@ -165,7 +165,10 @@ router.get("/suggestions/:warehouse_uuid", async (req, res) => {
 		const orderItems = await Orders.find({ warehouse_uuid }, { item_details: 1 })
 		const voucherItems = await Vochers.find({ to_warehouse: req.params.warehouse_uuid, delivered: 0 }, { item_details: 1 })
 		const dbItems = await Item.find(
-			{ $and: [{ "stock.warehouse_uuid": warehouse_uuid }, { "stock.min_level": { $gt: 0 } }] },
+			{
+				$and: [{ "stock.warehouse_uuid": warehouse_uuid }, { "stock.min_level": { $gt: 0 } }],
+				status: 1
+			},
 			{ stock: 1, conversion: 1, item_uuid: 1, item_title: 1, mrp: 1, category_uuid: 1 }
 		)
 
