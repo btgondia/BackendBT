@@ -179,8 +179,6 @@ router.get("/suggestions/:warehouse_uuid", async (req, res) => {
 			const { item_uuid, stock, conversion } = item
 			const { min_level: required, qty: available } = stock.find(i => i.warehouse_uuid === warehouse_uuid)
 
-			if (+required < +available || +required === 0) continue
-
 			const findItem = data => data.item_details.find(i => i.item_uuid === item_uuid)
 			const added = await voucherItems.reduce((sum, voucher) => sum + calculatePieces(findItem(voucher), conversion), 0)
 			const used = await orderItems.reduce((sum, order) => sum + calculatePieces(findItem(order), conversion), 0)
