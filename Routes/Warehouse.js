@@ -180,9 +180,9 @@ router.get("/suggestions/:warehouse_uuid", async (req, res) => {
 			const { min_level: required, qty: available } = stock.find(i => i.warehouse_uuid === warehouse_uuid)
 
 			const findItem = data => data.item_details.find(i => i.item_uuid === item_uuid)
-			const added = await voucherItems.reduce((sum, voucher) => sum + calculatePieces(findItem(voucher), conversion), 0)
-			const used = await orderItems.reduce((sum, order) => sum + calculatePieces(findItem(order), conversion), 0)
-			let suggested = parseInt(parseInt(+required - (+available - used + added)) / +conversion)
+			const added = (await voucherItems.reduce((sum, voucher) => sum + calculatePieces(findItem(voucher), conversion), 0)) || 0
+			const used = (await orderItems.reduce((sum, order) => sum + calculatePieces(findItem(order), conversion), 0)) || 0
+			let suggested = Math.ceil((+required - (+available - used + added)) / +conversion)
 			if (suggested <= 0) continue
 
 			suggestions_data.push({ ...JSON.parse(JSON.stringify(item)), b: suggested })
