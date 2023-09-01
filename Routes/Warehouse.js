@@ -173,7 +173,7 @@ router.get("/suggestions/:warehouse_uuid", async (req, res) => {
 		)
 
 		const suggestions_data = []
-		const calculatePieces = (item, conversion) => (item ? +item.p + +item.b * +conversion : 0)
+		const calculatePieces = (item, conversion) => (item ? (+item.p || 0) + (+item.b || 0) * +conversion : 0)
 
 		for (const item of dbItems) {
 			const { item_uuid, stock, conversion } = item
@@ -182,6 +182,7 @@ router.get("/suggestions/:warehouse_uuid", async (req, res) => {
 			const findItem = data => data.item_details.find(i => i.item_uuid === item_uuid)
 			const added = (await voucherItems.reduce((sum, voucher) => sum + calculatePieces(findItem(voucher), conversion), 0)) || 0
 			const used = (await orderItems.reduce((sum, order) => sum + calculatePieces(findItem(order), conversion), 0)) || 0
+
 			let suggested = Math.ceil((+required - (+available - used + added)) / +conversion)
 			if (suggested <= 0) continue
 
