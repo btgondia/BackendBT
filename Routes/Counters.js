@@ -753,4 +753,144 @@ router.patch("/delete_location_coords/:counter_uuid", async (req, res) => {
 	}
 })
 
+router.post("/report", async (req, res) => {
+	try {
+		const { date_range, companies, routes } = await req.body
+		const counters = await OrderCompleted.aggregate([
+			{
+				$unwind: {
+					path: "$status",
+					includeArrayIndex: "index",
+					preserveNullAndEmptyArrays: false
+				}
+			},
+			{
+				$match: {
+					"index": 0,
+					"status.time": {
+						$gte: new Date(+date_range?.from_date).setHours(0, 0, 0, 0),
+						$lt: new Date(+date_range?.to_date).setHours(23, 59, 59, 999)
+					}
+				}
+			},
+			{
+				$project: {
+					counter_uuid: 1,
+					item_details: 1
+				}
+			},
+			{
+				$lookup: {
+					from: "counters",
+					localField: "counter_uuid",
+					foreignField: "counter_uuid",
+					let: { routes: routes },
+					pipeline: [
+						{
+							$match: {
+								$expr: {
+									$in: ["$route_uuid", "$$routes"]
+								}
+							}
+						}
+					],
+					as: "counter"
+				}
+			},
+			{
+				$unwind: {
+					path: "$counter",
+					preserveNullAndEmptyArrays: false
+				}
+			},
+			{
+				$addFields: {
+					route_uuid: "$counter.route_uuid",
+					counter_title: "$counter.counter_title",
+					counter_index: "$counter.sort_order"
+				}
+			},
+			{
+				$project: {
+					counter: 0
+				}
+			},
+			{
+				$unwind: {
+					path: "$item_details",
+					preserveNullAndEmptyArrays: false
+				}
+			},
+			{
+				$lookup: {
+					from: "items",
+					localField: "item_details.item_uuid",
+					foreignField: "item_uuid",
+					let: {
+						companies: companies
+					},
+					pipeline: [
+						{
+							$match: {
+								$expr: {
+									$in: ["$company_uuid", "$$companies"]
+								}
+							}
+						}
+					],
+					as: "item"
+				}
+			},
+			{
+				$unwind: {
+					path: "$item",
+					preserveNullAndEmptyArrays: false
+				}
+			},
+			{
+				$addFields: {
+					"item_details.company_uuid": "$item.company_uuid"
+				}
+			},
+			{
+				$project: {
+					item: 0
+				}
+			},
+			{
+				$group: {
+					_id: "$counter_uuid",
+					item_details: {
+						$push: {
+							company_uuid: "$item_details.company_uuid",
+							b: "$item_details.b",
+							p: "$item_details.p",
+							item_total: "$item_details.item_total"
+						}
+					},
+					route_uuid: {
+						$first: "$route_uuid"
+					},
+					counter_title: {
+						$first: "$counter_title"
+					},
+					counter_index: {
+						$first: "$counter_index"
+					}
+				}
+			},
+			{
+				$sort: {
+					counter_index: 1,
+					counter_title: 1
+				}
+			}
+		])
+
+		res.json({ success: true, result: counters })
+	} catch (error) {
+		res.status(500).json({ error: error.message })
+	}
+})
+
 module.exports = router
