@@ -13,6 +13,8 @@ const notification_log = require("../Models/notification_log")
 const orderForms = require("../Models/orderForms")
 const Campaigns = require("../Models/Campaigns")
 const { messageEnque } = require("../queues/messageQueue")
+const Counters = require("../Models/Counters")
+const { default: mongoose } = require("mongoose")
 var msg91 = require("msg91-templateid")("312759AUCbnlpoZeD61714959P1", "foodDo", "4")
 
 router.post("/postCounter", async (req, res) => {
@@ -889,6 +891,168 @@ router.post("/report", async (req, res) => {
 
 		res.json({ success: true, result: counters })
 	} catch (error) {
+		res.status(500).json({ error: error.message })
+	}
+})
+
+router.post("/report/new", async (req, res) => {
+	try {
+		const { lastSortNo = 0, skip = 0, date_range, companies, routes } = await req.body
+		const limit = 150
+
+		const aggregate = [
+			{
+				$match: {
+					route_uuid: {
+						$in: routes
+					},
+					sort_order: {
+						$gte: lastSortNo
+					}
+				}
+			},
+			{
+				$project: {
+					counter_uuid: 1,
+					counter_title: 1,
+					route_uuid: 1,
+					sort_order: 1
+				}
+			},
+			{
+				$lookup: {
+					from: "completed_orders",
+					let: {
+						counter_field: "$counter_uuid"
+					},
+					pipeline: [
+						{
+							$match: {
+								$expr: {
+									$eq: ["$$counter_field", "$counter_uuid"]
+								}
+							}
+						},
+						{
+							$unwind: {
+								path: "$status",
+								includeArrayIndex: "index",
+								preserveNullAndEmptyArrays: false
+							}
+						},
+						{
+							$match: {
+								"index": 0,
+								"status.time": {
+									$gte: new Date(+date_range?.from_date).setHours(0, 0, 0, 0),
+									$lt: new Date(+date_range?.to_date).setHours(23, 59, 59, 999)
+								}
+							}
+						},
+						{
+							$replaceRoot: {
+								newRoot: {
+									item_details: "$item_details"
+								}
+							}
+						}
+					],
+					as: "order"
+				}
+			},
+			{
+				$unwind: {
+					path: "$order",
+					preserveNullAndEmptyArrays: false
+				}
+			},
+			{
+				$addFields: {
+					item_details: "$order.item_details",
+					order: null
+				}
+			},
+			{
+				$unwind: {
+					path: "$item_details",
+					preserveNullAndEmptyArrays: false
+				}
+			},
+			{
+				$lookup: {
+					from: "items",
+					localField: "item_details.item_uuid",
+					foreignField: "item_uuid",
+					let: {
+						companies: companies
+					},
+					pipeline: [
+						{
+							$match: {
+								$expr: {
+									$in: ["$company_uuid", "$$companies"]
+								}
+							}
+						}
+					],
+					as: "item"
+				}
+			},
+			{
+				$unwind: {
+					path: "$item",
+					preserveNullAndEmptyArrays: false
+				}
+			},
+			{
+				$addFields: {
+					new_item: {
+						item_total: "$item_details.item_total",
+						company_uuid: "$item.company_uuid",
+						b: "$item_details.b",
+						p: "$item_details.p"
+					},
+					item: null,
+					item_details: null
+				}
+			},
+			{
+				$group: {
+					_id: "$counter_uuid",
+					item_details: {
+						$push: "$new_item"
+					},
+					counter_title: {
+						$first: "$counter_title"
+					},
+					route_uuid: {
+						$first: "$route_uuid"
+					},
+					sort_order: {
+						$first: "$sort_order"
+					}
+				}
+			},
+			{
+				$sort: {
+					sort_order: 1,
+					counter_title: 1,
+					counter_id: 1
+				}
+			},
+			{
+				$skip: skip
+			},
+			{
+				$limit: limit
+			}
+		]
+
+		const counters = await Counters.aggregate(aggregate)
+
+		res.json({ success: true, result: counters })
+	} catch (error) {
+		console.error(error)
 		res.status(500).json({ error: error.message })
 	}
 })

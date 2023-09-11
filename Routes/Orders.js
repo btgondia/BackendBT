@@ -1148,10 +1148,20 @@ router.post("/GetOrderProcessingList", async (req, res) => {
 			},
 			{
 				counter_title: 1,
-
+				route_uuid: 1,
 				sort_order: 1,
-
 				counter_uuid: 1
+			}
+		)
+		let routesData = await Routes.find(
+			{
+				route_uuid: {
+					$in: [...new Set(counterData?.filter(a => a.route_uuid)?.map(a => a.route_uuid))] || []
+				}
+			},
+			{
+				route_title: 1,
+				route_uuid: 1
 			}
 		)
 		result = data
@@ -1159,6 +1169,7 @@ router.post("/GetOrderProcessingList", async (req, res) => {
 				let counter = counterData?.find(b => b?.counter_uuid === a?.counter_uuid) || {}
 				return {
 					...a,
+					route_title: routesData?.find(b => b?.route_uuid === counter?.route_uuid)?.route_title,
 					counter_title: a.counter_uuid ? counter?.counter_title : "",
 					sort_order: a.counter_uuid ? counter?.sort_order : ""
 				}
@@ -1192,10 +1203,20 @@ router.post("/GetOrderCheckingList", async (req, res) => {
 			},
 			{
 				counter_title: 1,
-
+				route_uuid: 1,
 				sort_order: 1,
-
 				counter_uuid: 1
+			}
+		)
+		let routesData = await Routes.find(
+			{
+				route_uuid: {
+					$in: [...new Set(counterData?.filter(a => a.route_uuid)?.map(a => a.route_uuid))] || []
+				}
+			},
+			{
+				route_title: 1,
+				route_uuid: 1
 			}
 		)
 		result = data
@@ -1203,6 +1224,7 @@ router.post("/GetOrderCheckingList", async (req, res) => {
 				let counter = counterData?.find(b => b?.counter_uuid === a?.counter_uuid) || {}
 				return {
 					...a,
+					route_title: routesData?.find(b => b?.route_uuid === counter?.route_uuid)?.route_title,
 					counter_title: a.counter_uuid ? counter?.counter_title : "",
 					sort_order: a.counter_uuid ? counter?.sort_order : ""
 				}
@@ -1238,12 +1260,21 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
 			},
 			{
 				counter_title: 1,
-
+				route_uuid: 1,
 				sort_order: 1,
-
+				counter_uuid: 1,
 				credit_allowed: 1,
-
-				counter_uuid: 1
+			}
+		)
+		let routesData = await Routes.find(
+			{
+				route_uuid: {
+					$in: [...new Set(counterData?.filter(a => a.route_uuid)?.map(a => a.route_uuid))] || []
+				}
+			},
+			{
+				route_title: 1,
+				route_uuid: 1
 			}
 		)
 		result = data
@@ -1251,6 +1282,7 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
 				let counter = counterData?.find(b => b?.counter_uuid === a?.counter_uuid) || {}
 				return {
 					...a,
+					route_title: routesData?.find(b => b?.route_uuid === counter?.route_uuid)?.route_title,
 					counter_title: a.counter_uuid ? counter?.counter_title : "",
 					credit_allowed: a.counter_uuid ? counter?.credit_allowed : "",
 					sort_order: a.counter_uuid ? counter?.sort_order : ""
