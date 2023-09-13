@@ -8,7 +8,7 @@ const DetailsSchema = new mongoose.Schema({
 	next_receipt_number: { type: String },
 	timer_run_at: { type: Number },
 	next_collection_tag_number: { type: Number },
-	preferred_xpress_config: 1,
+	preferred_xpress_config: { type: Number },
 	xpress_config: [
 		{
 			id: { type: Number, unique: true },
