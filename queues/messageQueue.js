@@ -4,15 +4,14 @@ const { redisConnection } = require("../config/redis")
 const fs = require("fs")
 const axios = require("axios")
 const Details = require("../Models/Details")
-const MessageHost = process.env.XPRESSHOST
 
 let queue
 if (process.env?.NODE_ENV !== "development")
 	queue = new Queue("Messages", {
 		connection: redisConnection,
 		defaultJobOptions: {
-			attempts: 1,
-		},
+			attempts: 1
+		}
 	})
 
 const getRandomBetween = (max = processingGap, min = processingGap - 1000) => ~~(Math.random() * (max - min) + min)
@@ -28,16 +27,19 @@ const messageEnque = async doc => {
 }
 
 const getParams = async _params => {
-	const result = await Details.findOne()
-	_params.access_token = await result.xpress_access_token
-	_params.instance_id = await result.xpress_instance_id
-	return (
-		"?" +
-		Object.keys(_params)
-			.filter(key => key !== "qr")
-			.map(key => `${key}=${_params[key]}`)
-			.join("&")
-	)
+	const { preferred_xpress_config, xpress_config: configOptions } = await Details.findOne()
+	const xpress_config = configOptions.find(i => i.id === preferred_xpress_config)
+	_params.access_token = await xpress_config.xpress_access_token
+	_params.instance_id = await xpress_config.xpress_instance_id
+	return {
+		query:
+			"?" +
+			Object.keys(_params)
+				.filter(key => key !== "qr")
+				.map(key => `${key}=${_params[key]}`)
+				.join("&"),
+		url: xpress_config.url
+	}
 }
 
 let worker
@@ -54,13 +56,12 @@ if (process.env?.NODE_ENV !== "development") {
 				}
 
 				let init_time = Date.now()
-				const query = await getParams({
+				const { query, url } = await getParams({
 					...job.data,
-					...(filename ? { media_url: `${process.env.HOST}/${filename}` } : {}),
+					...(filename ? { media_url: `${process.env.HOST}/${filename}` } : {})
 				})
 
-				console.log(MessageHost + query)
-				const response = await axios.get(MessageHost + query)
+				const response = await axios.get(url + query)
 				queue.remove(job.id)
 				console.yellow(`JOB: ${job.id} TOOK ${Date.now() - init_time}ms`)
 				console.log(response?.data)
@@ -68,12 +69,12 @@ if (process.env?.NODE_ENV !== "development") {
 				console.log("ERROR IN MESSAGE PROCESSING:", {
 					message: error?.message,
 					data: job.data,
-					error,
+					error
 				})
 			}
 		},
 		{
-			connection: redisConnection,
+			connection: redisConnection
 		}
 	)
 }

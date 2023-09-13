@@ -8,8 +8,15 @@ const DetailsSchema = new mongoose.Schema({
 	next_receipt_number: { type: String },
 	timer_run_at: { type: Number },
 	next_collection_tag_number: { type: Number },
-	xpress_access_token: { type: String },
-	xpress_instance_id: { type: String },
+	preferred_xpress_config: 1,
+	xpress_config: [
+		{
+			id: { type: Number, unique: true },
+			url: { type: String },
+			intance_id: { type: String },
+			access_token: { type: String }
+		}
+	]
 })
 
 module.exports = mongoose.model("details", DetailsSchema)
