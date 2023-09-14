@@ -29,8 +29,8 @@ const messageEnque = async doc => {
 const getParams = async _params => {
 	const { preferred_xpress_config, xpress_config: configOptions } = await Details.findOne()
 	const xpress_config = configOptions.find(i => i.id === preferred_xpress_config)
-	_params.access_token = await xpress_config.xpress_access_token
-	_params.instance_id = await xpress_config.xpress_instance_id
+	_params.access_token = await xpress_config.access_token
+	_params.instance_id = await xpress_config.instance_id
 	return {
 		query:
 			"?" +

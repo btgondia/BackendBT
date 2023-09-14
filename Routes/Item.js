@@ -13,9 +13,8 @@ router.post("/postItem", async (req, res) => {
 		if (!value) res.json({ success: false, message: "Invalid Data" })
 		value = { ...value, item_uuid: value.item_uuid || uuid() }
 		if (!value.sort_order) {
-			let response = await Item.find({})
+			let response = await Item.find({}, { sort_order: 1 })
 			response = JSON.parse(JSON.stringify(response))
-			//   console.log(response)
 			value.sort_order = Math.max(...response.map(o => o?.sort_order || 0)) + 1 || 0
 			value.created_at = new Date().getTime()
 		}
@@ -34,10 +33,10 @@ router.delete("/deleteItem", async (req, res) => {
 		if (!item_uuid) res.json({ success: false, message: "Invalid Data" })
 		let response = { acknowledged: false }
 		let orderData = await Orders.find({
-			"item_details.item_uuid": item_uuid,
+			"item_details.item_uuid": item_uuid
 		})
 		let CompleteOrderData = await OrderCompleted.find({
-			"item_details.item_uuid": item_uuid,
+			"item_details.item_uuid": item_uuid
 		})
 		if (!(orderData.length || CompleteOrderData.length)) {
 			fs.access("uploads/" + (item_uuid || "") + ".png", err => {
@@ -73,7 +72,6 @@ router.delete("/deleteItem", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
-
 router.get("/GetItemList", async (req, res) => {
 	try {
 		let data = await Item.find({})
@@ -81,7 +79,7 @@ router.get("/GetItemList", async (req, res) => {
 		if (data.length)
 			res.json({
 				success: true,
-				result: data.filter(a => a.item_uuid && a.item_title),
+				result: data.filter(a => a.item_uuid && a.item_title)
 			})
 		else res.json({ success: false, message: "Item Not found" })
 	} catch (err) {
@@ -113,14 +111,14 @@ router.get("/GetActiveItemList", async (req, res) => {
 
 				item_group_uuid: 1,
 				// stock: 1,
-				created_at: 1,
+				created_at: 1
 			}
 		)
 
 		if (data.length)
 			res.json({
 				success: true,
-				result: data.filter(a => a.item_uuid && a.item_title),
+				result: data.filter(a => a.item_uuid && a.item_title)
 			})
 		else res.json({ success: false, message: "Item Not found" })
 	} catch (err) {
@@ -150,13 +148,13 @@ router.post("/GetItemList", async (req, res) => {
 			barcode: 1,
 			item_group_uuid: 1,
 			// stock: 1,
-			created_at: 1,
+			created_at: 1
 		})
 
 		if (data.length)
 			res.json({
 				success: true,
-				result: data.filter(a => a.item_uuid && a.item_title),
+				result: data.filter(a => a.item_uuid && a.item_title)
 			})
 		else res.json({ success: false, message: "Item Not found" })
 	} catch (err) {
@@ -188,14 +186,14 @@ router.get("/GetItemData", async (req, res) => {
 				barcode: 1,
 				item_group_uuid: 1,
 				billing_type: 1,
-				created_at: 1,
+				created_at: 1
 			}
 		)
 
 		if (data.length)
 			res.json({
 				success: true,
-				result: data.filter(a => a.item_uuid && a.item_title),
+				result: data.filter(a => a.item_uuid && a.item_title)
 			})
 		else res.json({ success: false, message: "Item Not found" })
 	} catch (err) {
@@ -226,7 +224,7 @@ router.get("/getNewItemReminder", async (req, res) => {
 		if (data)
 			res.json({
 				success: true,
-				result: data?.new_item_reminder,
+				result: data?.new_item_reminder
 			})
 		else res.json({ success: false, message: "Item Not found" })
 	} catch (err) {
@@ -238,7 +236,7 @@ router.get("/minValue/:warhouse_uuid/:item_uuid", async (req, res) => {
 		let Itemdata = await Item.findOne({ item_uuid: req.params.item_uuid })
 		let ordersData = await Orders.find({
 			"item_details.item_uuid": req.params.item_uuid,
-			"warehouse_uuid": req.params.warhouse_uuid,
+			"warehouse_uuid": req.params.warhouse_uuid
 		})
 		let allItems = [].concat
 			.apply(
@@ -252,7 +250,7 @@ router.get("/minValue/:warhouse_uuid/:item_uuid", async (req, res) => {
 		if (allItems)
 			res.json({
 				success: true,
-				result: allItems,
+				result: allItems
 			})
 		else res.json({ success: false, message: "Item Not found" })
 	} catch (err) {
@@ -267,20 +265,19 @@ router.get("/GetItemStockList/:warhouse_uuid", async (req, res) => {
 		if (req.params.warhouse_uuid)
 			data = data.map(a => ({
 				...a,
-				qty: a.stock.find(b => b.warehouse_uuid === req.params.warhouse_uuid)?.qty || 0,
+				qty: a.stock.find(b => b.warehouse_uuid === req.params.warhouse_uuid)?.qty || 0
 			}))
 
 		if (data.length)
 			res.json({
 				success: true,
-				result: data.filter(a => a.item_uuid && a.item_title),
+				result: data.filter(a => a.item_uuid && a.item_title)
 			})
 		else res.json({ success: false, message: "Item Not found" })
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
 	}
 })
-
 router.put("/putItem", async (req, res) => {
 	try {
 		let result = []
@@ -326,6 +323,409 @@ router.put("/flushWarehouse", async (req, res) => {
 		res.json({ success: true, result })
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
+	}
+})
+router.post("/report", async (req, res) => {
+	try {
+		let { startDate, endDate, counter_uuid, counter_group_uuid, item_group_uuid, company_uuid, last_item } = req.body
+		if (!endDate) return res.json({ success: false, message: "No date range provided" })
+
+		const aggregate = [
+			...(last_item
+				? [
+						{
+							$match: {
+								$or: [
+									{
+										$and: [
+											{
+												$expr: {
+													$eq: ["$company_uuid", last_item.company_uuid]
+												}
+											},
+											{
+												$expr: {
+													$gt: [
+														{
+															$toLower: "$item_title"
+														},
+														{
+															$toLower: last_item.item_title
+														}
+													]
+												}
+											}
+										]
+									},
+									{
+										company_uuid: {
+											$gt: last_item.company_uuid
+										}
+									}
+								]
+							}
+						}
+				  ]
+				: []),
+			...(item_group_uuid || company_uuid
+				? [
+						{
+							$match: {
+								...(item_group_uuid && company_uuid
+									? {
+											$or: [{ company_uuid }, { item_group_uuid }]
+									  }
+									: item_group_uuid
+									? { item_group_uuid }
+									: { company_uuid })
+							}
+						}
+				  ]
+				: []),
+			...(!last_item
+				? [
+						{
+							$sort: {
+								company_uuid: 1,
+								item_title: 1
+							}
+						},
+						{ $limit: 200 }
+				  ]
+				: []),
+			{
+				$lookup: {
+					from: "completed_orders",
+					let: {
+						this_item: "$item_uuid",
+						conversion: {
+							$convert: {
+								input: "$conversion",
+								to: "int",
+								onError: 1
+							}
+						}
+					},
+					pipeline: [
+						{
+							$match: {
+								...(!counter_group_uuid && counter_uuid
+									? {
+											counter_uuid
+									  }
+									: {}),
+								"status": {
+									$elemMatch: {
+										stage: "1",
+										time: {
+											$gte: new Date(startDate).setHours(0, 0, 0, 0),
+											$lt: new Date(endDate).setHours(23, 59, 59, 99)
+										}
+									}
+								},
+								"item_details.item_uuid": {
+									$exists: true
+								}
+							}
+						},
+						...(counter_group_uuid
+							? [
+									{
+										$lookup: {
+											from: "counters",
+											localField: "counter_uuid",
+											foreignField: "counter_uuid",
+											pipeline: [
+												{
+													$match:
+														counter_uuid && counter_group_uuid
+															? {
+																	$or: [
+																		{
+																			counter_group_uuid
+																		},
+																		{
+																			counter_uuid
+																		}
+																	]
+															  }
+															: { counter_group_uuid }
+												},
+												{
+													$replaceRoot: {
+														newRoot: {}
+													}
+												}
+											],
+											as: "counter"
+										}
+									},
+									{
+										$unwind: {
+											path: "$counter",
+											preserveNullAndEmptyArrays: false
+										}
+									}
+							  ]
+							: []),
+						{
+							$unwind: {
+								path: "$item_details",
+								preserveNullAndEmptyArrays: false
+							}
+						},
+						{
+							$match: {
+								$expr: {
+									$eq: ["$item_details.item_uuid", "$$this_item"]
+								}
+							}
+						},
+						{
+							$replaceRoot: {
+								newRoot: {
+									item: {
+										p: {
+											$add: [
+												"$item_details.p",
+												{
+													$multiply: ["$item_details.b", "$$conversion"]
+												}
+											]
+										},
+										price: "$item_details.price"
+									},
+									added: {
+										$arrayElemAt: [
+											{
+												$filter: {
+													input: "$auto_added",
+													as: "elem",
+													cond: {
+														$eq: ["$$elem.item_uuid", "$$this_item"]
+													}
+												}
+											},
+											0
+										]
+									},
+									cancelled: {
+										$arrayElemAt: [
+											{
+												$filter: {
+													input: "$processing_canceled",
+													as: "elem",
+													cond: {
+														$eq: ["$$elem.item_uuid", "$$this_item"]
+													}
+												}
+											},
+											0
+										]
+									},
+									returned: {
+										$arrayElemAt: [
+											{
+												$filter: {
+													input: "$delivery_return",
+													as: "elem",
+													cond: {
+														$eq: ["$$elem.item_uuid", "$$this_item"]
+													}
+												}
+											},
+											0
+										]
+									}
+								}
+							}
+						}
+					],
+					as: "orders"
+				}
+			},
+			{
+				$match: {
+					"orders.item": {
+						$exists: 1
+					}
+				}
+			},
+			{
+				$project: {
+					item_uuid: 1,
+					item_title: 1,
+					company_uuid: 1,
+					mrp: 1,
+					conversion: 1,
+					sales: {
+						$reduce: {
+							input: "$orders",
+							initialValue: {},
+							in: {
+								p: {
+									$add: [
+										{
+											$ifNull: ["$$value.p", 0]
+										},
+										{
+											$ifNull: ["$$this.item.p", 0]
+										}
+									]
+								},
+								price: {
+									$add: [
+										{
+											$ifNull: ["$$value.price", 0]
+										},
+										{
+											$multiply: [
+												{
+													$ifNull: ["$$this.item.p", 0]
+												},
+												{
+													$ifNull: ["$$this.item.price", 0]
+												}
+											]
+										}
+									]
+								}
+							}
+						}
+					},
+					added: {
+						$reduce: {
+							input: "$orders",
+							initialValue: { p: 0, price: 0 },
+							in: {
+								p: {
+									$add: [
+										"$$value.p",
+										{
+											$ifNull: ["$$this.added.p", 0]
+										}
+									]
+								},
+								price: {
+									$add: [
+										"$$value.price",
+										{
+											$multiply: [
+												{
+													$ifNull: ["$$this.added.p", 0]
+												},
+												"$$this.item.price"
+											]
+										}
+									]
+								}
+							}
+						}
+					},
+					returned: {
+						$reduce: {
+							input: "$orders",
+							initialValue: { p: 0, price: 0 },
+							in: {
+								p: {
+									$add: [
+										"$$value.p",
+										{
+											$ifNull: ["$$this.returned.p", 0]
+										}
+									]
+								},
+								price: {
+									$add: [
+										"$$value.price",
+										{
+											$multiply: [
+												{
+													$ifNull: ["$$this.returned.p", 0]
+												},
+												"$$this.item.price"
+											]
+										}
+									]
+								}
+							}
+						}
+					},
+					cancelled: {
+						$reduce: {
+							input: "$orders",
+							initialValue: { p: 0, price: 0 },
+							in: {
+								p: {
+									$add: [
+										"$$value.p",
+										{
+											$ifNull: ["$$this.cancelled.p", 0]
+										}
+									]
+								},
+								price: {
+									$add: [
+										"$$value.price",
+										{
+											$multiply: [
+												{
+													$ifNull: ["$$this.cancelled.p", 0]
+												},
+												"$$this.item.price"
+											]
+										}
+									]
+								}
+							}
+						}
+					}
+				}
+			},
+			{
+				$sort: {
+					company_uuid: 1,
+					item_title: 1
+				}
+			},
+			{
+				$limit: 100
+			}
+		]
+
+		const data = await Item.aggregate(aggregate)
+		let result = data.map(({ _id, ...value }) => {
+			const sumResult = Object.keys(value)
+				.filter(key => typeof value[key] !== "string")
+				.reduce((_, key) => ({ ..._, [key]: value[key] }), {})
+
+			sumResult.sales.price = +sumResult.sales.price.toFixed(2)
+
+			const wholeQty = Object.values(sumResult).reduce((qty, { p }) => qty + p, 0)
+			const pctResult = Object.keys(sumResult)
+				.filter(key => key !== "sales")
+				.reduce(
+					(_result, key) => ({
+						..._result,
+						[key]: {
+							...value[key],
+							price: +sumResult[key].price.toFixed(2),
+							pct: +((sumResult[key].p * 100) / wholeQty).toFixed(2)
+						}
+					}),
+					{}
+				)
+
+			const remaining = Object.keys(value)
+				.filter(key => typeof value[key] !== "object")
+				.reduce((obj, key) => ({ ...obj, [key]: value[key] }), {})
+
+			return { ...remaining, ...sumResult, ...pctResult }
+		})
+
+		res.json({ success: true, length: result.length, result, aggregate })
+	} catch (err) {
+		res.status(500).json({ success: false, message: err.message })
 	}
 })
 

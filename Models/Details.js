@@ -13,7 +13,7 @@ const DetailsSchema = new mongoose.Schema({
 		{
 			id: { type: Number, unique: true },
 			url: { type: String },
-			intance_id: { type: String },
+			instance_id: { type: String },
 			access_token: { type: String }
 		}
 	]

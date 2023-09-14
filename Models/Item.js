@@ -2,80 +2,79 @@ const mongoose = require("mongoose")
 
 const ItemSchema = new mongoose.Schema({
 	item_title: {
-		type: String,
+		type: String
 	},
 	item_discount: {
-		type: Number,
+		type: Number
 	},
 	exclude_discount: {
-		type: Number,
+		type: Number
 	},
 	status: {
-		type: Number,
+		type: Number
 	},
-
 	sort_order: {
-		type: String,
+		type: String
 	},
 	item_code: {
-		type: String,
+		type: String
 	},
 	free_issue: {
-		type: String,
+		type: String
 	},
 	item_uuid: {
-		type: String,
+		type: String
 	},
 	one_pack: {
-		type: String,
+		type: String
 	},
 	company_uuid: {
-		type: String,
+		type: String
 	},
 	category_uuid: {
-		type: String,
+		type: String
 	},
 	pronounce: {
-		type: String,
+		type: String
 	},
 	mrp: {
-		type: String,
+		type: String
 	},
 	item_price: {
-		type: String,
+		type: String
 	},
 	item_gst: {
-		type: String,
+		type: String
 	},
 	conversion: {
-		type: String,
+		type: String
 	},
 	barcode: [
 		{
-			type: String,
-		},
+			type: String
+		}
 	],
 	item_group_uuid: [
 		{
-			type: String,
-		},
+			type: String
+		}
 	],
 	billing_type: { type: String, default: "I" },
 	stock: [
 		{
 			warehouse_uuid: {
-				type: String,
+				type: String
 			},
 			qty: {
-				type: Number,
+				type: Number
 			},
 			min_level: {
-				type: Number,
-			},
-		},
+				type: Number
+			}
+		}
 	],
 	img_status: { type: Number },
-	created_at: { type: Number },
+	created_at: { type: Number }
 })
 
 module.exports = mongoose.model("items", ItemSchema)
