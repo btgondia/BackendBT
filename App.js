@@ -1,3 +1,5 @@
+require("./config/mongo")()
+
 const cors = require("cors")
 const express = require("express")
 const morgan = require("morgan")
@@ -5,8 +7,6 @@ const gTTS = require("gtts")
 const multer = require("multer")
 const fs = require("fs")
 const bodyParser = require("body-parser")
-
-const connectDB = require("./config/mongo")
 
 const WarehouseModel = require("./Models/Warehouse")
 const ItemModel = require("./Models/Item")
@@ -60,7 +60,7 @@ const storage = multer.diskStorage({
 })
 
 const upload = multer({ storage })
-connectDB()
+
 app = express()
 app.use(
 	cors({

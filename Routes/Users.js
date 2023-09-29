@@ -156,7 +156,7 @@ router.get("/getDetails", async (req, res) => {
 		let item_category = await ItemCategories.find({})
 		item_category = item_category.filter(a => a.category_uuid)
 		let items = await Item.find(
-			{ status: 1 },
+			{},
 			{
 				item_title: 1,
 				item_discount: 1,
@@ -187,7 +187,6 @@ router.get("/getDetails", async (req, res) => {
 		payment_modes = payment_modes.filter(a => a.mode_uuid)
 		let warehouse = await Warehouse.find({})
 		warehouse = warehouse.filter(a => a.warehouse_uuid)
-		// const payment_modes= await Item.find({  })
 		let result = {
 			autobill,
 			companies,
