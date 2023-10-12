@@ -159,7 +159,7 @@ router.post("/postOrder", async (req, res) => {
 						let itemData = await Item.findOne({
 							item_uuid: item.item_uuid
 						})
-						amt = +amt + ((+item.b * +itemData.conversion || 0) + item.p) * +incentive_item.value
+						amt = +amt + ((+item.b * +itemData?.conversion || 0) + item.p) * +incentive_item.value
 					}
 				}
 
@@ -207,7 +207,7 @@ router.post("/postOrder", async (req, res) => {
 					itemData = JSON.parse(JSON.stringify(itemData))
 					let stock = itemData.stock
 					console.log("Stock", stock)
-					let qty = +item.b * +itemData.conversion + +item.p + (+item.free || 0)
+					let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0)
 					stock = stock?.filter(a => a.warehouse_uuid === warehouse_uuid)?.length
 						? stock.map(a => (a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a))
 						: stock?.length
@@ -415,7 +415,7 @@ router.put("/putOrders", async (req, res) => {
 
 			let itemData = value?.item_details?.length
 				? await Item.find({
-						item_uuid: { $in: value.item_details.map(a => a.item_details) }
+						item_uuid: { $in: value.item_details.map(a => a.item_uuid) }
 				  })
 				: []
 
@@ -460,7 +460,7 @@ router.put("/putOrders", async (req, res) => {
 							itemData = JSON.parse(JSON.stringify(itemData))
 							let stock = itemData.stock
 							// console.log("Stock", stock);
-							let qty = +item.b * +itemData.conversion + +item.p + (+item.free || 0)
+							let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0)
 							stock = stock?.filter(a => a.warehouse_uuid === warehouse_uuid)?.length
 								? stock.map(a => (a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a))
 								: stock?.length
@@ -601,12 +601,12 @@ router.put("/putOrders", async (req, res) => {
 										? value.item_details
 												.filter(a => +a.status !== 3)
 												.map(a => {
-													return (+a.b * +itemData.find(c => c.item_uuid === a.item_uuid).conversion || 0) + a.p
+													return (+a.b * +itemData.find(c => c.item_uuid === a.item_uuid)?.conversion || 0) + a.p
 												})
 												.reduce((a, b) => a + b)
 										: value.item_details.length
 										? (+value.item_details[0].b *
-												+itemData.find(c => c.item_uuid === value.item_details[0].item_uuid).conversion || 0) +
+												+itemData.find(c => c.item_uuid === value.item_details[0].item_uuid)?.conversion || 0) +
 										  value.item_details[0].p
 										: 0)
 
@@ -676,7 +676,7 @@ router.put("/putOrders", async (req, res) => {
 									let itemData = await Item.findOne({
 										item_uuid: item.item_uuid
 									})
-									amt = +amt + ((+item.b * +itemData.conversion || 0) + item.p) * +incentive_item.value
+									amt = +amt + ((+item?.b * +itemData?.conversion || 0) + item.p) * +incentive_item.value
 								}
 							}
 							incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2)
@@ -1090,7 +1090,7 @@ router.get("/GetOrder/:order_uuid", async (req, res) => {
 			{ item_uuid: 1, category_uuid: 1 }
 		)
 		let categoryData = await ItemCategories.find(
-			{ category_uuid: { $in: itemData.map(a => a.category_uuid) } },
+			{ category_uuid: { $in: itemData?.map(a => a.category_uuid) } },
 			{ category_title: 1, category_uuid: 1 }
 		)
 		data = {
@@ -1099,7 +1099,7 @@ router.get("/GetOrder/:order_uuid", async (req, res) => {
 				?.map(a => ({
 					...a,
 					category_title: categoryData.find(
-						b => b.category_uuid === itemData.find(b => b.item_uuid === a.item_uuid).category_uuid
+						b => b.category_uuid === itemData?.find(b => b.item_uuid === a.item_uuid).category_uuid
 					)?.category_title
 				}))
 				.sort((a, b) => a?.category_title?.localeCompare(b.category_title) || a?.item_title?.localeCompare(b.item_title))
