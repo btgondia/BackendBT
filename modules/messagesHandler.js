@@ -20,7 +20,9 @@ const contactsProcessHandler = async (contacts, messagesCollection, counterData,
 						?.replace(/{counter_title}/g, counterData?.counter_title || "")
 						?.replace(/{short_link}/g, "https://btgondia.com/counter/" + counterData?.short_link || "")
 						?.replace(/{invoice_number}/g, value?.invoice_number || "")
+						?.replace(/{reason}/g, value?.status?.find(i => +i.status === 5)?.cancellation_reason || "")
 						?.replace(/{amount}/g, amt_value)
+
 					// * {details} is handled on the initial route level.
 
 					const doc = { number: `${contact.mobile}`, type: "text", message }
@@ -31,23 +33,19 @@ const contactsProcessHandler = async (contacts, messagesCollection, counterData,
 						number: `${contact.mobile}`,
 						type: "media",
 						filename: messageobj.uuid + ".png",
-						message: messageobj?.caption || "",
+						message: messageobj?.caption || ""
 					}
 					messages.push(doc)
 					await messageEnque(doc)
 				}
 			}
 
-		if (
-			(options.notify || options?.orderPDF) &&
-			value?.order_uuid &&
-			fs.existsSync(`./uploads/${getFileName(value)}`)
-		) {
+		if ((options.notify || options?.orderPDF) && value?.order_uuid && fs.existsSync(`./uploads/${getFileName(value)}`)) {
 			const doc = {
 				number: `${contact.mobile}`,
 				type: "media",
 				filename: getFileName(value),
-				message: value.invoice_number || "",
+				message: value.invoice_number || ""
 			}
 
 			if (options?.orderPDF) doc.message = value.caption || ""
@@ -64,7 +62,7 @@ const contactsProcessHandler = async (contacts, messagesCollection, counterData,
 				notification_uuid: value?.notifiacation_uuid,
 				messages: messages?.filter(i => i.message)?.map(i => ({ text: i.message })),
 				invoice_number: value?.invoice_number,
-				created_at: new Date().getTime(),
+				created_at: new Date().getTime()
 			})
 	}
 }
@@ -83,13 +81,9 @@ const sendMessages = async ({ counterData = {}, value = {}, WhatsappNotification
 		}
 
 		if (WhatsappNotification?.message) {
-			await contactsProcessHandler(
-				filterContacts(counterData?.mobile),
-				WhatsappNotification?.message,
-				counterData,
-				value,
-				{ notify: WhatsappNotification?.checkbox }
-			)
+			await contactsProcessHandler(filterContacts(counterData?.mobile), WhatsappNotification?.message, counterData, value, {
+				notify: WhatsappNotification?.checkbox
+			})
 		}
 	} catch (err) {
 		console.log(err)

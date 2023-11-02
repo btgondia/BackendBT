@@ -314,7 +314,6 @@ router.post("/postOrder", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
-
 router.post("/sendMsg", async (req, res) => {
 	try {
 		let value = req.body
@@ -361,7 +360,6 @@ router.post("/sendMsg", async (req, res) => {
 		res.status(500).json({ success: false, message: err?.message })
 	}
 })
-
 router.post("/sendPdf", async (req, res) => {
 	try {
 		let value = req.body
@@ -392,7 +390,6 @@ router.post("/sendPdf", async (req, res) => {
 		res.status(500).json({ success: false, message: err.message })
 	}
 })
-
 router.put("/putOrders", async (req, res) => {
 	try {
 		let response = []
@@ -716,13 +713,9 @@ router.put("/putOrders", async (req, res) => {
 			}
 
 			if (+orderStage === 2 && prevorderStage === 1) {
-				let WhatsappNotification = await whatsapp_notifications.findOne({
-					notification_uuid: "out-for-delivery"
-				})
-				let counterData = await Counters.findOne(
-					{
-						counter_uuid: value.counter_uuid
-					},
+				const WhatsappNotification = await whatsapp_notifications.findOne({ notification_uuid: "out-for-delivery" })
+				const counterData = await Counters.findOne(
+					{ counter_uuid: value.counter_uuid },
 					{
 						mobile: 1,
 						counter_title: 1,
@@ -735,25 +728,24 @@ router.put("/putOrders", async (req, res) => {
 				}
 			}
 
-			if (value.accept_notification) {
-				let notification_uuid = +value.accept_notification ? "order-accept-notification" : "order-decline-notification"
-				let WhatsappNotification = await whatsapp_notifications.findOne({
-					notification_uuid
+			if (value.accept_notification || value.notifyCancellation) {
+				const WhatsappNotification = await whatsapp_notifications.findOne({
+					notification_uuid: value.notifyCancellation
+						? "order_cancellation"
+						: +value.accept_notification
+						? "order-accept-notification"
+						: "order-decline-notification"
 				})
-				let counterData = await Counters.findOne(
-					{
-						counter_uuid: value.counter_uuid
-					},
-					{
-						mobile: 1,
-						counter_title: 1,
-						short_link: 1
+
+				if (WhatsappNotification?.status) {
+					const counterData = await Counters.findOne(
+						{ counter_uuid: value.counter_uuid },
+						{ mobile: 1, counter_title: 1, short_link: 1 }
+					)
+
+					if (counterData?.mobile?.length) {
+						sendMessages({ value, WhatsappNotification, counterData })
 					}
-				)
-				console.log(notification_uuid)
-				console.log(WhatsappNotification?.status, counterData?.mobile?.length)
-				if (WhatsappNotification?.status && counterData?.mobile?.length) {
-					sendMessages({ value, WhatsappNotification, counterData })
 				}
 			}
 
@@ -773,7 +765,6 @@ router.put("/putOrders", async (req, res) => {
 		res.status(500).json({ success: false, message: err?.message })
 	}
 })
-
 router.put("/order_datetime", async (req, res) => {
 	try {
 		const data = await req.body
@@ -783,7 +774,6 @@ router.put("/order_datetime", async (req, res) => {
 		res.status(500).json({ success: false, message: err.message })
 	}
 })
-
 router.get("/getSignedBills", async (req, res) => {
 	try {
 		let data = await SignedBills.find({ status: 0 })
@@ -927,7 +917,6 @@ router.put("/putCompleteSignedBills", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
-
 router.put("/putCompleteOrder", async (req, res) => {
 	try {
 		let value = req.body
@@ -1500,7 +1489,6 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
-
 router.post("/getCounterLedger", async (req, res) => {
 	try {
 		let value = req.body
@@ -1543,5 +1531,146 @@ router.post("/getCounterLedger", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+// router.post("/recreate/:order_uuid", async (req, res) => {
+// 	try {
+// 		const { order_uuid, user_uuid } = req.params
+// 		const oldOrder = (await OrderCompleted.findOne({ order_uuid }))?.toObject()
+// 		const newOrder = {
+// 			status: [
+// 				{
+// 					stage: "0",
+// 					time: Date.now(),
+// 					user_uuid
+// 				}
+// 			],
+// 			priority: olderOrder?.priority,
+// 			order_type: olderOrder?.order_type,
+// 			_item_details: oldOrder?.item_details?.map(item => ({})),
+// 			item_details: [
+// 				{
+// 					item_uuid: "aab4379e-38d0-4403-874c-ce9be239d9b2",
+// 					b: 0,
+// 					price: 10,
+// 					p: 0,
+// 					status: 1,
+// 					unit_price: 10,
+// 					gst_percentage: 18,
+// 					item_total: 0,
+// 					charges_discount: [],
+// 					category_title: "Patanjali Biscuits"
+// 				}
+// 			],
+// 			order_grandtotal: 0,
+// 			order_uuid: "c204406c-c7ba-493e-a9f0-aadcaa25193e",
+// 			invoice_number: 18924,
+// 			warehouse_uuid: oldOrder?.warehouse_uuid,
+// 			counter_uuid: oldOrder?.counter_uuid,
+// 			trip_uuid: oldOrder?.trip_uuid
+// 		}
+
+// 		// Date.now()
+
+// 		const someOrder = {
+// 			item_details: [
+// 				{
+// 					uuid: "24e3c1a6-2bb6-406b-b42f-941473f3d6bb",
+// 					b: 1,
+// 					p: 0,
+// 					sr: 1,
+// 					_id: "64a39f4cace8ffc4b6a799b9",
+// 					item_title: "7 GRAIN BISCUIT",
+// 					exclude_discount: 0,
+// 					status: 0,
+// 					sort_order: "480",
+// 					free_issue: "N",
+// 					item_uuid: "06cd8881-fd26-4af7-bfe2-e843f5f01181",
+// 					one_pack: "1",
+// 					company_uuid: "b153fb9a-d2b2-11ec-9d64-0242ac120002",
+// 					category_uuid: "0fd688d6-89fa-4ede-b1e6-443703ca73f5",
+// 					pronounce: "7 GRAIN BISCUIT",
+// 					mrp: "75",
+// 					item_price: 67.5,
+// 					item_gst: "18",
+// 					conversion: "20",
+// 					barcode: [],
+// 					item_group_uuid: ["52cb2b0d-9669-4e06-98fd-dfdb78e6bf3c", "52cb2b0d-9669-4e06-98fd-dfdb78e6bf3c"],
+// 					billing_type: "I",
+// 					created_at: 1688444748943,
+// 					stock: [
+// 						{ warehouse_uuid: "0f50eea3-2dc3-47b8-a1e0-7dbef26dbc8a", qty: -40, min_level: 8, _id: "64a3d793ace8ffc4b6b5b8ff" },
+// 						{ warehouse_uuid: "80f9186b-b038-400b-a303-d8d2832c4bbb", qty: 37, min_level: 15, _id: "64a3d793ace8ffc4b6b5b900" }
+// 					],
+// 					__v: 0,
+// 					item_code: "AGEB79",
+// 					item_discount: 0,
+// 					item_title_index: 2,
+// 					qty: 20,
+// 					p_price: "67.50",
+// 					b_price: "1350",
+// 					item_total: "1350.00",
+// 					item_desc_total: 0,
+// 					charges_discount: [],
+// 					unit_price: 67.5,
+// 					gst_percentage: "18",
+// 					price: 67.5
+// 				}
+// 			],
+// 			time_1: Date.now(),
+// 			time_2: 1699028316787,
+// 			warehouse_uuid: "80f9186b-b038-400b-a303-d8d2832c4bbb",
+// 			counter_charges: [],
+// 			order_grandtotal: 1350,
+// 			items: [
+// 				{
+// 					uuid: "24e3c1a6-2bb6-406b-b42f-941473f3d6bb",
+// 					b: 1,
+// 					p: 0,
+// 					sr: 1,
+// 					_id: "64a39f4cace8ffc4b6a799b9",
+// 					item_title: "7 GRAIN BISCUIT",
+// 					exclude_discount: 0,
+// 					status: 1,
+// 					sort_order: "480",
+// 					free_issue: "N",
+// 					item_uuid: "06cd8881-fd26-4af7-bfe2-e843f5f01181",
+// 					one_pack: "1",
+// 					company_uuid: "b153fb9a-d2b2-11ec-9d64-0242ac120002",
+// 					category_uuid: "0fd688d6-89fa-4ede-b1e6-443703ca73f5",
+// 					pronounce: "7 GRAIN BISCUIT",
+// 					mrp: "75",
+// 					item_price: 67.5,
+// 					item_gst: "18",
+// 					conversion: "20",
+// 					barcode: [],
+// 					item_group_uuid: ["52cb2b0d-9669-4e06-98fd-dfdb78e6bf3c", "52cb2b0d-9669-4e06-98fd-dfdb78e6bf3c"],
+// 					billing_type: "I",
+// 					created_at: 1688444748943,
+// 					stock: [
+// 						{ warehouse_uuid: "0f50eea3-2dc3-47b8-a1e0-7dbef26dbc8a", qty: -40, min_level: 8, _id: "64a3d793ace8ffc4b6b5b8ff" },
+// 						{ warehouse_uuid: "80f9186b-b038-400b-a303-d8d2832c4bbb", qty: 37, min_level: 15, _id: "64a3d793ace8ffc4b6b5b900" }
+// 					],
+// 					__v: 0,
+// 					item_code: "AGEB79",
+// 					item_discount: 0,
+// 					item_title_index: 2,
+// 					qty: 20,
+// 					p_price: "67.50",
+// 					b_price: "1350",
+// 					item_total: "1350.00",
+// 					item_desc_total: 0,
+// 					charges_discount: []
+// 				}
+// 			],
+// 			others: { stage: 1, user_uuid: "8827b4b7-eb1e-4009-9261-bbffeec6710b", time: 1698769116683, type: "NEW" },
+// 			order_uuid: "dea25524-c1d1-4d36-8997-a7ebda8e17ba",
+// 			opened_by: 0,
+// 			status: [{ stage: 1, time: 1698769110191, user_uuid: "8827b4b7-eb1e-4009-9261-bbffeec6710b" }]
+// 		}
+
+// 		res.json(newOrder)
+// 	} catch (err) {
+// 		res.status(500).json({ success: false, message: err })
+// 	}
+// })
 
 module.exports = router
