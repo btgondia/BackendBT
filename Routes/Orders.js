@@ -394,6 +394,7 @@ router.put("/putOrders", async (req, res) => {
 	try {
 		let response = []
 		for (let value of req.body) {
+			
 			if (!value) res.json({ success: false, message: "Invalid Data" })
 
 			let prevData = await Orders.findOne({

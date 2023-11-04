@@ -20,7 +20,7 @@ const contactsProcessHandler = async (contacts, messagesCollection, counterData,
 						?.replace(/{counter_title}/g, counterData?.counter_title || "")
 						?.replace(/{short_link}/g, "https://btgondia.com/counter/" + counterData?.short_link || "")
 						?.replace(/{invoice_number}/g, value?.invoice_number || "")
-						?.replace(/{reason}/g, value?.status?.find(i => +i.status === 5)?.cancellation_reason || "")
+						?.replace(/{reason}/g, value?.status?.find(i => +i.stage === 5)?.cancellation_reason || "")
 						?.replace(/{amount}/g, amt_value)
 
 					// * {details} is handled on the initial route level.
