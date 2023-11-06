@@ -45,6 +45,14 @@ const CounterCharges = require("../Models/CounterCharges")
 //   return messages
 // }
 
+router.get("/paymentPending/:counter_uuid", async (req, res) => {
+	try {
+		const result = await Orders.find({counter_uuid: req.params.counter_uuid,payment_pending:1 })
+		res.json({success: true, result})
+	} catch (err) {
+		res.status(500).json({ success: false, message: err })
+	}
+})
 router.post("/postOrder", async (req, res) => {
 	try {
 		let value = req.body
