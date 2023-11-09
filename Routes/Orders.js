@@ -1,5 +1,7 @@
 const express = require("express")
 const router = express.Router()
+const fs = require("fs")
+const { v4: uuid } = require("uuid")
 const Orders = require("../Models/Orders")
 const Details = require("../Models/Details")
 const Counters = require("../Models/Counters")
@@ -11,7 +13,6 @@ const Incentive = require("../Models/Incentive")
 const Users = require("../Models/Users")
 const IncentiveStatment = require("../Models/IncentiveStatment")
 const SignedBills = require("../Models/SignedBills")
-const { v4: uuid } = require("uuid")
 const Trips = require("../Models/Trips")
 const Routes = require("../Models/Routes")
 const CancelOrders = require("../Models/CancelOrders")
@@ -20,7 +21,6 @@ const Vochers = require("../Models/Vochers")
 const whatsapp_notifications = require("../Models/whatsapp_notifications")
 const Campaigns = require("../Models/Campaigns")
 const ItemCategories = require("../Models/ItemCategories")
-const fs = require("fs")
 const { getReceipts, getRunningOrders, getDate } = require("../modules/index")
 const { sendMessages, compaignShooter } = require("../modules/messagesHandler")
 const { generatePDFs, getFileName } = require("../modules/puppeteerUtilities")
@@ -47,12 +47,13 @@ const CounterCharges = require("../Models/CounterCharges")
 
 router.get("/paymentPending/:counter_uuid", async (req, res) => {
 	try {
-		const result = await Orders.find({counter_uuid: req.params.counter_uuid,payment_pending:1 })
-		res.json({success: true, result})
+		const result = await Orders.find({ counter_uuid: req.params.counter_uuid, payment_pending: 1 })
+		res.json({ success: true, result })
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.post("/postOrder", async (req, res) => {
 	try {
 		let value = req.body
@@ -322,94 +323,15 @@ router.post("/postOrder", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
-router.post("/sendMsg", async (req, res) => {
-	try {
-		let value = req.body
-		if (!value) return res.json({ success: false, message: "Invalid Data" })
-		let WhatsappNotification = await whatsapp_notifications.findOne({
-			notification_uuid: value.notification_uuid
-		})
-		let counterData = await Counters.findOne({ counter_uuid: value.counter_uuid }, { mobile: 1, counter_title: 1, short_link: 1 })
 
-		console.log({ consolidated_payment_reminder: value?.consolidated_payment_reminder })
-		if (value?.consolidated_payment_reminder) {
-			const unpaid_receipts = (await getReceipts())?.result?.filter(i => i.counter_uuid === value.counter_uuid)
-			const orders = await Orders.find({ order_uuid: { $in: unpaid_receipts?.map(i => i.order_uuid) } }, { order_type: 1 })
-
-			WhatsappNotification.message = WhatsappNotification.message?.map(i => ({
-				...i,
-				text: i?.text?.replace(
-					/{details}/g,
-					unpaid_receipts
-						?.sort((a, b) => +a.order_date - +b.order_date)
-						?.map(
-							_i =>
-								`\n${getDate(+_i?.order_date)}       ${
-									orders?.find(o => o.order_uuid === _i.order_uuid)?.order_type === "E" ? "E" : "N"
-								}${_i?.invoice_number}       Rs.${_i?.amt}`
-						)
-						?.join("") + `\n*TOTAL: Rs.${unpaid_receipts?.reduce((sum, _i) => sum + +_i?.amt, 0)}*`
-				)
-			}))
-		}
-
-		let mobile = counterData.mobile.filter(a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification))
-		if (WhatsappNotification?.status && mobile?.length) {
-			sendMessages({ value, WhatsappNotification, counterData })
-			res.json({ success: true, message: "Message Sent Successfully" })
-		} else {
-			res.json({
-				success: false,
-				message: "No Verified Number for this Counter "
-			})
-		}
-	} catch (err) {
-		console.error(err)
-		res.status(500).json({ success: false, message: err?.message })
-	}
-})
-router.post("/sendPdf", async (req, res) => {
-	try {
-		let value = req.body
-		if (!value) res.json({ success: false, message: "Invalid Data" })
-
-		let { additional_users, additional_numbers = [] } = await value
-		if (additional_users?.length) {
-			additional_users = await Users.find({ user_uuid: { $in: additional_users } }, { user_mobile: 1 })
-			additional_numbers = await additional_numbers
-				?.concat(additional_users?.map(_i => _i?.user_mobile))
-				?.filter(_i => _i?.toString()?.length === 10)
-				?.map(_i => +_i)
-		}
-
-		let counterData = await Counters.findOne({ counter_uuid: value.counter_uuid }, { mobile: 1, counter_title: 1, short_link: 1 })
-
-		let mobile = counterData.mobile.filter(a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification))
-		if (!mobile?.length) {
-			return res.json({
-				success: false,
-				message: "No Verified Number for this Counter "
-			})
-		}
-
-		await compaignShooter({ counterData, value: { ...value, additional_numbers }, options: { orderPDF: true } })
-		res.json({ success: true, message: "Message Sent Successfully" })
-	} catch (err) {
-		res.status(500).json({ success: false, message: err.message })
-	}
-})
 router.put("/putOrders", async (req, res) => {
 	try {
 		let response = []
 		for (let value of req.body) {
-			
-			if (!value) res.json({ success: false, message: "Invalid Data" })
+			if (!value) return res.json({ success: false, message: "Invalid Data" })
 
-			let prevData = await Orders.findOne({
-				invoice_number: value.invoice_number
-			})
+			let prevData = (await Orders.findOne({ invoice_number: value.invoice_number }))?.toObject()
 
-			prevData = JSON.parse(JSON.stringify(prevData))
 			delete prevData?._id
 
 			value = Object.keys(value)
@@ -439,14 +361,11 @@ router.put("/putOrders", async (req, res) => {
 
 			let tripData = {}
 			if (value.trip_uuid) {
-				tripData = await Trips.findOne({ trip_uuid: value.trip_uuid })
-				tripData = JSON.parse(JSON.stringify(tripData))
+				tripData = (await Trips.findOne({ trip_uuid: value.trip_uuid }))?.toObject()
 			}
 
 			if (+orderStage === 4 || +orderStage === 5 || value?.item_details?.length === 0) {
-				let data = await OrderCompleted.findOne({
-					order_uuid: value.order_uuid
-				})
+				let data = await OrderCompleted.findOne({ order_uuid: value.order_uuid })
 
 				if (+orderStage === 5 || value?.item_details?.length === 0) {
 					data = await CancelOrders.create(value)
@@ -460,10 +379,7 @@ router.put("/putOrders", async (req, res) => {
 					if (warehouse_uuid) {
 						value = { ...value, warehouse_uuid }
 						for (let item of value.item_details) {
-							let itemData = await Item.findOne({
-								item_uuid: item.item_uuid
-							})
-							itemData = JSON.parse(JSON.stringify(itemData))
+							let itemData = (await Item.findOne({ item_uuid: item.item_uuid }))?.toObject()
 							let stock = itemData.stock
 							// console.log("Stock", stock);
 							let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0)
@@ -530,8 +446,8 @@ router.put("/putOrders", async (req, res) => {
 								}
 						  })
 						: []
-					let incentiveData = await Incentive.find({ status: 1 })
-					incentiveData = JSON.parse(JSON.stringify(incentiveData))
+
+					let incentiveData = (await Incentive.find({ status: 1 }))?.map(i => i.toObject())
 					let user_range_order = value.status.find(c => +c.stage === 1)?.user_uuid
 
 					let user_delivery_intensive = value.status.find(c => +c.stage === 4)?.user_uuid
@@ -569,10 +485,7 @@ router.put("/putOrders", async (req, res) => {
 									))
 						)
 						if (+incentive_item.min_range <= eligibleItems.length) {
-							let userData = await Users.findOne({
-								user_uuid: user_range_order
-							})
-							userData = JSON.parse(JSON.stringify(userData))
+							let userData = (await Users.findOne({ user_uuid: user_range_order }))?.toObject()
 							let amt = eligibleItems.length * incentive_item.amt
 							let incentive_balance = (+(userData.incentive_balance || 0) + amt).toFixed(2)
 
@@ -590,10 +503,7 @@ router.put("/putOrders", async (req, res) => {
 					}
 					for (let incentive_item of rangeDeliveryIntensive) {
 						if (incentive_item.value) {
-							let userData = await Users.findOne({
-								user_uuid: user_delivery_intensive
-							})
-							userData = JSON.parse(JSON.stringify(userData))
+							let userData = (await Users.findOne({ user_uuid: user_delivery_intensive }))?.toObject()
 							let amt = 0
 							let incentive_balance = 0
 							if (incentive_item.calculation === "amt" && incentive_item.value) {
@@ -666,10 +576,7 @@ router.put("/putOrders", async (req, res) => {
 											b => itemsData.find(c => c.item_uuid === a.item_uuid)?.item_group_uuid.filter(d => b === d).length
 										))
 							)
-							let userData = await Users.findOne({
-								user_uuid: user_range_order
-							})
-							userData = JSON.parse(JSON.stringify(userData))
+							let userData = (await Users.findOne({ user_uuid: user_range_order }))?.toObject()
 							let amt = 0
 							let incentive_balance = 0
 							if (incentive_item.calculation === "amt" && incentive_item.value) {
@@ -774,6 +681,85 @@ router.put("/putOrders", async (req, res) => {
 		res.status(500).json({ success: false, message: err?.message })
 	}
 })
+
+router.post("/sendMsg", async (req, res) => {
+	try {
+		let value = req.body
+		if (!value) return res.json({ success: false, message: "Invalid Data" })
+		let WhatsappNotification = await whatsapp_notifications.findOne({
+			notification_uuid: value.notification_uuid
+		})
+		let counterData = await Counters.findOne({ counter_uuid: value.counter_uuid }, { mobile: 1, counter_title: 1, short_link: 1 })
+
+		console.log({ consolidated_payment_reminder: value?.consolidated_payment_reminder })
+		if (value?.consolidated_payment_reminder) {
+			const unpaid_receipts = (await getReceipts())?.result?.filter(i => i.counter_uuid === value.counter_uuid)
+			const orders = await Orders.find({ order_uuid: { $in: unpaid_receipts?.map(i => i.order_uuid) } }, { order_type: 1 })
+
+			WhatsappNotification.message = WhatsappNotification.message?.map(i => ({
+				...i,
+				text: i?.text?.replace(
+					/{details}/g,
+					unpaid_receipts
+						?.sort((a, b) => +a.order_date - +b.order_date)
+						?.map(
+							_i =>
+								`\n${getDate(+_i?.order_date)}       ${
+									orders?.find(o => o.order_uuid === _i.order_uuid)?.order_type === "E" ? "E" : "N"
+								}${_i?.invoice_number}       Rs.${_i?.amt}`
+						)
+						?.join("") + `\n*TOTAL: Rs.${unpaid_receipts?.reduce((sum, _i) => sum + +_i?.amt, 0)}*`
+				)
+			}))
+		}
+
+		let mobile = counterData.mobile.filter(a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification))
+		if (WhatsappNotification?.status && mobile?.length) {
+			sendMessages({ value, WhatsappNotification, counterData })
+			res.json({ success: true, message: "Message Sent Successfully" })
+		} else {
+			res.json({
+				success: false,
+				message: "No Verified Number for this Counter "
+			})
+		}
+	} catch (err) {
+		console.error(err)
+		res.status(500).json({ success: false, message: err?.message })
+	}
+})
+
+router.post("/sendPdf", async (req, res) => {
+	try {
+		let value = req.body
+		if (!value) res.json({ success: false, message: "Invalid Data" })
+
+		let { additional_users, additional_numbers = [] } = await value
+		if (additional_users?.length) {
+			additional_users = await Users.find({ user_uuid: { $in: additional_users } }, { user_mobile: 1 })
+			additional_numbers = await additional_numbers
+				?.concat(additional_users?.map(_i => _i?.user_mobile))
+				?.filter(_i => _i?.toString()?.length === 10)
+				?.map(_i => +_i)
+		}
+
+		let counterData = await Counters.findOne({ counter_uuid: value.counter_uuid }, { mobile: 1, counter_title: 1, short_link: 1 })
+
+		let mobile = counterData.mobile.filter(a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification))
+		if (!mobile?.length) {
+			return res.json({
+				success: false,
+				message: "No Verified Number for this Counter "
+			})
+		}
+
+		await compaignShooter({ counterData, value: { ...value, additional_numbers }, options: { orderPDF: true } })
+		res.json({ success: true, message: "Message Sent Successfully" })
+	} catch (err) {
+		res.status(500).json({ success: false, message: err.message })
+	}
+})
+
 router.put("/order_datetime", async (req, res) => {
 	try {
 		const data = await req.body
@@ -783,6 +769,7 @@ router.put("/order_datetime", async (req, res) => {
 		res.status(500).json({ success: false, message: err.message })
 	}
 })
+
 router.get("/getSignedBills", async (req, res) => {
 	try {
 		let data = await SignedBills.find({ status: 0 })
@@ -847,6 +834,7 @@ router.get("/getSignedBills", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.get("/getPendingEntry", async (req, res) => {
 	try {
 		let data = await OrderCompleted.find(
@@ -903,6 +891,7 @@ router.get("/getPendingEntry", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.put("/putCompleteSignedBills", async (req, res) => {
 	try {
 		let value = req.body
@@ -926,6 +915,7 @@ router.put("/putCompleteSignedBills", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.put("/putCompleteOrder", async (req, res) => {
 	try {
 		let value = req.body
@@ -945,6 +935,7 @@ router.put("/putCompleteOrder", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.put("/putOrderNotes", async (req, res) => {
 	try {
 		let value = req.body
@@ -969,6 +960,7 @@ router.put("/putOrderNotes", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.get("/GetOrderRunningList", async (req, res) => {
 	try {
 		let data = await Orders.find({ order_status: "R" })
@@ -999,6 +991,7 @@ router.get("/GetOrderRunningList", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
 	try {
 		const result = await getRunningOrders({ user_uuid: req.params.user_uuid, doCheckPDF: true })
@@ -1007,6 +1000,7 @@ router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
 		res.status(500).json({ success: false, message: err.message })
 	}
 })
+
 router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
 	try {
 		let userData = await Users.findOne({ user_uuid: req.params.user_uuid })
@@ -1071,6 +1065,7 @@ router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.get("/GetOrder/:order_uuid", async (req, res) => {
 	try {
 		let data = await Orders.findOne({ order_uuid: req.params.order_uuid })
@@ -1111,6 +1106,7 @@ router.get("/GetOrder/:order_uuid", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.post("/getOrderData", async (req, res) => {
 	try {
 		let data = await Orders.find({ invoice_number: req.body.invoice_number })
@@ -1129,6 +1125,7 @@ router.post("/getOrderData", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.post("/GetOrderProcessingList", async (req, res) => {
 	try {
 		let data = []
@@ -1184,6 +1181,7 @@ router.post("/GetOrderProcessingList", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.post("/GetOrderCheckingList", async (req, res) => {
 	try {
 		let data = []
@@ -1241,6 +1239,7 @@ router.post("/GetOrderCheckingList", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.post("/GetOrderDeliveryList", async (req, res) => {
 	try {
 		let data = []
@@ -1301,6 +1300,7 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.post("/getCompleteOrderList", async (req, res) => {
 	try {
 		let value = req.body
@@ -1345,6 +1345,7 @@ router.post("/getCompleteOrderList", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.post("/getStockDetails", async (req, res) => {
 	try {
 		let value = req.body
@@ -1410,6 +1411,7 @@ router.post("/getStockDetails", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.post("/getTripCompletedOrderList", async (req, res) => {
 	try {
 		let value = req.body
@@ -1498,6 +1500,7 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.post("/getCounterLedger", async (req, res) => {
 	try {
 		let value = req.body
@@ -1540,146 +1543,5 @@ router.post("/getCounterLedger", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
-// router.post("/recreate/:order_uuid", async (req, res) => {
-// 	try {
-// 		const { order_uuid, user_uuid } = req.params
-// 		const oldOrder = (await OrderCompleted.findOne({ order_uuid }))?.toObject()
-// 		const newOrder = {
-// 			status: [
-// 				{
-// 					stage: "0",
-// 					time: Date.now(),
-// 					user_uuid
-// 				}
-// 			],
-// 			priority: olderOrder?.priority,
-// 			order_type: olderOrder?.order_type,
-// 			_item_details: oldOrder?.item_details?.map(item => ({})),
-// 			item_details: [
-// 				{
-// 					item_uuid: "aab4379e-38d0-4403-874c-ce9be239d9b2",
-// 					b: 0,
-// 					price: 10,
-// 					p: 0,
-// 					status: 1,
-// 					unit_price: 10,
-// 					gst_percentage: 18,
-// 					item_total: 0,
-// 					charges_discount: [],
-// 					category_title: "Patanjali Biscuits"
-// 				}
-// 			],
-// 			order_grandtotal: 0,
-// 			order_uuid: "c204406c-c7ba-493e-a9f0-aadcaa25193e",
-// 			invoice_number: 18924,
-// 			warehouse_uuid: oldOrder?.warehouse_uuid,
-// 			counter_uuid: oldOrder?.counter_uuid,
-// 			trip_uuid: oldOrder?.trip_uuid
-// 		}
-
-// 		// Date.now()
-
-// 		const someOrder = {
-// 			item_details: [
-// 				{
-// 					uuid: "24e3c1a6-2bb6-406b-b42f-941473f3d6bb",
-// 					b: 1,
-// 					p: 0,
-// 					sr: 1,
-// 					_id: "64a39f4cace8ffc4b6a799b9",
-// 					item_title: "7 GRAIN BISCUIT",
-// 					exclude_discount: 0,
-// 					status: 0,
-// 					sort_order: "480",
-// 					free_issue: "N",
-// 					item_uuid: "06cd8881-fd26-4af7-bfe2-e843f5f01181",
-// 					one_pack: "1",
-// 					company_uuid: "b153fb9a-d2b2-11ec-9d64-0242ac120002",
-// 					category_uuid: "0fd688d6-89fa-4ede-b1e6-443703ca73f5",
-// 					pronounce: "7 GRAIN BISCUIT",
-// 					mrp: "75",
-// 					item_price: 67.5,
-// 					item_gst: "18",
-// 					conversion: "20",
-// 					barcode: [],
-// 					item_group_uuid: ["52cb2b0d-9669-4e06-98fd-dfdb78e6bf3c", "52cb2b0d-9669-4e06-98fd-dfdb78e6bf3c"],
-// 					billing_type: "I",
-// 					created_at: 1688444748943,
-// 					stock: [
-// 						{ warehouse_uuid: "0f50eea3-2dc3-47b8-a1e0-7dbef26dbc8a", qty: -40, min_level: 8, _id: "64a3d793ace8ffc4b6b5b8ff" },
-// 						{ warehouse_uuid: "80f9186b-b038-400b-a303-d8d2832c4bbb", qty: 37, min_level: 15, _id: "64a3d793ace8ffc4b6b5b900" }
-// 					],
-// 					__v: 0,
-// 					item_code: "AGEB79",
-// 					item_discount: 0,
-// 					item_title_index: 2,
-// 					qty: 20,
-// 					p_price: "67.50",
-// 					b_price: "1350",
-// 					item_total: "1350.00",
-// 					item_desc_total: 0,
-// 					charges_discount: [],
-// 					unit_price: 67.5,
-// 					gst_percentage: "18",
-// 					price: 67.5
-// 				}
-// 			],
-// 			time_1: Date.now(),
-// 			time_2: 1699028316787,
-// 			warehouse_uuid: "80f9186b-b038-400b-a303-d8d2832c4bbb",
-// 			counter_charges: [],
-// 			order_grandtotal: 1350,
-// 			items: [
-// 				{
-// 					uuid: "24e3c1a6-2bb6-406b-b42f-941473f3d6bb",
-// 					b: 1,
-// 					p: 0,
-// 					sr: 1,
-// 					_id: "64a39f4cace8ffc4b6a799b9",
-// 					item_title: "7 GRAIN BISCUIT",
-// 					exclude_discount: 0,
-// 					status: 1,
-// 					sort_order: "480",
-// 					free_issue: "N",
-// 					item_uuid: "06cd8881-fd26-4af7-bfe2-e843f5f01181",
-// 					one_pack: "1",
-// 					company_uuid: "b153fb9a-d2b2-11ec-9d64-0242ac120002",
-// 					category_uuid: "0fd688d6-89fa-4ede-b1e6-443703ca73f5",
-// 					pronounce: "7 GRAIN BISCUIT",
-// 					mrp: "75",
-// 					item_price: 67.5,
-// 					item_gst: "18",
-// 					conversion: "20",
-// 					barcode: [],
-// 					item_group_uuid: ["52cb2b0d-9669-4e06-98fd-dfdb78e6bf3c", "52cb2b0d-9669-4e06-98fd-dfdb78e6bf3c"],
-// 					billing_type: "I",
-// 					created_at: 1688444748943,
-// 					stock: [
-// 						{ warehouse_uuid: "0f50eea3-2dc3-47b8-a1e0-7dbef26dbc8a", qty: -40, min_level: 8, _id: "64a3d793ace8ffc4b6b5b8ff" },
-// 						{ warehouse_uuid: "80f9186b-b038-400b-a303-d8d2832c4bbb", qty: 37, min_level: 15, _id: "64a3d793ace8ffc4b6b5b900" }
-// 					],
-// 					__v: 0,
-// 					item_code: "AGEB79",
-// 					item_discount: 0,
-// 					item_title_index: 2,
-// 					qty: 20,
-// 					p_price: "67.50",
-// 					b_price: "1350",
-// 					item_total: "1350.00",
-// 					item_desc_total: 0,
-// 					charges_discount: []
-// 				}
-// 			],
-// 			others: { stage: 1, user_uuid: "8827b4b7-eb1e-4009-9261-bbffeec6710b", time: 1698769116683, type: "NEW" },
-// 			order_uuid: "dea25524-c1d1-4d36-8997-a7ebda8e17ba",
-// 			opened_by: 0,
-// 			status: [{ stage: 1, time: 1698769110191, user_uuid: "8827b4b7-eb1e-4009-9261-bbffeec6710b" }]
-// 		}
-
-// 		res.json(newOrder)
-// 	} catch (err) {
-// 		res.status(500).json({ success: false, message: err })
-// 	}
-// })
 
 module.exports = router
