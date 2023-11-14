@@ -1,7 +1,7 @@
 const express = require("express")
 const router = express.Router()
 const fs = require("fs")
-const { v4: uuid } = require("uuid")
+const { v4: uuid, v4 } = require("uuid")
 const Orders = require("../Models/Orders")
 const Details = require("../Models/Details")
 const Counters = require("../Models/Counters")
@@ -45,6 +45,31 @@ const CounterCharges = require("../Models/CounterCharges")
 //   return messages
 // }
 
+const updateItemStock = async (warehouse_uuid, items) => {
+	if (!warehouse_uuid || !items?.length) return
+	try {
+		for (let item of items) {
+			let itemData = (await Item.findOne({ item_uuid: item.item_uuid }))?.toObject()
+			let stock = itemData.stock
+			let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0)
+
+			stock = stock?.filter(a => a.warehouse_uuid === warehouse_uuid)?.length
+				? stock.map(a => (a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a))
+				: [
+						...(stock?.length ? stock : []),
+						{
+							warehouse_uuid: warehouse_uuid,
+							min_level: 0,
+							qty: -qty
+						}
+				  ]
+			await Item.updateOne({ item_uuid: item.item_uuid }, { stock })
+		}
+	} catch (error) {
+		console.log(error)
+	}
+}
+
 router.get("/paymentPending/:counter_uuid", async (req, res) => {
 	try {
 		const result = await Orders.find({ counter_uuid: req.params.counter_uuid, payment_pending: 1 })
@@ -62,12 +87,7 @@ router.post("/postOrder", async (req, res) => {
 		value = { ...value, order_uuid: uuid() }
 
 		if (!value.warehouse_uuid) {
-			let counterData = await Counters.findOne(
-				{
-					counter_uuid: value.counter_uuid
-				},
-				{ route_uuid: 1 }
-			)
+			let counterData = await Counters.findOne({ counter_uuid: value.counter_uuid }, { route_uuid: 1 })
 			if (counterData?.route_uuid) {
 				let routeData = await Routes.findOne({ route_uuid: value.route_uuid })
 				if (routeData?.warehouse_uuid) {
@@ -76,12 +96,7 @@ router.post("/postOrder", async (req, res) => {
 			}
 		}
 		if (!value.trip_uuid) {
-			let counterData = await Counters.findOne(
-				{
-					counter_uuid: value.counter_uuid
-				},
-				{ trip_uuid: 1 }
-			)
+			let counterData = await Counters.findOne({ counter_uuid: value.counter_uuid }, { trip_uuid: 1 })
 			if (counterData?.trip_uuid) {
 				let tripData = await Trips.findOne({ trip_uuid: counterData.trip_uuid }, { warehouse_uuid: 1 })
 				value = {
@@ -91,9 +106,10 @@ router.post("/postOrder", async (req, res) => {
 				}
 			}
 		}
-		console.log(value)
+
 		const details = await Details.findOne({})
-		const _invoice_number = value?.order_type === "E" ? +details?.next_estimate_number : +details?.next_invoice_number
+		const _invoice_number =
+			value?.order_type === "E" ? +details?.next_estimate_number : +details?.next_invoice_number
 
 		let orderStage = value.status
 			? value?.status?.length > 1
@@ -102,21 +118,14 @@ router.post("/postOrder", async (req, res) => {
 			: ""
 		let response
 		let incentives = 0
-		let counterGroupsData = await Counters.findOne(
-			{
-				counter_uuid: value.counter_uuid
-			},
-			{ counter_group_uuid: 1 }
-		)
+		let counterGroupsData = await Counters.findOne({ counter_uuid: value.counter_uuid }, { counter_group_uuid: 1 })
 		let itemsData = await Item.find({
-			item_uuid: {
-				$in: value.item_details.map(a => a.item_uuid)
-			}
+			item_uuid: { $in: value.item_details.map(a => a.item_uuid) }
 		})
-		let incentiveData = await Incentive.find({
-			status: 1
-		})
+
+		let incentiveData = await Incentive.find({ status: 1 })
 		incentiveData = JSON.parse(JSON.stringify(incentiveData))
+
 		let user_uuid = value.status.find(c => +c.stage === 1)?.user_uuid
 		incentiveData = incentiveData
 			.filter(a => a.users.filter(b => b === user_uuid).length)
@@ -125,9 +134,14 @@ router.post("/postOrder", async (req, res) => {
 					a.counters.filter(b => b === value.counter_uuid).length ||
 					a.counter_groups.filter(b => counterGroupsData?.counter_group_uuid?.find(c => b === c)).length
 			)
-		let rangeOrderIncentive = incentiveData.filter(a => a.users.filter(b => b === user_uuid).length && a.type === "range-order")
 
-		let rangeItemIntensive = incentiveData.filter(a => a.users.filter(b => b === user_uuid).length && a.type === "item-incentive")
+		let rangeOrderIncentive = incentiveData.filter(
+			a => a.users.filter(b => b === user_uuid).length && a.type === "range-order"
+		)
+		let rangeItemIntensive = incentiveData.filter(
+			a => a.users.filter(b => b === user_uuid).length && a.type === "item-incentive"
+		)
+
 		for (let incentive_item of rangeOrderIncentive) {
 			let eligibleItems = value.item_details.filter(
 				a =>
@@ -175,9 +189,13 @@ router.post("/postOrder", async (req, res) => {
 				incentives = +incentives + +amt.toFixed(2)
 			}
 		}
+
+		if (orderStage >= 3) {
+			await updateItemStock(value?.warehouse_uuid, value?.item_details)
+		}
+
 		if (+orderStage === 4 || +orderStage === 5) {
 			let next_receipt_number = await Details.find({})
-			console.log(next_receipt_number[0].next_receipt_number)
 			next_receipt_number = next_receipt_number[0].next_receipt_number
 			let time = new Date()
 			await Receipts.create({
@@ -206,45 +224,7 @@ router.post("/postOrder", async (req, res) => {
 					time_stamp: outstandingObj.time
 				})
 			}
-			if (value.warehouse_uuid) {
-				let warehouse_uuid = value.warehouse_uuid
-				console.log(warehouse_uuid)
-				for (let item of value.item_details) {
-					let itemData = await Item.findOne({
-						item_uuid: item.item_uuid
-					})
-					itemData = JSON.parse(JSON.stringify(itemData))
-					let stock = itemData.stock
-					console.log("Stock", stock)
-					let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0)
-					stock = stock?.filter(a => a.warehouse_uuid === warehouse_uuid)?.length
-						? stock.map(a => (a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a))
-						: stock?.length
-						? [
-								...stock,
-								{
-									warehouse_uuid: warehouse_uuid,
-									min_level: 0,
-									qty: -qty
-								}
-						  ]
-						: [
-								{
-									warehouse_uuid: warehouse_uuid,
-									min_level: 0,
-									qty: -qty
-								}
-						  ]
-					console.log("Stock", stock)
-					await Item.updateOne(
-						{
-							item_uuid: item.item_uuid
-						},
-						{ stock }
-					)
-				}
-			}
-			console.log(+orderStage)
+
 			if (!(await OrderCompleted.exists({ order_uuid: value.order_uuid }))) {
 				response = await OrderCompleted.create({
 					...value,
@@ -364,6 +344,17 @@ router.put("/putOrders", async (req, res) => {
 				tripData = (await Trips.findOne({ trip_uuid: value.trip_uuid }))?.toObject()
 			}
 
+			const warehouse_uuid = value.warehouse_uuid || tripData?.warehouse_uuid
+			if (
+				warehouse_uuid &&
+				prevData?.order_uuid &&
+				!prevData?.status?.some(i => +i.stage >= 3) &&
+				[3, 4].includes(+orderStage)
+			) {
+				value = await { ...value, warehouse_uuid }
+				await updateItemStock(warehouse_uuid, value?.item_details)
+			}
+
 			if (+orderStage === 4 || +orderStage === 5 || value?.item_details?.length === 0) {
 				let data = await OrderCompleted.findOne({ order_uuid: value.order_uuid })
 
@@ -375,47 +366,6 @@ router.put("/putOrders", async (req, res) => {
 				} else if (data) {
 					await OrderCompleted.updateOne({ order_uuid: value.order_uuid }, value)
 				} else {
-					let warehouse_uuid = value.warehouse_uuid || tripData?.warehouse_uuid
-					if (warehouse_uuid) {
-						value = { ...value, warehouse_uuid }
-						for (let item of value.item_details) {
-							let itemData = (await Item.findOne({ item_uuid: item.item_uuid }))?.toObject()
-							let stock = itemData.stock
-							// console.log("Stock", stock);
-							let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0)
-							stock = stock?.filter(a => a.warehouse_uuid === warehouse_uuid)?.length
-								? stock.map(a => (a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a))
-								: stock?.length
-								? [
-										...stock,
-										{
-											warehouse_uuid: warehouse_uuid,
-											min_level: 0,
-											qty: -qty
-										}
-								  ]
-								: [
-										{
-											warehouse_uuid: warehouse_uuid,
-											min_level: 0,
-											qty: -qty
-										}
-								  ]
-							// console.log("Stock", stock);
-							await Item.updateOne(
-								{
-									item_uuid: item.item_uuid
-								},
-								{ stock }
-							)
-						}
-					}
-					console.log({
-						...prevData,
-						...value,
-						entry: +orderStage === 5 ? 1 : 0
-					})
-
 					if (!(await OrderCompleted.exists({ order_uuid: value.order_uuid }))) {
 						data = await OrderCompleted.create({
 							...prevData,
@@ -434,22 +384,15 @@ router.put("/putOrders", async (req, res) => {
 
 				if (+orderStage === 4) {
 					let counterGroupsData = await Counters.findOne(
-						{
-							counter_uuid: value.counter_uuid
-						},
+						{ counter_uuid: value.counter_uuid },
 						{ counter_group_uuid: 1 }
 					)
 					let itemsData = value?.item_details?.length
-						? await Item.find({
-								item_uuid: {
-									$in: value?.item_details?.map(a => a.item_uuid) || []
-								}
-						  })
+						? await Item.find({ item_uuid: { $in: value?.item_details?.map(a => a.item_uuid) || [] } })
 						: []
 
 					let incentiveData = (await Incentive.find({ status: 1 }))?.map(i => i.toObject())
 					let user_range_order = value.status.find(c => +c.stage === 1)?.user_uuid
-
 					let user_delivery_intensive = value.status.find(c => +c.stage === 4)?.user_uuid
 
 					incentiveData = incentiveData.filter(
@@ -481,7 +424,8 @@ router.put("/putOrders", async (req, res) => {
 								(a.b || a.p) &&
 								(incentive_item.items.find(b => b === a.item_uuid) ||
 									incentive_item.item_groups.find(
-										b => itemsData.find(c => c.item_uuid === a.item_uuid)?.item_group_uuid.filter(d => b === d).length
+										b =>
+											itemsData.find(c => c.item_uuid === a.item_uuid)?.item_group_uuid.filter(d => b === d).length
 									))
 						)
 						if (+incentive_item.min_range <= eligibleItems.length) {
@@ -573,7 +517,9 @@ router.put("/putOrders", async (req, res) => {
 									(a.b || a.p) &&
 									(incentive_item.items.find(b => b === a.item_uuid) ||
 										incentive_item.item_groups.find(
-											b => itemsData.find(c => c.item_uuid === a.item_uuid)?.item_group_uuid.filter(d => b === d).length
+											b =>
+												itemsData.find(c => c.item_uuid === a.item_uuid)?.item_group_uuid.filter(d => b === d)
+													.length
 										))
 							)
 							let userData = (await Users.findOne({ user_uuid: user_range_order }))?.toObject()
@@ -620,7 +566,6 @@ router.put("/putOrders", async (req, res) => {
 			}
 
 			if (value?.counter_charges?.[0]) {
-				console.log({ orderStage })
 				const status = +orderStage === 4 ? 1 : +orderStage === 5 ? 0 : 2
 				const updated_data = { status, invoice_number: `${value?.order_type}${value?.invoice_number}` }
 				if (+orderStage === 4) updated_data.completed_at = Date.now()
@@ -629,7 +574,9 @@ router.put("/putOrders", async (req, res) => {
 			}
 
 			if (+orderStage === 2 && prevorderStage === 1) {
-				const WhatsappNotification = await whatsapp_notifications.findOne({ notification_uuid: "out-for-delivery" })
+				const WhatsappNotification = await whatsapp_notifications.findOne({
+					notification_uuid: "out-for-delivery"
+				})
 				const counterData = await Counters.findOne(
 					{ counter_uuid: value.counter_uuid },
 					{
@@ -689,12 +636,18 @@ router.post("/sendMsg", async (req, res) => {
 		let WhatsappNotification = await whatsapp_notifications.findOne({
 			notification_uuid: value.notification_uuid
 		})
-		let counterData = await Counters.findOne({ counter_uuid: value.counter_uuid }, { mobile: 1, counter_title: 1, short_link: 1 })
+		let counterData = await Counters.findOne(
+			{ counter_uuid: value.counter_uuid },
+			{ mobile: 1, counter_title: 1, short_link: 1 }
+		)
 
 		console.log({ consolidated_payment_reminder: value?.consolidated_payment_reminder })
 		if (value?.consolidated_payment_reminder) {
 			const unpaid_receipts = (await getReceipts())?.result?.filter(i => i.counter_uuid === value.counter_uuid)
-			const orders = await Orders.find({ order_uuid: { $in: unpaid_receipts?.map(i => i.order_uuid) } }, { order_type: 1 })
+			const orders = await Orders.find(
+				{ order_uuid: { $in: unpaid_receipts?.map(i => i.order_uuid) } },
+				{ order_type: 1 }
+			)
 
 			WhatsappNotification.message = WhatsappNotification.message?.map(i => ({
 				...i,
@@ -743,7 +696,10 @@ router.post("/sendPdf", async (req, res) => {
 				?.map(_i => +_i)
 		}
 
-		let counterData = await Counters.findOne({ counter_uuid: value.counter_uuid }, { mobile: 1, counter_title: 1, short_link: 1 })
+		let counterData = await Counters.findOne(
+			{ counter_uuid: value.counter_uuid },
+			{ mobile: 1, counter_title: 1, short_link: 1 }
+		)
 
 		let mobile = counterData.mobile.filter(a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification))
 		if (!mobile?.length) {
@@ -984,7 +940,9 @@ router.get("/GetOrderRunningList", async (req, res) => {
 				.filter(a => a.item_details.length)
 				.map(a => ({
 					...a,
-					counter_title: a.counter_uuid ? counterData.find(b => b.counter_uuid === a.counter_uuid)?.counter_title : ""
+					counter_title: a.counter_uuid
+						? counterData.find(b => b.counter_uuid === a.counter_uuid)?.counter_title
+						: ""
 				}))
 		})
 	} catch (err) {
@@ -1058,7 +1016,9 @@ router.get("/GetOrderHoldRunningList/:user_uuid", async (req, res) => {
 				.filter(a => a.item_details.length)
 				.map(a => ({
 					...a,
-					counter_title: a.counter_uuid ? counterData.find(b => b.counter_uuid === a.counter_uuid)?.counter_title : ""
+					counter_title: a.counter_uuid
+						? counterData.find(b => b.counter_uuid === a.counter_uuid)?.counter_title
+						: ""
 				}))
 		})
 	} catch (err) {
@@ -1095,7 +1055,10 @@ router.get("/GetOrder/:order_uuid", async (req, res) => {
 						b => b.category_uuid === itemData?.find(b => b.item_uuid === a.item_uuid).category_uuid
 					)?.category_title
 				}))
-				.sort((a, b) => a?.category_title?.localeCompare(b.category_title) || a?.item_title?.localeCompare(b.item_title))
+				.sort(
+					(a, b) =>
+						a?.category_title?.localeCompare(b.category_title) || a?.item_title?.localeCompare(b.item_title)
+				)
 		}
 
 		res.json({
@@ -1170,7 +1133,9 @@ router.post("/GetOrderProcessingList", async (req, res) => {
 				}
 			})
 			?.filter(a =>
-				a.status.length > 1 ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 1 : +a?.status[0]?.stage === 1
+				a.status.length > 1
+					? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 1
+					: +a?.status[0]?.stage === 1
 			)
 
 		res.json({
@@ -1227,8 +1192,9 @@ router.post("/GetOrderCheckingList", async (req, res) => {
 			})
 			?.filter(
 				a =>
-					(a.status.length > 1 ? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 2 : +a?.status[0]?.stage === 2) &&
-					a.item_details.length
+					(a.status.length > 1
+						? +a.status.reduce((c, d) => Math.max(+c.stage, +d.stage)) === 2
+						: +a?.status[0]?.stage === 2) && a.item_details.length
 			)
 
 		res.json({
@@ -1309,7 +1275,9 @@ router.post("/getCompleteOrderList", async (req, res) => {
 		let endDate = +value.endDate + 86400000
 		console.log(endDate, value.startDate)
 		let response = await OrderCompleted.find(!req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid })
-		let cancelled_orders = await CancelOrders.find(!req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid })
+		let cancelled_orders = await CancelOrders.find(
+			!req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid }
+		)
 
 		response = await JSON.parse(JSON.stringify(response))
 		cancelled_orders = await JSON.parse(JSON.stringify(cancelled_orders))
@@ -1372,7 +1340,9 @@ router.post("/getStockDetails", async (req, res) => {
 		)
 		const warehouseData = await WarehouseModel.find({})
 		responseVoucher = JSON.parse(JSON.stringify(responseVoucher))
-		responseVoucher = responseVoucher?.filter(order => order.created_at > value.startDate && order.created_at < endDate)
+		responseVoucher = responseVoucher?.filter(
+			order => order.created_at > value.startDate && order.created_at < endDate
+		)
 		let data = []
 		for (let item of response) {
 			let orderItem = item?.item_details?.find(a => a.item_uuid === value.item_uuid)
@@ -1396,7 +1366,8 @@ router.post("/getStockDetails", async (req, res) => {
 					date: item.created_at,
 					to:
 						"Warehouse:" +
-						warehouseData?.find(a => a.warehouse_uuid === (added ? item.from_warehouse : item.to_warehouse))?.warehouse_title,
+						warehouseData?.find(a => a.warehouse_uuid === (added ? item.from_warehouse : item.to_warehouse))
+							?.warehouse_title,
 					added: added ? (orderItem?.b || 0) + ":" + (orderItem.p || 0) : 0,
 					reduce: added ? 0 : (orderItem?.b || 0) + ":" + (orderItem.p || 0)
 				}
@@ -1487,12 +1458,16 @@ router.post("/getTripCompletedOrderList", async (req, res) => {
 				success: true,
 				result: response,
 				total: {
-					total_amt: response.length > 1 ? response.map(a => +a?.amt || 0).reduce((a, b) => a + b) : response[0]?.amt || 0,
+					total_amt:
+						response.length > 1 ? response.map(a => +a?.amt || 0).reduce((a, b) => a + b) : response[0]?.amt || 0,
 					total_cash: cash.length > 1 ? cash.map(a => +a?.amt || 0).reduce((a, b) => a + b) : amt[0]?.cash || 0,
-					total_cheque: cheque.length > 1 ? cheque.map(a => +a?.amt || 0).reduce((a, b) => a + b) : cheque[0]?.amt || 0,
+					total_cheque:
+						cheque.length > 1 ? cheque.map(a => +a?.amt || 0).reduce((a, b) => a + b) : cheque[0]?.amt || 0,
 					total_upi: upi.length > 1 ? upi.map(a => +a?.amt || 0).reduce((a, b) => a + b) : upi[0]?.amt || 0,
 					total_unpaid:
-						response.length > 1 ? response.map(a => +a?.unpaid || 0).reduce((a, b) => a + b) : response[0]?.unpaid || 0
+						response.length > 1
+							? response.map(a => +a?.unpaid || 0).reduce((a, b) => a + b)
+							: response[0]?.unpaid || 0
 				}
 			})
 		} else res.json({ success: false, message: "Order Not Found" })

@@ -210,25 +210,35 @@ router.get("/getDetails", async (req, res) => {
 router.get("/performance-summary", async (req, res) => {
 	try {
 		const { from_date, to_date } = req.query
-		const query = [
+		const pipeline = [
 			{
-				"status.time": {
-					$gte: new Date(+from_date).setHours(0, 0, 0, 0),
-					$lt: +to_date + 1000 * 60 * 60 * 24
+				$unwind: {
+					path: "$status",
+					preserveNullAndEmptyArrays: false
 				}
 			},
 			{
-				_id: 0,
-				order_uuid: 1,
-				status: 1,
-				order_grandtotal: 1
+				$match: {
+					"status.time": {
+						$gte: new Date(+from_date).setHours(0, 0, 0, 0),
+						$lt: +to_date + 1000 * 60 * 60 * 24
+					}
+				}
+			},
+			{
+				$project: {
+					_id: 0,
+					order_uuid: 1,
+					status: 1,
+					order_grandtotal: 1
+				}
 			}
 		]
 
 		const [completedOrders, cancelledOrders, runningOrders] = await Promise.all([
-			OrderCompleted.find(...query),
-			CancelOrders.find(...query),
-			Orders.find(...query)
+			OrderCompleted.aggregate(pipeline),
+			CancelOrders.aggregate(pipeline),
+			Orders.aggregate(pipeline)
 		])
 
 		const orders = [...completedOrders, ...cancelledOrders, ...runningOrders]
@@ -242,22 +252,25 @@ router.get("/performance-summary", async (req, res) => {
 		]
 
 		for (const order of orders) {
-			for (const { stage, user_uuid } of order.status) {
-				const _stage = stages.find(i => i.id === +stage)?.stage
-				if (!_stage) continue
+			const { stage, user_uuid } = order.status
+			const _stage = stages.find(i => i.id === +stage)?.stage
+			if (!_stage) continue
 
-				if (!users[user_uuid]) users[user_uuid] = {}
-				if (!users[user_uuid][_stage]) users[user_uuid][_stage] = { count: 0, amount: 0 }
+			if (!users[user_uuid]) users[user_uuid] = {}
+			if (!users[user_uuid][_stage]) users[user_uuid][_stage] = { count: 0, amount: 0 }
 
-				users[user_uuid][_stage].count += 1
-				users[user_uuid][_stage].amount += +order.order_grandtotal || 0
-			}
+			users[user_uuid][_stage].count += 1
+			users[user_uuid][_stage].amount += +order.order_grandtotal || 0
 		}
 
-		for (const user_uuid in users) if (!Object.values(users[user_uuid]).some(i => i.count > 0)) delete users[user_uuid]
-		const usersTitles = await Users.find({ user_uuid: { $in: Object.keys(users) } }, { user_title: 1, user_uuid: 1 })
+		for (const user_uuid in users)
+			if (!Object.values(users[user_uuid]).some(i => i.count > 0)) delete users[user_uuid]
+		const usersTitles = await Users.find(
+			{ user_uuid: { $in: Object.keys(users) } },
+			{ user_title: 1, user_uuid: 1 }
+		)
 		for (const { user_title, user_uuid } of usersTitles) {
-			users[user_uuid].user_title = await user_title
+			users[user_uuid].user_title = user_title
 		}
 
 		res.json(users)
