@@ -4,7 +4,7 @@ const App = require("./App.js")
 let getTime = () => {
 	let offset = 330
 	if (offset === new Date().getTimezoneOffset()) offset = 0
-	let date = new Date(Date.now() - offset * 60 * 1000)
+	let date = new Date(Date.now() - offset * 60 * 1000 - 60 * 60 * 1000)
 	return `${date.toDateString()}, ${date.toLocaleTimeString()}`
 }
 console.logCopy = console.log.bind(console)
