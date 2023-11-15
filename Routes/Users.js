@@ -220,7 +220,7 @@ router.get("/performance-summary", async (req, res) => {
 			{
 				$match: {
 					"status.time": {
-						$gte: new Date(+from_date).setHours(0, 0, 0, 0),
+						$gte: +from_date,
 						$lt: +to_date + 1000 * 60 * 60 * 24
 					}
 				}
@@ -230,7 +230,8 @@ router.get("/performance-summary", async (req, res) => {
 					_id: 0,
 					order_uuid: 1,
 					status: 1,
-					order_grandtotal: 1
+					order_grandtotal: 1,
+					invoice_number: 1
 				}
 			}
 		]
@@ -257,14 +258,25 @@ router.get("/performance-summary", async (req, res) => {
 			if (!_stage) continue
 
 			if (!users[user_uuid]) users[user_uuid] = {}
-			if (!users[user_uuid][_stage]) users[user_uuid][_stage] = { count: 0, amount: 0 }
+			if (!users[user_uuid][_stage]) users[user_uuid][_stage] = { count: 0, amount: 0, orders: [] }
 
 			users[user_uuid][_stage].count += 1
 			users[user_uuid][_stage].amount += +order.order_grandtotal || 0
+			users[user_uuid][_stage].orders.push({
+				...order,
+				timestamp: new Date(order.status.time).toString()
+			})
 		}
 
-		for (const user_uuid in users)
+		for (const user_uuid in users) {
 			if (!Object.values(users[user_uuid]).some(i => i.count > 0)) delete users[user_uuid]
+			for (const _stage in users[user_uuid]) {
+				users[user_uuid][_stage].orders = users[user_uuid][_stage]?.orders?.sort(
+					(a, b) => a.status.time - b.status.time
+				)
+			}
+		}
+
 		const usersTitles = await Users.find(
 			{ user_uuid: { $in: Object.keys(users) } },
 			{ user_title: 1, user_uuid: 1 }
