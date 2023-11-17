@@ -34,11 +34,37 @@ router.post("/postVoucher", async (req, res) => {
 	}
 })
 
-router.get("/GetPendingVoucharsList/:delivered", async (req, res) => {
+router.get("/GetPendingVoucharsList", async (req, res) => {
 	try {
-		let data = await Vochers.find({ delivered: req.params.delivered })
+		let data = await Vochers.find({ delivered: 0 })
 		data = JSON.parse(JSON.stringify(data))
-		console.log(data)
+		if (data.length)
+			res.json({
+				success: true,
+				result: data.map(a => ({
+					...a,
+					vocher_number: a.vocher_number || 0
+				}))
+			})
+		else res.json({ success: false, message: "Item Not found" })
+	} catch (err) {
+		res.status(500).json({ success: false, message: err })
+	}
+})
+
+router.post("/deliveredVouchers", async (req, res) => {
+	try {
+		const { fromDate, toDate } = req.body
+		const query = { delivered: 1, created_at: {} }
+
+		if (fromDate) query.created_at["$gte"] = fromDate
+		if (toDate) query.created_at["$lte"] = toDate
+
+		console.log(fromDate, toDate)
+		console.log(query)
+
+		let data = await Vochers.find(query)
+		data = JSON.parse(JSON.stringify(data))
 		if (data.length)
 			res.json({
 				success: true,
@@ -67,7 +93,7 @@ router.put("/ConfirmVoucher", async (req, res) => {
 
 			if (itemData) {
 				let stock = itemData?.stock || []
-				let qty = +(+item.b * +itemData.conversion)
+				let qty = +(+item.b * +itemData.conversion) + (+item.p || 0)
 
 				stock =
 					+voucherData.from_warehouse === 0

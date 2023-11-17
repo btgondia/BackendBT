@@ -26,13 +26,13 @@ router.post("/postWarehouse", async (req, res) => {
 router.get("/GetWarehouseList", async (req, res) => {
 	try {
 		let data = await Warehouse.find({ status: true })
-
 		if (data.length) res.json({ success: true, result: data.filter(a => a.warehouse_uuid) })
 		else res.json({ success: false, message: "Warehouse Not found" })
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
 	}
 })
+
 router.get("/GetWarehouseAllList", async (req, res) => {
 	try {
 		let data = await Warehouse.find({})
@@ -163,7 +163,10 @@ router.get("/suggestions/:warehouse_uuid", async (req, res) => {
 	try {
 		const { warehouse_uuid } = req.params
 		const orderItems = await Orders.find({ warehouse_uuid }, { item_details: 1 })
-		const voucherItems = await Vochers.find({ to_warehouse: req.params.warehouse_uuid, delivered: 0 }, { item_details: 1 })
+		const voucherItems = await Vochers.find(
+			{ to_warehouse: req.params.warehouse_uuid, delivered: 0 },
+			{ item_details: 1 }
+		)
 		const dbItems = await Item.find(
 			{
 				$and: [{ "stock.warehouse_uuid": warehouse_uuid }, { "stock.min_level": { $gt: 0 } }],
@@ -180,8 +183,10 @@ router.get("/suggestions/:warehouse_uuid", async (req, res) => {
 			const { min_level: required, qty: available } = stock.find(i => i.warehouse_uuid === warehouse_uuid)
 
 			const findItem = data => data.item_details.find(i => i.item_uuid === item_uuid)
-			const added = (await voucherItems.reduce((sum, voucher) => sum + calculatePieces(findItem(voucher), conversion), 0)) || 0
-			const used = (await orderItems.reduce((sum, order) => sum + calculatePieces(findItem(order), conversion), 0)) || 0
+			const added =
+				(await voucherItems.reduce((sum, voucher) => sum + calculatePieces(findItem(voucher), conversion), 0)) || 0
+			const used =
+				(await orderItems.reduce((sum, order) => sum + calculatePieces(findItem(order), conversion), 0)) || 0
 
 			let suggested = Math.ceil((+required - (+available - used + added)) / +conversion)
 			if (suggested <= 0) continue
