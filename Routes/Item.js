@@ -327,7 +327,8 @@ router.put("/flushWarehouse", async (req, res) => {
 })
 router.post("/report", async (req, res) => {
 	try {
-		let { startDate, endDate, counter_uuid, counter_group_uuid, item_group_uuid, company_uuid, last_item } = req.body
+		let { startDate, endDate, counter_uuid, counter_group_uuid, item_group_uuid, company_uuid, last_item } =
+			req.body
 		if (!endDate) return res.json({ success: false, message: "No date range provided" })
 
 		const aggregate = [

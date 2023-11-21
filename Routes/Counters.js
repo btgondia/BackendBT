@@ -264,7 +264,9 @@ router.get("/getCounterSales/:days", async (req, res) => {
 		time = new Date(time.setDate(time.getDate() - +days)).getTime()
 		// time= time.getTime()
 		console.log(time)
-		let orderData = await OrderCompleted.find(!req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid })
+		let orderData = await OrderCompleted.find(
+			!req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid }
+		)
 
 		orderData = JSON.parse(JSON.stringify(orderData))
 		orderData = orderData?.filter(order => order.status.filter(a => +a.stage === 1 && a.time > time).length)
@@ -289,10 +291,15 @@ router.get("/getCounterSales/:days", async (req, res) => {
 						counterOrders?.map(a => a.item_details)
 					)
 					?.filter(a => Company.company_uuid === ItemsData?.find(b => b.item_uuid === a.item_uuid)?.company_uuid)
-					?.map(a => +(+a.b + +(ItemsData?.find(b => b.item_uuid === a.item_uuid)?.conversion || 0) + +a.p) * +a.price)
-				let value = orderItems.length > 1 ? orderItems.reduce((a, b) => a + b) : orderItems?.length ? orderItems[0] : 0
+					?.map(
+						a => +(+a.b + +(ItemsData?.find(b => b.item_uuid === a.item_uuid)?.conversion || 0) + +a.p) * +a.price
+					)
+				let value =
+					orderItems.length > 1 ? orderItems.reduce((a, b) => a + b) : orderItems?.length ? orderItems[0] : 0
 				value =
-					value - Math.floor(value) !== 0 ? value.toString().match(new RegExp("^-?\\d+(?:.\\d{0," + (2 || -1) + "})?"))[0] : value
+					value - Math.floor(value) !== 0
+						? value.toString().match(new RegExp("^-?\\d+(?:.\\d{0," + (2 || -1) + "})?"))[0]
+						: value
 				sales.push({ company_uuid: Company?.company_uuid, value })
 			}
 			let obj = {
@@ -503,7 +510,9 @@ router.put("/CalculateLines", async (req, res) => {
 						let ItemData = ItemsData.find(
 							a =>
 								a.item_uuid === item.item_uuid &&
-								(type === "company" ? a.company_uuid === company.company_uuid : a.category_uuid === company.category_uuid)
+								(type === "company"
+									? a.company_uuid === company.company_uuid
+									: a.category_uuid === company.category_uuid)
 						)
 
 						if (ItemData) {
@@ -1053,6 +1062,74 @@ router.post("/report/new", async (req, res) => {
 		res.json({ success: true, result: counters })
 	} catch (error) {
 		console.error(error)
+		res.status(500).json({ error: error.message })
+	}
+})
+
+router.get("/counter-special-prices/:item_uuid", async (req, res) => {
+	try {
+		const pipeline = [
+			// {
+			// 	$sort: {
+			// 		counter_title: 1
+			// 	}
+			// },
+			// {
+			// 	$match: {
+			// 		counter_title: {
+			// 			$gt: "AADARSH PAN"
+			// 		}
+			// 	}
+			// },
+			{
+				$unwind: {
+					path: "$item_special_price",
+					preserveNullAndEmptyArrays: false
+				}
+			},
+			{
+				$match: {
+					"item_special_price.item_uuid": req.params.item_uuid
+				}
+			},
+			{
+				$lookup: {
+					from: "routes",
+					localField: "route_uuid",
+					foreignField: "route_uuid",
+					pipeline: [
+						{
+							$project: {
+								route_title: 1
+							}
+						}
+					],
+					as: "route"
+				}
+			},
+			{
+				$unwind: {
+					path: "$route",
+					preserveNullAndEmptyArrays: false
+				}
+			},
+			{
+				$project: {
+					counter_uuid: 1,
+					counter_title: 1,
+					route_title: "$route.route_title",
+					special_price: "$item_special_price.price"
+				}
+			},
+			{
+				$sort: {
+					counter_title: 1
+				}
+			}
+		]
+		const data = await Counters.aggregate(pipeline)
+		res.json(data)
+	} catch (error) {
 		res.status(500).json({ error: error.message })
 	}
 })

@@ -1519,4 +1519,88 @@ router.post("/getCounterLedger", async (req, res) => {
 	}
 })
 
+router.get("/deductions-report", async (req, res) => {
+	try {
+		const { from_date, to_date } = req.query
+		const pipeline = [
+			{
+				$match: {
+					$or: [
+						{
+							replacement_mrp: {
+								$gt: 0
+							}
+						},
+						{
+							shortage: {
+								$gt: 0
+							}
+						},
+						{
+							adjustment: {
+								$gt: 0
+							}
+						}
+					]
+				}
+			},
+			{
+				$unwind: {
+					path: "$status",
+					preserveNullAndEmptyArrays: false
+				}
+			},
+			{
+				$match: {
+					"status.stage": "3",
+					"status.time": {
+						$gte: +from_date,
+						$lt: +to_date + 1000 * 60 * 60 * 24
+					}
+				}
+			},
+			{
+				$lookup: {
+					from: "counters",
+					localField: "counter_uuid",
+					foreignField: "counter_uuid",
+					pipeline: [
+						{
+							$project: {
+								counter_title: 1
+							}
+						}
+					],
+					as: "counter"
+				}
+			},
+			{
+				$unwind: {
+					path: "$counter",
+					preserveNullAndEmptyArrays: false
+				}
+			},
+			{
+				$project: {
+					invoice_number: 1,
+					counter_title: "$counter.counter_title",
+					replacement: "$replacement_mrp",
+					order_uuid: 1,
+					shortage: 1,
+					adjustment: 1
+				}
+			},
+			{
+				$sort: {
+					invoice_number: -1
+				}
+			}
+		]
+		const data = await OrderCompleted.aggregate(pipeline)
+		res.json(data)
+	} catch (err) {
+		res.status(500).json({ success: false, message: err?.message })
+	}
+})
+
 module.exports = router
