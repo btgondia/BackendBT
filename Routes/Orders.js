@@ -1527,7 +1527,7 @@ router.get("/deductions-report", async (req, res) => {
 				$match: {
 					$or: [
 						{
-							replacement_mrp: {
+							replacement: {
 								$gt: 0
 							}
 						},
@@ -1582,9 +1582,9 @@ router.get("/deductions-report", async (req, res) => {
 			},
 			{
 				$project: {
-					invoice_number: 1,
 					counter_title: "$counter.counter_title",
-					replacement: "$replacement_mrp",
+					invoice_number: 1,
+					replacement: 1,
 					order_uuid: 1,
 					shortage: 1,
 					adjustment: 1

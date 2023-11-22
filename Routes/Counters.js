@@ -731,8 +731,9 @@ router.patch("/item_special_price/:counter_uuid", async (req, res) => {
 router.patch("/delete_special_price", async (req, res) => {
 	try {
 		const { counter_uuid, item_uuid } = await req.body
+		console.log(req.body)
 		let counter = await Counter.findOne({ counter_uuid })
-		counter.item_special_price = await (counter.item_special_price || [])?.filter(i => item_uuid !== i.item_uuid)
+		counter.item_special_price = (counter.item_special_price || [])?.filter(i => item_uuid !== i.item_uuid)
 		const result = await Counter.updateOne({ counter_uuid }, { item_special_price: counter.item_special_price })
 
 		if (result.acknowledged) res.json({ success: true, counter })
