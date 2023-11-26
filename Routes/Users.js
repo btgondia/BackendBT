@@ -29,29 +29,22 @@ router.post("/postUser", async (req, res) => {
 			res.json({ success: true, result: response })
 		} else res.json({ success: false, message: "User Not created" })
 	} catch (err) {
-		res.status(500).json({ success: false, message: err })
+		res.status(500).json({ success: false, message: err?.message })
 	}
 })
 
 router.put("/putUser", async (req, res) => {
 	try {
 		let value = req.body
-		console.log(value)
-		if (!value) res.json({ success: false, message: "Invalid Data" })
-		value = Object.keys(value)
-			.filter(key => key !== "_id")
-			.reduce((obj, key) => {
-				obj[key] = value[key]
-				return obj
-			}, {})
+		if (!value) return res.json({ success: false, message: "Invalid Data" })
 
-		let response = await User.updateOne({ user_uuid: value.user_uuid }, value)
-		console.log(response)
-		if (response) {
-			res.json({ success: true, result: response })
-		} else res.json({ success: false, message: "User Not updated" })
+		delete value?._id
+		const response = await User.updateOne({ user_uuid: value.user_uuid }, value)
+
+		if (response) res.json({ success: true, result: response })
+		else res.json({ success: false, message: "User Not updated" })
 	} catch (err) {
-		res.status(500).json({ success: false, message: err })
+		res.status(500).json({ success: false, message: err?.message })
 	}
 })
 
@@ -62,7 +55,7 @@ router.get("/GetUserList", async (req, res) => {
 		if (data.length) res.json({ success: true, result: data })
 		else res.json({ success: false, message: "Users Not found" })
 	} catch (err) {
-		res.status(500).json({ success: false, message: err })
+		res.status(500).json({ success: false, message: err?.message })
 	}
 })
 
@@ -73,7 +66,7 @@ router.get("/GetActiveUserList", async (req, res) => {
 		if (data.length) res.json({ success: true, result: data })
 		else res.json({ success: false, message: "Users Not found" })
 	} catch (err) {
-		res.status(500).json({ success: false, message: err })
+		res.status(500).json({ success: false, message: err?.message })
 	}
 })
 
@@ -84,7 +77,7 @@ router.get("/GetNormalUserList", async (req, res) => {
 		if (data.length) res.json({ success: true, result: data })
 		else res.json({ success: false, message: "Users Not found" })
 	} catch (err) {
-		res.status(500).json({ success: false, message: err })
+		res.status(500).json({ success: false, message: err?.message })
 	}
 })
 
@@ -98,12 +91,11 @@ router.get("/GetUser/:user_uuid", async (req, res) => {
 		if (data) res.json({ success: true, result: data })
 		else res.json({ success: false, message: "Not Authorized to Log-in" })
 	} catch (err) {
-		res.status(500).json({ success: false, message: err })
+		res.status(500).json({ success: false, message: err?.message })
 	}
 })
 
 router.post("/login", async (req, res) => {
-	console.log(req.body)
 	const login_username = req.body.login_username
 	const login_password = req.body.login_password
 	try {
@@ -115,12 +107,13 @@ router.post("/login", async (req, res) => {
 			res.json({ success: false, message: "Invalid User Name and Password" })
 		}
 	} catch (err) {
-		res.status(500).json({ success: false, message: err })
+		res.status(500).json({ success: false, message: err?.message })
 	}
 })
 
 router.get("/getDetails", async (req, res) => {
 	try {
+		let user = await Users.findOne({})
 		let autobill = await AutoBill.find({})
 		autobill = autobill.filter(a => a.auto_uuid)
 		let companies = await Companies.find({ status: 1 })
@@ -203,7 +196,7 @@ router.get("/getDetails", async (req, res) => {
 			result
 		})
 	} catch (err) {
-		res.status(500).json({ success: false, message: err })
+		res.status(500).json({ success: false, message: err?.message })
 	}
 })
 
@@ -287,7 +280,7 @@ router.get("/performance-summary", async (req, res) => {
 
 		res.json(users)
 	} catch (err) {
-		res.status(500).json({ success: false, message: err?.message })
+		res.status(500).json({ success: false, message: err?.message?.message })
 	}
 })
 
