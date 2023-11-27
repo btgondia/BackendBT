@@ -14,14 +14,41 @@ router.post("/add", async (req, res) => {
       user_uuid,
       details,
     } = req.body;
-    const counter_stock = new CounterStockModel({
-      session_uuid,
+    const counterStockExists = await CounterStockModel.findOne({
       counter_uuid,
-      user_uuid,
-      details,
+      timestamp: {
+        $gte: new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
+        $lt: new Date(new Date().setHours(23, 59, 59, 999)).getTime(),
+      },
     });
-    await counter_stock.save();
-    res.json({ success: true, counter_stock });
+    if (counterStockExists) {
+      let userArray= counterStockExists.user_uuid;
+      userArray=userArray.find((a)=>a===user_uuid)?userArray:[...userArray,user_uuid]
+      let detailsArray= counterStockExists.details;
+      for(let detail of details){
+        let detailIndex= detailsArray.findIndex((a)=>a.item_uuid===detail.item_uuid);
+        if(detailIndex>=0){
+          detailsArray[detailIndex].pcs=detail.pcs;
+        }else{
+          detailsArray.push(detail);
+        }
+      }
+      console.log(userArray,detailsArray);
+      await CounterStockModel.updateMany(
+        { counter_uuid },
+        { user_uuid:userArray,details:detailsArray }
+      );
+      res.json({ success: true ,counter_stock:await CounterStockModel.findOne({counter_uuid})});
+    } else {
+      const counter_stock = new CounterStockModel({
+        session_uuid,
+        counter_uuid,
+        user_uuid,
+        details,
+      });
+      await counter_stock.save();
+      res.json({ success: true, counter_stock });
+    }
   } catch (err) {
     console.log(err);
     res.json({ success: false, message: err.message });
@@ -64,7 +91,7 @@ router.post("/getStocksItem", async (req, res) => {
               new Date(
                 new Date(timestampOfBeforeDay).setHours(0, 0, 0, 0)
               ).getTime();
-            console.log(data);
+            // console.log(data);
             return data;
           });
 
@@ -102,7 +129,7 @@ router.post("/getStocksItem", async (req, res) => {
               new Date(
                 new Date(timestampOfBeforeDay).setHours(0, 0, 0, 0)
               ).getTime();
-            console.log(data);
+            // console.log(data);
             return data;
           });
 
@@ -147,7 +174,7 @@ router.post("/getStocksItem", async (req, res) => {
             new Date(
               new Date(timestampOfBeforeDayFirst).setHours(0, 0, 0, 0)
             ).getTime();
-          console.log(a.status[a.status.length - 1].time);
+          // console.log(a.status[a.status.length - 1].time);
           return data;
         });
         let quantityItemInCompleteOrder = 0;
@@ -156,7 +183,7 @@ router.post("/getStocksItem", async (req, res) => {
           quantityItemInCompleteOrder +=
             orderItem.b * +itemData.conversion + +orderItem.p;
         }
-        console.log(quantityItemInCompleteOrder);
+        // console.log(quantityItemInCompleteOrder);
 
         let deliveredOrder = await Orders.find(
           {
@@ -180,7 +207,7 @@ router.post("/getStocksItem", async (req, res) => {
             new Date(
               new Date(timestampOfBeforeDayFirst).setHours(0, 0, 0, 0)
             ).getTime();
-          console.log(a.status[a.status.length - 1].time);
+          // console.log(a.status[a.status.length - 1].time);
           return data;
         });
         let quantityItemInDeliveredOrder = 0;
@@ -189,18 +216,18 @@ router.post("/getStocksItem", async (req, res) => {
           quantityItemInDeliveredOrder +=
             orderItem.b * +itemData.conversion + +orderItem.p;
         }
-        console.log(quantityItemInDeliveredOrder);
+        // console.log(quantityItemInDeliveredOrder);
         let dayDifference =
           +daysDetails.counter_compare_stock_days + initialDay;
         if (dayDifference === 0) dayDifference = 1;
-        console.log(
-          finalValue,
-          initialValue,
-          dayDifference,
-          quantityItemInCompleteOrder,
-          quantityItemInDeliveredOrder,
-          daysDetails.counter_stock_maintain_days
-        );
+        // console.log(
+        //   finalValue,
+        //   initialValue,
+        //   dayDifference,
+        //   quantityItemInCompleteOrder,
+        //   quantityItemInDeliveredOrder,
+        //   daysDetails.counter_stock_maintain_days
+        // );
 
         listItems.push({
           item_uuid: item,
@@ -218,7 +245,7 @@ router.post("/getStocksItem", async (req, res) => {
 
     res.json({ success: true, result: listItems });
   } catch (err) {
-    console.log(err);
+    // console.log(err);
     res.json({ success: false, message: err.message });
   }
 });
