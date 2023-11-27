@@ -6,6 +6,8 @@ const Details = require("../Models/Details");
 const CompleteOrder = require("../Models/OrderCompleted");
 const Item = require("../Models/Item");
 const Orders = require("../Models/Orders");
+const Counters = require("../Models/Counters");
+const Users = require("../Models/Users");
 router.post("/add", async (req, res) => {
   try {
     const {
@@ -244,6 +246,49 @@ router.post("/getStocksItem", async (req, res) => {
     }
 
     res.json({ success: true, result: listItems });
+  } catch (err) {
+    // console.log(err);
+    res.json({ success: false, message: err.message });
+  }
+});
+router.post("/getCounterStocksReport", async (req, res) => {
+  try {
+    const { counter_uuid = "", startDate, endDate } = req.body;
+    
+
+
+    const counter_stock = await CounterStockModel.find({ counter_uuid,timestamp: {
+      $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)).getTime(),
+      $lt: new Date(new Date(endDate).setHours(23, 59, 59, 999)).getTime(),
+    } });
+    const counterData= await Counters.findOne({counter_uuid},{counter_uuid:1,counter_title:1});
+
+    let data = [];
+    for (let stock of counter_stock) {
+      const userData= await Users.find({user_uuid:stock.user_uuid},{user_uuid:1,user_title:1});
+      const itemsDetails= await Item.find({item_uuid:{$in:stock.details.map((a)=>a.item_uuid)}},{item_uuid:1,item_title:1,item_price:1});
+      let details=[];
+      for(let detail of stock.details){
+        const itemData= itemsDetails.find((a)=>a.item_uuid===detail.item_uuid);
+        details.push({
+          item_uuid:detail.item_uuid,
+          item_title:itemData.item_title,
+          item_price:itemData.item_price,
+          pcs:detail.pcs
+        })
+      }
+      data.push({
+        counter_uuid:stock.counter_uuid,
+        counter_title:counterData.counter_title,
+        user_uuid:stock.user_uuid,
+        user_title:userData.map((a)=>a.user_title).join(","),
+        timestamp:stock.timestamp,
+        details:details
+      });
+    }
+    
+   
+    res.json({ success: true, result: data});
   } catch (err) {
     // console.log(err);
     res.json({ success: false, message: err.message });
