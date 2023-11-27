@@ -259,7 +259,7 @@ router.post("/getCounterStocksReport", async (req, res) => {
 
     const counter_stock = await CounterStockModel.find({ counter_uuid,timestamp: {
       $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)).getTime(),
-      $lt: new Date(new Date(endDate).setHours(23, 59, 59, 999)).getTime(),
+      $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)).getTime(),
     } });
     const counterData= await Counters.findOne({counter_uuid},{counter_uuid:1,counter_title:1});
 
