@@ -54,7 +54,7 @@ const updateItemStock = async (warehouse_uuid, items) => {
 			let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0)
 
 			stock = stock?.filter(a => a.warehouse_uuid === warehouse_uuid)?.length
-				? stock.map(a => (a.warehouse_uuid === warehouse_uuid ? { ...a, qty: a.qty - qty } : a))
+				? stock.map(a => (a.warehouse_uuid === warehouse_uuid ? { ...a, qty: +a.qty - +qty } : a))
 				: [
 						...(stock?.length ? stock : []),
 						{
@@ -63,6 +63,7 @@ const updateItemStock = async (warehouse_uuid, items) => {
 							qty: -qty
 						}
 				  ]
+
 			await Item.updateOne({ item_uuid: item.item_uuid }, { stock })
 		}
 	} catch (error) {
@@ -309,7 +310,6 @@ router.put("/putOrders", async (req, res) => {
 		let response = []
 		for (let value of req.body) {
 			if (!value) return res.json({ success: false, message: "Invalid Data" })
-
 			let prevData = (await Orders.findOne({ invoice_number: value.invoice_number }))?.toObject()
 
 			delete prevData?._id
@@ -327,14 +327,14 @@ router.put("/putOrders", async (req, res) => {
 				  })
 				: []
 
-			let prevorderStage = prevData
+			let old_stage = prevData
 				? +Math.max.apply(
 						null,
 						prevData?.status?.map(a => +a.stage)
 				  )
 				: 0
 
-			let orderStage = +Math.max.apply(
+			let new_stage = +Math.max.apply(
 				null,
 				value?.status?.map(a => +a.stage)
 			)
@@ -345,20 +345,66 @@ router.put("/putOrders", async (req, res) => {
 			}
 
 			const warehouse_uuid = value.warehouse_uuid || tripData?.warehouse_uuid
-			if (
-				warehouse_uuid &&
-				prevData?.order_uuid &&
-				!prevData?.status?.some(i => +i.stage >= 3) &&
-				[3, 4].includes(+orderStage)
-			) {
-				value = await { ...value, warehouse_uuid }
-				await updateItemStock(warehouse_uuid, value?.item_details)
+			if (!value?.warehouse_uuid && warehouse_uuid) value = await { ...value, warehouse_uuid }
+
+			console.log({ old_stage, new_stage })
+			if (warehouse_uuid && prevData?.order_uuid && new_stage >= 3) {
+				let stocksUpdate = []
+
+				if (new_stage >= 3 && old_stage < 3) {
+					for (const i of value?.item_details) {
+						stocksUpdate.push({
+							item_uuid: i.item_uuid,
+							free: i.free,
+							b: i.b,
+							p: i.p
+						})
+					}
+				} else if (old_stage >= 3) {
+					const deletedItems = prevData?.item_details?.filter(
+						i => !value?.item_details?.find(_i => _i.item_uuid === i.item_uuid)
+					)
+
+					for (const i of deletedItems) {
+						stocksUpdate.push({
+							item_uuid: i.item_uuid,
+							free: i.free,
+							b: -i.b,
+							p: -i.p
+						})
+					}
+
+					if (new_stage === 5) {
+						for (const i of value?.item_details) {
+							old_order_item = prevData?.item_details?.find(_i => _i.item_uuid === i.item_uuid)
+							stocksUpdate.push({
+								item_uuid: i.item_uuid,
+								free: i.free,
+								b: -old_order_item.b,
+								p: -old_order_item.p
+							})
+						}
+					} else {
+						for (const i of value?.item_details) {
+							old_order_item = prevData?.item_details?.find(_i => _i.item_uuid === i.item_uuid)
+							stocksUpdate.push({
+								item_uuid: i.item_uuid,
+								free: i.free,
+								b: i.b - (old_order_item?.b || 0),
+								p: i.p - (old_order_item?.p || 0)
+							})
+						}
+					}
+				}
+
+				stocksUpdate = stocksUpdate.filter(i => (i.b || 0) + (i.p || 0))
+				await updateItemStock(warehouse_uuid, stocksUpdate)
 			}
 
-			if (+orderStage === 4 || +orderStage === 5 || value?.item_details?.length === 0) {
+			if (+new_stage === 4 || +new_stage === 5 || value?.item_details?.length === 0) {
 				let data = await OrderCompleted.findOne({ order_uuid: value.order_uuid })
 
-				if (+orderStage === 5 || value?.item_details?.length === 0) {
+				if (+new_stage === 5 || value?.item_details?.length === 0) {
 					data = await CancelOrders.create(value)
 					await Orders.deleteOne({ order_uuid: value.order_uuid })
 					const filepath = `uploads/${getFileName(value)}`
@@ -370,7 +416,7 @@ router.put("/putOrders", async (req, res) => {
 						data = await OrderCompleted.create({
 							...prevData,
 							...value,
-							entry: value?.order_type === "E" ? 2 : +orderStage === 5 ? 1 : 0
+							entry: value?.order_type === "E" ? 2 : +new_stage === 5 ? 1 : 0
 						})
 					}
 
@@ -382,7 +428,7 @@ router.put("/putOrders", async (req, res) => {
 					})
 				}
 
-				if (+orderStage === 4) {
+				if (+new_stage === 4) {
 					let counterGroupsData = await Counters.findOne(
 						{ counter_uuid: value.counter_uuid },
 						{ counter_group_uuid: 1 }
@@ -566,14 +612,14 @@ router.put("/putOrders", async (req, res) => {
 			}
 
 			if (value?.counter_charges?.[0]) {
-				const status = +orderStage === 4 ? 1 : +orderStage === 5 ? 0 : 2
+				const status = +new_stage === 4 ? 1 : +new_stage === 5 ? 0 : 2
 				const updated_data = { status, invoice_number: `${value?.order_type}${value?.invoice_number}` }
-				if (+orderStage === 4) updated_data.completed_at = Date.now()
-				else if (+orderStage === 5) updated_data.invoice_number = null
+				if (+new_stage === 4) updated_data.completed_at = Date.now()
+				else if (+new_stage === 5) updated_data.invoice_number = null
 				await CounterCharges.updateMany({ charge_uuid: { $in: value?.counter_charges } }, updated_data)
 			}
 
-			if (+orderStage === 2 && prevorderStage === 1) {
+			if (+new_stage === 2 && old_stage === 1) {
 				const WhatsappNotification = await whatsapp_notifications.findOne({
 					notification_uuid: "out-for-delivery"
 				})
