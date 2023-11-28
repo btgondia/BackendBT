@@ -14,6 +14,7 @@ router.post("/add", async (req, res) => {
       session_uuid = uuid(),
       counter_uuid,
       user_uuid,
+      category_uuid=[],
       details,
     } = req.body;
     const counterStockExists = await CounterStockModel.findOne({
@@ -26,6 +27,9 @@ router.post("/add", async (req, res) => {
     if (counterStockExists) {
       let userArray= counterStockExists.user_uuid;
       userArray=userArray.find((a)=>a===user_uuid)?userArray:[...userArray,user_uuid]
+      let category_array= counterStockExists.category_uuid;
+      category_array=[...category_array,...category_uuid]
+      category_array=[...new Set(category_array)]
       let detailsArray= counterStockExists.details;
       for(let detail of details){
         let detailIndex= detailsArray.findIndex((a)=>a.item_uuid===detail.item_uuid);
@@ -47,6 +51,7 @@ router.post("/add", async (req, res) => {
         counter_uuid,
         user_uuid,
         details,
+        category_uuid,
       });
       await counter_stock.save();
       res.json({ success: true, counter_stock });
@@ -58,21 +63,21 @@ router.post("/add", async (req, res) => {
 });
 router.post("/getStocksItem", async (req, res) => {
   try {
-    const { counter_uuid = "", item_uuid = [] } = req.body;
+    const { counter_uuid = "", item_uuid = [],category_uuid=[] } = req.body;
     let daysDetails = await Details.find(
       {},
       { counter_stock_maintain_days: 1, counter_compare_stock_days: 1 }
     );
     if (daysDetails.length) daysDetails = daysDetails[0];
     daysDetails = JSON.parse(JSON.stringify(daysDetails));
-
+let itemsData= await Item.find({category_uuid:{$in:category_uuid}},{item_uuid:1,item_title:1,item_price:1,conversion:1});
     const counter_stock = await CounterStockModel.find({ counter_uuid });
     let listItems = [];
-    for (let item of item_uuid) {
-      let itemData = await Item.findOne({ item_uuid: item }, { conversion: 1 });
+    for (let itemData of itemsData) {
+
       let counter_stock_item = counter_stock.filter(
         (stock) =>
-          stock.details.filter((detail) => detail.item_uuid === item).length
+          stock.details.filter((detail) => detail.item_uuid === itemData.item_uuid).length
       );
       let initialValue = 0;
       let finalValue = 0;
@@ -105,7 +110,7 @@ router.post("/getStocksItem", async (req, res) => {
                   )
                 : counter_stock_item_day[0];
             initialValue = greatestTimestamp.details.filter(
-              (detail) => detail.item_uuid === item
+              (detail) => detail.item_uuid === itemData.item_uuid
             )[0].pcs;
           } else {
             if (initialDay === 0) {
@@ -144,7 +149,7 @@ router.post("/getStocksItem", async (req, res) => {
                   )
                 : counter_stock_item_day[0];
             finalValue = greatestTimestamp.details.filter(
-              (detail) => detail.item_uuid === item
+              (detail) => detail.item_uuid === itemData.item_uuid
             )[0].pcs;
           } else {
             finalDay++;
@@ -163,7 +168,7 @@ router.post("/getStocksItem", async (req, res) => {
         let completedOrder = await CompleteOrder.find(
           {
             counter_uuid: counter_uuid,
-            "item_details.item_uuid": item,
+            "item_details.item_uuid": itemData.item_uuid,
           },
           { item_details: 1, status: 1 }
         );
@@ -190,7 +195,7 @@ router.post("/getStocksItem", async (req, res) => {
         let deliveredOrder = await Orders.find(
           {
             counter_uuid: counter_uuid,
-            "item_details.item_uuid": item,
+            "item_details.item_uuid": itemData.item_uuid,
             "status.stage": "3",
           },
           { item_details: 1, status: 1 }
@@ -214,7 +219,7 @@ router.post("/getStocksItem", async (req, res) => {
         });
         let quantityItemInDeliveredOrder = 0;
         for (let order of deliveredOrder) {
-          orderItem = order.item_details.filter((a) => a.item_uuid === item)[0];
+          orderItem = order.item_details.filter((a) => a.item_uuid === itemData.item_uuid)[0];
           quantityItemInDeliveredOrder +=
             orderItem.b * +itemData.conversion + +orderItem.p;
         }
@@ -222,17 +227,10 @@ router.post("/getStocksItem", async (req, res) => {
         let dayDifference =
           +daysDetails.counter_compare_stock_days + initialDay;
         if (dayDifference === 0) dayDifference = 1;
-        // console.log(
-        //   finalValue,
-        //   initialValue,
-        //   dayDifference,
-        //   quantityItemInCompleteOrder,
-        //   quantityItemInDeliveredOrder,
-        //   daysDetails.counter_stock_maintain_days
-        // );
+      
 
         listItems.push({
-          item_uuid: item,
+          item_uuid: itemData.item_uuid,
           stock:
             ((finalValue -
               initialValue +
