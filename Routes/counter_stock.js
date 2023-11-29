@@ -14,35 +14,44 @@ router.post("/add", async (req, res) => {
       session_uuid = uuid(),
       counter_uuid,
       user_uuid,
-      category_uuid=[],
+      category_uuid = [],
       details,
       timestamp = new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
     } = req.body;
     const counterStockExists = await CounterStockModel.findOne({
       counter_uuid,
-      timestamp:timestamp,
+      timestamp: timestamp,
     });
     if (counterStockExists) {
-      let userArray= counterStockExists.user_uuid;
-      userArray=userArray.find((a)=>a===user_uuid)?userArray:[...userArray,user_uuid]
-      let category_array= counterStockExists.category_uuid;
-      category_array=[...category_array,...category_uuid]
-      category_array=[...new Set(category_array)]
-      let detailsArray= counterStockExists.details;
-      for(let detail of details){
-        let detailIndex= detailsArray.findIndex((a)=>a.item_uuid===detail.item_uuid);
-        if(detailIndex>=0){
-          detailsArray[detailIndex].pcs=detail.pcs;
-        }else{
+      let userArray = counterStockExists.user_uuid;
+      userArray = userArray.find((a) => a === user_uuid)
+        ? userArray
+        : [...userArray, user_uuid];
+      let category_array = counterStockExists.category_uuid;
+      category_array = [...category_array, ...category_uuid];
+      category_array = [...new Set(category_array)];
+      let detailsArray = counterStockExists.details;
+      for (let detail of details) {
+        let detailIndex = detailsArray.findIndex(
+          (a) => a.item_uuid === detail.item_uuid
+        );
+        if (detailIndex >= 0) {
+          if (detail.pcs !== 0) {
+            detailsArray[detailIndex].pcs = detail.pcs;
+          }
+        } else {
           detailsArray.push(detail);
         }
       }
-      console.log(userArray,detailsArray);
+      console.log(userArray, detailsArray);
       await CounterStockModel.updateMany(
         { counter_uuid },
-        { user_uuid:userArray,details:detailsArray }
+        { user_uuid: userArray, details: detailsArray }
       );
-      res.json({ success: true ,counter_stock:await CounterStockModel.findOne({counter_uuid})});
+      res.json({
+        success: true,
+        counter_stock: await CounterStockModel.findOne({ counter_uuid }),
+      });
     } else {
       const counter_stock = new CounterStockModel({
         session_uuid,
@@ -61,21 +70,25 @@ router.post("/add", async (req, res) => {
 });
 router.post("/getStocksItem", async (req, res) => {
   try {
-    const { counter_uuid = "", item_uuid = [],category_uuid=[] } = req.body;
+    const { counter_uuid = "", item_uuid = [], category_uuid = [] } = req.body;
     let daysDetails = await Details.find(
       {},
       { counter_stock_maintain_days: 1, counter_compare_stock_days: 1 }
     );
     if (daysDetails.length) daysDetails = daysDetails[0];
     daysDetails = JSON.parse(JSON.stringify(daysDetails));
-let itemsData= await Item.find({category_uuid:{$in:category_uuid}},{item_uuid:1,item_title:1,item_price:1,conversion:1});
+    let itemsData = await Item.find(
+      { category_uuid: { $in: category_uuid } },
+      { item_uuid: 1, item_title: 1, item_price: 1, conversion: 1 }
+    );
     const counter_stock = await CounterStockModel.find({ counter_uuid });
     let listItems = [];
     for (let itemData of itemsData) {
-
       let counter_stock_item = counter_stock.filter(
         (stock) =>
-          stock.details.filter((detail) => detail.item_uuid === itemData.item_uuid).length
+          stock.details.filter(
+            (detail) => detail.item_uuid === itemData.item_uuid
+          ).length
       );
       let initialValue = 0;
       let finalValue = 0;
@@ -217,7 +230,9 @@ let itemsData= await Item.find({category_uuid:{$in:category_uuid}},{item_uuid:1,
         });
         let quantityItemInDeliveredOrder = 0;
         for (let order of deliveredOrder) {
-          orderItem = order.item_details.filter((a) => a.item_uuid === itemData.item_uuid)[0];
+          orderItem = order.item_details.filter(
+            (a) => a.item_uuid === itemData.item_uuid
+          )[0];
           quantityItemInDeliveredOrder +=
             orderItem.b * +itemData.conversion + +orderItem.p;
         }
@@ -225,7 +240,6 @@ let itemsData= await Item.find({category_uuid:{$in:category_uuid}},{item_uuid:1,
         let dayDifference =
           +daysDetails.counter_compare_stock_days + initialDay;
         if (dayDifference === 0) dayDifference = 1;
-      
 
         listItems.push({
           item_uuid: itemData.item_uuid,
@@ -238,10 +252,10 @@ let itemsData= await Item.find({category_uuid:{$in:category_uuid}},{item_uuid:1,
               (daysDetails.counter_stock_maintain_days ?? 0) -
             finalValue,
         });
-      }else{
+      } else {
         listItems.push({
           item_uuid: itemData.item_uuid,
-          stock:0
+          stock: 0,
         });
       }
     }
@@ -255,41 +269,52 @@ let itemsData= await Item.find({category_uuid:{$in:category_uuid}},{item_uuid:1,
 router.post("/getCounterStocksReport", async (req, res) => {
   try {
     const { counter_uuid = "", startDate, endDate } = req.body;
-    
 
-
-    const counter_stock = await CounterStockModel.find({ counter_uuid,timestamp: {
-      $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)).getTime(),
-      $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)).getTime(),
-    } });
-    const counterData= await Counters.findOne({counter_uuid},{counter_uuid:1,counter_title:1});
+    const counter_stock = await CounterStockModel.find({
+      counter_uuid,
+      timestamp: {
+        $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)).getTime(),
+        $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)).getTime(),
+      },
+    });
+    const counterData = await Counters.findOne(
+      { counter_uuid },
+      { counter_uuid: 1, counter_title: 1 }
+    );
 
     let data = [];
     for (let stock of counter_stock) {
-      const userData= await Users.find({user_uuid:stock.user_uuid},{user_uuid:1,user_title:1});
-      const itemsDetails= await Item.find({item_uuid:{$in:stock.details.map((a)=>a.item_uuid)}},{item_uuid:1,item_title:1,item_price:1});
-      let details=[];
-      for(let detail of stock.details){
-        const itemData= itemsDetails.find((a)=>a.item_uuid===detail.item_uuid);
+      const userData = await Users.find(
+        { user_uuid: stock.user_uuid },
+        { user_uuid: 1, user_title: 1 }
+      );
+      const itemsDetails = await Item.find(
+        { item_uuid: { $in: stock.details.map((a) => a.item_uuid) } },
+        { item_uuid: 1, item_title: 1, item_price: 1 }
+      );
+      let details = [];
+      for (let detail of stock.details) {
+        const itemData = itemsDetails.find(
+          (a) => a.item_uuid === detail.item_uuid
+        );
         details.push({
-          item_uuid:detail.item_uuid,
-          item_title:itemData.item_title,
-          item_price:itemData.item_price,
-          pcs:detail.pcs
-        })
+          item_uuid: detail.item_uuid,
+          item_title: itemData.item_title,
+          item_price: itemData.item_price,
+          pcs: detail.pcs,
+        });
       }
       data.push({
-        counter_uuid:stock.counter_uuid,
-        counter_title:counterData.counter_title,
-        user_uuid:stock.user_uuid,
-        user_title:userData.map((a)=>a.user_title).join(","),
-        timestamp:stock.timestamp,
-        details:details
+        counter_uuid: stock.counter_uuid,
+        counter_title: counterData.counter_title,
+        user_uuid: stock.user_uuid,
+        user_title: userData.map((a) => a.user_title).join(","),
+        timestamp: stock.timestamp,
+        details: details,
       });
     }
-    
-   
-    res.json({ success: true, result: data});
+
+    res.json({ success: true, result: data });
   } catch (err) {
     // console.log(err);
     res.json({ success: false, message: err.message });
