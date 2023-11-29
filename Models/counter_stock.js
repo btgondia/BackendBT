@@ -5,7 +5,7 @@ const CounterSStocks = new mongoose.Schema({
 	counter_uuid: { type: String, required: true },
 	user_uuid: [{ type: String}],
 	category_uuid: [{ type: String}],
-	timestamp: { type: Number, default: new Date(new Date().setHours(0, 0, 0, 0)).getTime() },
+	timestamp: { type: Number, required: true },
     details: [
         {
             item_uuid: { type: String, required: true },

@@ -16,13 +16,11 @@ router.post("/add", async (req, res) => {
       user_uuid,
       category_uuid=[],
       details,
+      timestamp = new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
     } = req.body;
     const counterStockExists = await CounterStockModel.findOne({
       counter_uuid,
-      timestamp: {
-        $gte: new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
-        $lt: new Date(new Date().setHours(23, 59, 59, 999)).getTime(),
-      },
+      timestamp:timestamp,
     });
     if (counterStockExists) {
       let userArray= counterStockExists.user_uuid;
@@ -239,6 +237,11 @@ let itemsData= await Item.find({category_uuid:{$in:category_uuid}},{item_uuid:1,
               dayDifference) *
               (daysDetails.counter_stock_maintain_days ?? 0) -
             finalValue,
+        });
+      }else{
+        listItems.push({
+          item_uuid: itemData.item_uuid,
+          stock:0
         });
       }
     }
