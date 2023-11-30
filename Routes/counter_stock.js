@@ -22,7 +22,7 @@ router.post("/add", async (req, res) => {
       counter_uuid,
       timestamp: timestamp,
     });
-    counterStockExists=JSON.parse(JSON.stringify(counterStockExists))
+    counterStockExists = JSON.parse(JSON.stringify(counterStockExists));
     if (counterStockExists) {
       let userArray = counterStockExists.user_uuid;
       userArray = userArray.find((a) => a === user_uuid)
@@ -46,8 +46,12 @@ router.post("/add", async (req, res) => {
         }
       }
       await CounterStockModel.updateMany(
-        { counter_uuid ,timestamp: timestamp},
-        { user_uuid: userArray, details: detailsArray ,category_uuid:category_array},
+        { counter_uuid, timestamp: timestamp },
+        {
+          user_uuid: userArray,
+          details: detailsArray,
+          category_uuid: category_array,
+        }
       );
       res.json({
         success: true,
@@ -80,10 +84,13 @@ router.post("/getStocksItem", async (req, res) => {
     if (daysDetails.length) daysDetails = daysDetails[0];
     daysDetails = JSON.parse(JSON.stringify(daysDetails));
     let itemsData = await Item.find(
-      { category_uuid: { $in: category_uuid } },
+      { category_uuid: { $in: category_uuid }, status: 1 },
       { item_uuid: 1, item_title: 1, item_price: 1, conversion: 1 }
     );
-    const counter_stock = await CounterStockModel.find({ counter_uuid });
+    const counter_stock = await CounterStockModel.find({
+      counter_uuid,
+      category_uuid: { $in: category_uuid },
+    });
     let listItems = [];
     for (let itemData of itemsData) {
       let counter_stock_item = counter_stock.filter((stock) =>
@@ -135,47 +142,40 @@ router.post("/getStocksItem", async (req, res) => {
             }
           }
         } while (initialValue === 0);
-        do {
-          let day = finalDay;
-          let timestampOfBeforeDay = new Date().setDate(
-            new Date().getDate() - day
-          );
 
-          let counter_stock_item_day = counter_stock_item.filter((stock) => {
-            let data =
-              new Date(
-                new Date(stock.timestamp).setHours(0, 0, 0, 0)
-              ).getTime() ===
-              new Date(
-                new Date(timestampOfBeforeDay).setHours(0, 0, 0, 0)
-              ).getTime();
-            // console.log(data);
-            return data;
-          });
+        let timestampOfBeforeDay = new Date(
+          new Date().setHours(0, 0, 0, 0)
+        ).getTime();
 
-          if (counter_stock_item_day.length) {
-            //get greatest tmestamp stock
-            let greatestTimestamp =
-              counter_stock_item_day.length > 1
-                ? counter_stock_item_day.reduce((a, b) =>
-                    a.timestamp > b.timestamp ? a : b
-                  )
-                : counter_stock_item_day[0];
-            finalValue = greatestTimestamp.details.filter(
-              (detail) => detail.item_uuid === itemData.item_uuid
-            )[0].pcs;
-          } else {
-            finalDay++;
-          }
-        } while (finalValue === 0);
+        let counter_stock_item_day = counter_stock_item.filter((stock) => {
+          let data =
+            new Date(
+              new Date(stock.timestamp).setHours(0, 0, 0, 0)
+            ).getTime() === timestampOfBeforeDay;
+
+          // console.log(data);
+          return data;
+        });
+
+        if (counter_stock_item_day.length) {
+          //get greatest tmestamp stock
+          let greatestTimestamp =
+            counter_stock_item_day.length > 1
+              ? counter_stock_item_day.reduce((a, b) =>
+                  a.timestamp > b.timestamp ? a : b
+                )
+              : counter_stock_item_day[0];
+          finalValue = greatestTimestamp.details.filter(
+            (detail) => detail.item_uuid === itemData.item_uuid
+          )[0].pcs;
+        } else {
+          finalDay++;
+        }
+        console.log("finalday", finalValue, finalDay);
+
         let firstDay = +daysDetails.counter_compare_stock_days + initialDay;
         let timestampOfBeforeDayFirst = new Date().setDate(
           new Date().getDate() - firstDay
-        );
-
-        let day = finalDay;
-        let timestampOfBeforeDay = new Date().setDate(
-          new Date().getDate() - day
         );
 
         let completedOrder = await CompleteOrder.find(
@@ -245,19 +245,19 @@ router.post("/getStocksItem", async (req, res) => {
 
         listItems.push({
           item_uuid: itemData.item_uuid,
-          stock:
+          projection:
             ((initialValue -
               finalValue +
               quantityItemInCompleteOrder +
-              quantityItemInDeliveredOrder) *(daysDetails.counter_stock_maintain_days || 0)/
-              dayDifference) 
-               -
+              quantityItemInDeliveredOrder) *
+              (daysDetails.counter_stock_maintain_days || 0)) /
+              dayDifference -
             finalValue,
         });
       } else {
         listItems.push({
           item_uuid: itemData.item_uuid,
-          stock: 0,
+          projection: 0,
         });
       }
     }

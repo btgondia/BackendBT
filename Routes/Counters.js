@@ -490,7 +490,6 @@ router.post("/GetCounterByCategory", async (req, res) => {
       }
     );
 
-
     if (counterData?.route_uuid) {
       let routeData = await Routes.findOne(
         {
@@ -500,26 +499,25 @@ router.post("/GetCounterByCategory", async (req, res) => {
       );
 
       let CategoryData = await ItemCategories.find(
-        {"category_uuid": { $in: categories }},
+        { category_uuid: { $in: categories } },
         { category_uuid: 1, category_title: 1, company_uuid: 1 }
       );
 
-
-      let company_uuid = (JSON.parse(
-        JSON.stringify(CategoryData)
-      ).map((a) => a.company_uuid));
+      let company_uuid = JSON.parse(JSON.stringify(CategoryData)).map(
+        (a) => a.company_uuid
+      );
       let companiesData = await Companies.find(
         { company_uuid: { $in: company_uuid } },
         { company_uuid: 1, company_title: 1 }
       );
       let ItemData = await Item.find(
-        { company_uuid: { $in: company_uuid }, status: 1 },
+        { category_uuid: { $in: categories }, status: 1 },
         {
           item_title: 1,
           item_discount: 1,
           exclude_discount: 1,
           status: 1,
-
+          stock: 1,
           sort_order: 1,
           item_code: 1,
           free_issue: 1,
