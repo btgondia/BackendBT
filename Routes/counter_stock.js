@@ -18,10 +18,11 @@ router.post("/add", async (req, res) => {
       details,
     } = req.body;
     let timestamp = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
-    const counterStockExists = await CounterStockModel.findOne({
+    let counterStockExists = await CounterStockModel.findOne({
       counter_uuid,
       timestamp: timestamp,
     });
+    counterStockExists=JSON.parse(JSON.stringify(counterStockExists))
     if (counterStockExists) {
       let userArray = counterStockExists.user_uuid;
       userArray = userArray.find((a) => a === user_uuid)
@@ -30,6 +31,7 @@ router.post("/add", async (req, res) => {
       let category_array = counterStockExists.category_uuid;
       category_array = [...category_array, ...category_uuid];
       category_array = [...new Set(category_array)];
+      console.log(category_array);
       let detailsArray = counterStockExists.details;
       for (let detail of details) {
         let detailIndex = detailsArray.findIndex(
@@ -43,10 +45,9 @@ router.post("/add", async (req, res) => {
           detailsArray.push(detail);
         }
       }
-      console.log(userArray, detailsArray);
       await CounterStockModel.updateMany(
         { counter_uuid },
-        { user_uuid: userArray, details: detailsArray }
+        { user_uuid: userArray, details: detailsArray ,category_uuid:category_array},
       );
       res.json({
         success: true,
