@@ -16,8 +16,8 @@ router.post("/add", async (req, res) => {
       user_uuid,
       category_uuid = [],
       details,
-      timestamp = new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
     } = req.body;
+    let timestamp = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
     const counterStockExists = await CounterStockModel.findOne({
       counter_uuid,
       timestamp: timestamp,
@@ -59,6 +59,7 @@ router.post("/add", async (req, res) => {
         user_uuid,
         details,
         category_uuid,
+        timestamp,
       });
       await counter_stock.save();
       res.json({ success: true, counter_stock });
@@ -70,7 +71,7 @@ router.post("/add", async (req, res) => {
 });
 router.post("/getStocksItem", async (req, res) => {
   try {
-    const { counter_uuid = "", item_uuid = [], category_uuid = [] } = req.body;
+    const { counter_uuid = "", category_uuid = [] } = req.body;
     let daysDetails = await Details.find(
       {},
       { counter_stock_maintain_days: 1, counter_compare_stock_days: 1 }
@@ -84,11 +85,11 @@ router.post("/getStocksItem", async (req, res) => {
     const counter_stock = await CounterStockModel.find({ counter_uuid });
     let listItems = [];
     for (let itemData of itemsData) {
-      let counter_stock_item = counter_stock.filter(
-        (stock) =>
-          stock.details.filter(
-            (detail) => detail.item_uuid === itemData.item_uuid
-          ).length
+      let counter_stock_item = counter_stock.filter((stock) =>
+        stock.details.find(
+          (detail) =>
+            detail.item_uuid === itemData.item_uuid && detail.pcs !== 0
+        )
       );
       let initialValue = 0;
       let finalValue = 0;
@@ -297,12 +298,14 @@ router.post("/getCounterStocksReport", async (req, res) => {
         const itemData = itemsDetails.find(
           (a) => a.item_uuid === detail.item_uuid
         );
-        details.push({
-          item_uuid: detail.item_uuid,
-          item_title: itemData.item_title,
-          item_price: itemData.item_price,
-          pcs: detail.pcs,
-        });
+        if (detail.pcs !== 0) {
+          details.push({
+            item_uuid: detail.item_uuid,
+            item_title: itemData.item_title,
+            item_price: itemData.item_price,
+            pcs: detail.pcs,
+          });
+        }
       }
       data.push({
         counter_uuid: stock.counter_uuid,
