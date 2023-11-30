@@ -46,7 +46,7 @@ router.post("/add", async (req, res) => {
         }
       }
       await CounterStockModel.updateMany(
-        { counter_uuid },
+        { counter_uuid ,timestamp: timestamp},
         { user_uuid: userArray, details: detailsArray ,category_uuid:category_array},
       );
       res.json({
@@ -246,12 +246,12 @@ router.post("/getStocksItem", async (req, res) => {
         listItems.push({
           item_uuid: itemData.item_uuid,
           stock:
-            ((finalValue -
-              initialValue +
+            ((initialValue -
+              finalValue +
               quantityItemInCompleteOrder +
-              quantityItemInDeliveredOrder) /
-              dayDifference) *
-              (daysDetails.counter_stock_maintain_days ?? 0) -
+              quantityItemInDeliveredOrder) *(daysDetails.counter_stock_maintain_days || 0)/
+              dayDifference) 
+               -
             finalValue,
         });
       } else {
