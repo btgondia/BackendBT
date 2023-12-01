@@ -94,18 +94,18 @@ router.post("/getStocksItem", async (req, res) => {
     let listItems = [];
     for (let itemData of itemsData) {
       let counter_stock_item = counter_stock.filter((stock) =>
-        stock.details.find(
-          (detail) =>
-            detail.item_uuid === itemData.item_uuid && detail.pcs !== 0
-        )
+        stock.details.find((detail) => detail.item_uuid === itemData.item_uuid)
       );
-      let initialValue = 0;
+
+      let initialValue = null;
       let finalValue = 0;
+
       if (counter_stock_item.length) {
         let initialDay = 0;
-        let finalDay = 0;
+     
         do {
           let day = daysDetails.counter_compare_stock_days + initialDay;
+          console.log(day);
           let timestampOfBeforeDay = new Date().setDate(
             new Date().getDate() - day
           );
@@ -129,6 +129,7 @@ router.post("/getStocksItem", async (req, res) => {
                     a.timestamp > b.timestamp ? a : b
                   )
                 : counter_stock_item_day[0];
+ 
             initialValue = greatestTimestamp.details.filter(
               (detail) => detail.item_uuid === itemData.item_uuid
             )[0].pcs;
@@ -141,7 +142,8 @@ router.post("/getStocksItem", async (req, res) => {
               initialDay = -initialDay + 1;
             }
           }
-        } while (initialValue === 0);
+  
+        } while (initialValue === null);
 
         let timestampOfBeforeDay = new Date(
           new Date().setHours(0, 0, 0, 0)
@@ -168,10 +170,8 @@ router.post("/getStocksItem", async (req, res) => {
           finalValue = greatestTimestamp.details.filter(
             (detail) => detail.item_uuid === itemData.item_uuid
           )[0].pcs;
-        } else {
-          finalDay++;
-        }
-        console.log("finalday", finalValue, finalDay);
+        } 
+        
 
         let firstDay = +daysDetails.counter_compare_stock_days + initialDay;
         let timestampOfBeforeDayFirst = new Date().setDate(
@@ -245,14 +245,16 @@ router.post("/getStocksItem", async (req, res) => {
 
         listItems.push({
           item_uuid: itemData.item_uuid,
+          initialValue,
+          finalValue,
           projection:
-            ((initialValue -
-              finalValue +
+            (((initialValue || 0) -
+              (finalValue || 0) +
               quantityItemInCompleteOrder +
               quantityItemInDeliveredOrder) *
               (daysDetails.counter_stock_maintain_days || 0)) /
               dayDifference -
-            finalValue,
+            (finalValue || 0),
         });
       } else {
         listItems.push({
