@@ -256,12 +256,7 @@ router.post("/getStocksItem", async (req, res) => {
               dayDifference -
             (finalValue || 0),
         });
-      } else {
-        listItems.push({
-          item_uuid: itemData.item_uuid,
-          projection: 0,
-        });
-      }
+      } 
     }
 
     res.json({ success: true, result: listItems });
