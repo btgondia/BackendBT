@@ -15,7 +15,8 @@ const itemSchema = new mongoose.Schema({
 			b: { type: Number },
 			p: { type: Number },
 			status: { type: Number },
-			remarks: { type: String }
+			remarks: { type: String },
+			visible: { type: Number }
 		}
 	]
 })
