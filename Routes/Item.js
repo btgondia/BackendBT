@@ -238,6 +238,8 @@ router.get("/minValue/:warhouse_uuid/:item_uuid", async (req, res) => {
 			"item_details.item_uuid": req.params.item_uuid,
 			"warehouse_uuid": req.params.warhouse_uuid
 		})
+		ordersData=JSON.parse(JSON.stringify(ordersData))
+		orderData = ordersData.filter(order=>order.status[order.status.length-1].stage==="2")
 		let allItems = [].concat
 			.apply(
 				[],
