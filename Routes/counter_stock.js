@@ -102,7 +102,7 @@ router.post("/getStocksItem", async (req, res) => {
 
       if (counter_stock_item.length) {
         let initialDay = 0;
-     
+
         do {
           let day = daysDetails.counter_compare_stock_days + initialDay;
           console.log(day);
@@ -129,7 +129,7 @@ router.post("/getStocksItem", async (req, res) => {
                     a.timestamp > b.timestamp ? a : b
                   )
                 : counter_stock_item_day[0];
- 
+
             initialValue = greatestTimestamp.details.filter(
               (detail) => detail.item_uuid === itemData.item_uuid
             )[0].pcs;
@@ -142,7 +142,6 @@ router.post("/getStocksItem", async (req, res) => {
               initialDay = -initialDay + 1;
             }
           }
-  
         } while (initialValue === null);
 
         let timestampOfBeforeDay = new Date(
@@ -170,8 +169,7 @@ router.post("/getStocksItem", async (req, res) => {
           finalValue = greatestTimestamp.details.filter(
             (detail) => detail.item_uuid === itemData.item_uuid
           )[0].pcs;
-        } 
-        
+        }
 
         let firstDay = +daysDetails.counter_compare_stock_days + initialDay;
         let timestampOfBeforeDayFirst = new Date().setDate(
@@ -256,7 +254,7 @@ router.post("/getStocksItem", async (req, res) => {
               dayDifference -
             (finalValue || 0),
         });
-      } 
+      }
     }
 
     res.json({ success: true, result: listItems });
