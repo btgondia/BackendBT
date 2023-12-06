@@ -197,7 +197,7 @@ router.post("/getStocksItem", async (req, res) => {
         });
         let quantityItemInCompleteOrder = 0;
         for (let order of completedOrder) {
-          orderItem = order.item_details.filter((a) => a.item_uuid === item)[0];
+          orderItem = order.item_details.filter((a) => a.item_uuid === itemData.item_uuid)[0];
           quantityItemInCompleteOrder +=
             orderItem.b * +itemData.conversion + +orderItem.p;
         }
