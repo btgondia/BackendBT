@@ -5,7 +5,7 @@ const { v4: uuid } = require("uuid")
 
 const CashRegister = require("../Models/cash_register")
 const cash_register_transections = require("../Models/cash_register_transections")
-
+const CounterModel = require("../Models/Counters")
 router.get("/GetAllActiveCashRegistrations/:user_id", async (req, res) => {
 	try {
 		let { user_id } = req.params
@@ -114,13 +114,16 @@ router.get("/statement/:register_uuid", async (req, res) => {
 			},
 			{
 				$addFields: {
-					invoice_number: "$order.invoice_number"
+					invoice_number: "$order.invoice_number",
+					counter_uuid: "$order.counter_uuid",
+					counter_title: "$counter.counter_title"
 				}
 			},
 			{
 				$project: {
 					created_at: 1,
 					invoice_number: 1,
+					counter_uuid: 1,
 					amount: 1
 				}
 			},
@@ -130,7 +133,17 @@ router.get("/statement/:register_uuid", async (req, res) => {
 				}
 			}
 		])
-		res.json({ result: transactions })
+		console.log(transactions)
+		let result = []
+		for(let i of transactions){
+			let counter_data= await CounterModel.findOne({counter_uuid:i.counter_uuid},{counter_title:1})
+			if(counter_data){
+				result.push({...i,counter_title:counter_data.counter_title})
+			}else{
+				result.push(i)
+			}
+		}
+		res.json({ result: result })
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
 	}
