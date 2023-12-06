@@ -310,6 +310,7 @@ router.post("/getCounterStocksReport", async (req, res) => {
         user_title: userData.map((a) => a.user_title).join(","),
         timestamp: stock.timestamp,
         details: details,
+        session_uuid: stock.session_uuid,
       });
     }
 
