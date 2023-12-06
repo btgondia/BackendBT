@@ -320,4 +320,18 @@ router.post("/getCounterStocksReport", async (req, res) => {
   }
 });
 
+router.post("/deleteCounterStock", async (req, res) => {
+  try {
+    const { session_uuid="" } = req.body;
+    if(session_uuid===""){
+      throw new Error("Session uuid is required");
+    }
+    await CounterStockModel.deleteOne({ session_uuid });
+    res.json({ success: true });
+  } catch (err) {
+    // console.log(err);
+    res.json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
