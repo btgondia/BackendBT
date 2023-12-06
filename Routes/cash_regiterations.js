@@ -6,9 +6,10 @@ const { v4: uuid } = require("uuid")
 const CashRegister = require("../Models/cash_register")
 const cash_register_transections = require("../Models/cash_register_transections")
 
-router.get("/GetAllActiveCashRegistrations", async (req, res) => {
+router.get("/GetAllActiveCashRegistrations/:user_id", async (req, res) => {
 	try {
-		let data = await CashRegister.find({ status: 1 })
+		let { user_id } = req.params
+		let data = await CashRegister.find({ status: 1 ,created_by:user_id})
 
 		if (data.length) res.json({ success: true, result: data })
 		else res.json({ success: false, message: "Cash Registrations Not found" })

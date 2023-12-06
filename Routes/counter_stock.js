@@ -197,7 +197,9 @@ router.post("/getStocksItem", async (req, res) => {
         });
         let quantityItemInCompleteOrder = 0;
         for (let order of completedOrder) {
-          orderItem = order.item_details.filter((a) => a.item_uuid === itemData.item_uuid)[0];
+          orderItem = order.item_details.filter(
+            (a) => a.item_uuid === itemData.item_uuid
+          )[0];
           quantityItemInCompleteOrder +=
             orderItem.b * +itemData.conversion + +orderItem.p;
         }
@@ -323,8 +325,8 @@ router.post("/getCounterStocksReport", async (req, res) => {
 
 router.post("/deleteCounterStock", async (req, res) => {
   try {
-    const { session_uuid="" } = req.body;
-    if(session_uuid===""){
+    const { session_uuid = "" } = req.body;
+    if (session_uuid === "") {
       throw new Error("Session uuid is required");
     }
     await CounterStockModel.deleteOne({ session_uuid });
