@@ -6,6 +6,8 @@ const DetailsSchema = new mongoose.Schema({
 	next_vocher_number: { type: Number },
 	new_item_reminder: { type: Number },
 	next_receipt_number: { type: String },
+	sr_if_nongst: { type: String },
+	sr_if_gst: { type: String },
 	timer_run_at: { type: Number },
 	next_collection_tag_number: { type: Number },
 	preferred_xpress_config: { type: Number },
