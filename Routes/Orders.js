@@ -1078,7 +1078,7 @@ router.get("/getPendingEntry", async (req, res) => {
           result.push({
             ...order,
             modes: receipt?.modes || [],
-            party_code: itemData?.item_code || "",
+            item_code: itemData?.item_code || "",
             conversion: itemData?.conversion || "",
             counter_uuid: order?.counter_uuid || receipt?.counter_uuid || "",
             unpaid:
