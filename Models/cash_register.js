@@ -5,7 +5,7 @@ const cashRegisterSchema = new mongoose.Schema({
     created_by:{type:String},
     status:{type:Number},
     balance:{type:Number},
-    created_at:{type:Number},
+    created_at:{type:Number,default:new Date(new Date().setHours(0, 0, 0, 0)).getTime()},
 });
 
 module.exports = mongoose.model("cash_register", cashRegisterSchema);

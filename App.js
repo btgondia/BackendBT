@@ -47,6 +47,7 @@ const CashRegister = require("./routes/cash_regiterations")
 const xpressRoutes = require("./routes/xpress")
 const CounterCharges = require("./routes/counterCharges")
 const CounterStock = require("./routes/counter_stock")
+const Expense = require("./routes/Expense")
 
 
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads")
@@ -116,6 +117,7 @@ app.use("/campaigns", campaigns)
 app.use("/orderForm", OrderForm)
 app.use("/cashRegistrations", CashRegister)
 app.use("/counterStock", CounterStock)
+app.use("/expense", Expense)
 app.get("/MinLevelUpdate", async (req, res, next) => {
 	const response = await MinLevelUpdateAutomation()
 	res.json({ success: true, message: "Updated", result: response })
