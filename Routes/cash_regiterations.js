@@ -21,11 +21,11 @@ router.get("/GetAllActiveCashRegistrations/:user_id", async (req, res) => {
 });
 router.post("/GetAllCompleteCashRegistrations", async (req, res) => {
   try {
-    let { toDate = "", fromDate = "", user_id = "" } = req.body;
-    console.log(req.body);
+    let { toDate = "", fromDate = "", user_uuid = "" } = req.body;
+    console.log(user_uuid);
     let data = await CashRegister.find({
       status: 0,
-      created_by: user_id,
+      created_by: user_uuid,
       created_at: {
         $gte: new Date(fromDate).getTime(),
         $lte: new Date(toDate).getTime(),
@@ -111,7 +111,7 @@ router.put("/PutExpenseCashRegister", async (req, res) => {
       transaction_uuid: uuid(),
       expense_uuid: value.expense_uuid,
       amount: value.amt,
-	  remarks:value.remarks
+      remarks: value.remarks,
     });
 
     if (data.acknowledged) res.json({ success: true, result: data });
@@ -137,6 +137,7 @@ router.get("/statement/:register_uuid", async (req, res) => {
           { expense_uuid: i.expense_uuid },
           { expense_title: 1 }
         );
+		console.log(i.expense_uuid,expense_data)
         if (expense_data) {
           result.push({ ...i, expense_title: expense_data.expense_title });
         } else {

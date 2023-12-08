@@ -80,6 +80,16 @@ router.get("/GetNormalUserList", async (req, res) => {
 		res.status(500).json({ success: false, message: err?.message })
 	}
 })
+router.get("/GetAdminUserList", async (req, res) => {
+	try {
+		let data = await User.find({ user_type: "0" })
+
+		if (data.length) res.json({ success: true, result: data })
+		else res.json({ success: false, message: "Users Not found" })
+	} catch (err) {
+		res.status(500).json({ success: false, message: err?.message })
+	}
+})
 
 router.get("/GetUser/:user_uuid", async (req, res) => {
 	try {
