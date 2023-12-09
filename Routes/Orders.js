@@ -1044,13 +1044,13 @@ router.get("/getPendingEntry", async (req, res) => {
       order_uuid: { $in: data.map((a) => a.order_uuid) },
       status: 1,
     });
-    let replacementOrder = data.find((a) => a.replacement);
+    let replacementOrder = data.find((a) => a.replacement||a.shortage||a.adjustment);
     let result = [];
 	console.log(replacementOrder);
     if (replacementOrder) {
       for (let order of data) {
-        if (order.replacement) {
-			console.log(order.replacement);
+        if (order.replacement || order.shortage || order.adjustment) {
+
           let counterData = await Counters.findOne(
             { counter_uuid: order.counter_uuid },
             { gst: 1 }

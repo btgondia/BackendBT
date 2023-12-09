@@ -39,8 +39,8 @@ router.post("/postOrderCancelMessageTemplate", async (req, res) => {
 router.delete("/deleteOrderCancelMessageTemplate", async (req, res) => {
 	try {
 
-		let {id}=req.body
-		let data = await Details.updateOne({}, { $pull: { order_cancel_message_template: { _id: id } } })
+		let {_id}=req.body
+		let data = await Details.updateOne({}, { $pull: { order_cancel_message_template: { _id } } })
 		if (data?.acknowledged) {
 			let details = await Details.findOne({})
 			res.json({ success: true, result: details.order_cancel_message_template })
