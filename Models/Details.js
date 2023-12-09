@@ -18,7 +18,12 @@ const DetailsSchema = new mongoose.Schema({
 			instance_id: { type: String },
 			access_token: { type: String }
 		}
-	]
+	],
+	order_cancel_message_template:[{
+		id: { type: String, unique: true },
+		body: { type: String }
+	}],
+	
 })
 
 module.exports = mongoose.model("details", DetailsSchema)
