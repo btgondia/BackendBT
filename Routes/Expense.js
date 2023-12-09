@@ -25,9 +25,8 @@ router.post("/PostExpense", async (req, res) => {
 router.get("/GetAllExpenses", async (req, res) => {
   try {
     let data = await Expense.find({});
-
-    if (data.filter((a) => a.expense_uuid && a.expense_title).length)
-      res.json({ success: true, result: data });
+    data = data.filter((a) => a.expense_uuid && a.expense_title);
+    if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Expenses Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });

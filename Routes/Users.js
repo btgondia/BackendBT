@@ -82,7 +82,7 @@ router.get("/GetNormalUserList", async (req, res) => {
 })
 router.get("/GetAdminUserList", async (req, res) => {
 	try {
-		let data = await User.find({ user_type: "0" })
+		let data = await User.find({ user_type: "0" ,status: 1})
 
 		if (data.length) res.json({ success: true, result: data })
 		else res.json({ success: false, message: "Users Not found" })
