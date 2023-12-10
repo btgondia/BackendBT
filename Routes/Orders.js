@@ -25,6 +25,7 @@ const { getReceipts, getRunningOrders, getDate } = require("../modules/index");
 const { sendMessages, compaignShooter } = require("../modules/messagesHandler");
 const { generatePDFs, getFileName } = require("../modules/puppeteerUtilities");
 const CounterCharges = require("../Models/CounterCharges");
+const { getOrderStage } = require("../utils/helperFunctions");
 
 // const textTable = unpaid_receipts => {
 //   console.log(JSON.stringify(unpaid_receipts))
@@ -1603,9 +1604,8 @@ console.log(+trip_uuid===0 ? { trip_uuid } : {$or:[{trip_uuid:{$exists:false}},{
       ?.filter(
         (a) =>
           (a.status.length > 1
-            ? +a.status
-                .map((c) => +c.stage)[a.status.length-1] === 2
-            : +a?.status[0]?.stage === 2) && a.item_details.length
+            ? getOrderStage(a.status) === 3
+            : +a?.status[0]?.stage === 3) && a.item_details.length
       );
 
     res.json({
