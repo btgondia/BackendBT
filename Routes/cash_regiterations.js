@@ -8,6 +8,7 @@ const cash_register_transections = require("../Models/cash_register_transections
 const CounterModel = require("../Models/Counters");
 const OrderCompleted = require("../Models/OrderCompleted");
 const Expenses = require("../Models/Expenses");
+const Users = require("../Models/Users");
 router.get("/GetAllActiveCashRegistrations/:user_id", async (req, res) => {
   try {
     let { user_id } = req.params;
@@ -123,7 +124,7 @@ router.put("/PutExpenseCashRegister", async (req, res) => {
 });
 
 router.get("/statement/:register_uuid", async (req, res) => {
-  try {
+  // try {
     const { register_uuid } = req.params;
     let transactionsData = await cash_register_transections.find({
       register_uuid,
@@ -146,7 +147,7 @@ router.get("/statement/:register_uuid", async (req, res) => {
       } else {
         let completeData = await OrderCompleted.findOne(
           { order_uuid: i.order_uuid },
-          { invoice_number: 1, counter_uuid: 1 }
+          { invoice_number: 1, counter_uuid: 1 ,status:1}
         );
         if (completeData) {
           let counter_data = await CounterModel.findOne(
@@ -154,10 +155,16 @@ router.get("/statement/:register_uuid", async (req, res) => {
             { counter_title: 1 }
           );
           if (counter_data) {
+            let user_uuid = completeData?.status?.find(a=>+a.stage===3.5).user_uuid;
+            let userData = await Users.findOne(
+              { user_uuid },
+              { user_title: 1 }
+            );
             result.push({
               ...i,
               counter_title: counter_data.counter_title,
               invoice_number: completeData.invoice_number,
+              user_title: userData?.user_title||"",
             });
           } else {
             result.push({ ...i, invoice_number: completeData.invoice_number });
@@ -166,9 +173,9 @@ router.get("/statement/:register_uuid", async (req, res) => {
       }
     }
     res.json({ result: result });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 
 module.exports = router;
