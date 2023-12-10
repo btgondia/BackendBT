@@ -22,10 +22,9 @@ router.get("/GetAllActiveCashRegistrations/:user_id", async (req, res) => {
 });
 router.post("/GetAllCompleteCashRegistrations", async (req, res) => {
   try {
-    let { toDate = "", fromDate = "", user_uuid = "" } = req.body;
-    console.log(user_uuid);
+    let { toDate = "", fromDate = "", user_uuid = "" ,status=0} = req.body;
     let data = await CashRegister.find({
-      status: 0,
+      status,
       created_by: user_uuid,
       created_at: {
         $gte: new Date(fromDate).getTime(),
@@ -125,54 +124,53 @@ router.put("/PutExpenseCashRegister", async (req, res) => {
 
 router.get("/statement/:register_uuid", async (req, res) => {
   // try {
-    const { register_uuid } = req.params;
-    let transactionsData = await cash_register_transections.find({
-      register_uuid,
-    });
-    transactionsData = JSON.parse(JSON.stringify(transactionsData));
+  const { register_uuid } = req.params;
+  let transactionsData = await cash_register_transections.find({
+    register_uuid,
+  });
+  transactionsData = JSON.parse(JSON.stringify(transactionsData));
 
-    let result = [];
-    for (let i of transactionsData) {
-      if (i.type === "out") {
-        let expense_data = await Expenses.findOne(
-          { expense_uuid: i.expense_uuid },
-          { expense_title: 1 }
-        );
-		console.log(i.expense_uuid,expense_data)
-        if (expense_data) {
-          result.push({ ...i, expense_title: expense_data.expense_title });
-        } else {
-          result.push(i);
-        }
+  let result = [];
+  for (let i of transactionsData) {
+    if (i.type === "out") {
+      let expense_data = await Expenses.findOne(
+        { expense_uuid: i.expense_uuid },
+        { expense_title: 1 }
+      );
+      console.log(i.expense_uuid, expense_data);
+      if (expense_data) {
+        result.push({ ...i, expense_title: expense_data.expense_title });
       } else {
-        let completeData = await OrderCompleted.findOne(
-          { order_uuid: i.order_uuid },
-          { invoice_number: 1, counter_uuid: 1 ,status:1}
-        );
-        if (completeData) {
-          let counter_data = await CounterModel.findOne(
-            { counter_uuid: completeData.counter_uuid },
-            { counter_title: 1 }
-          );
-          if (counter_data) {
-            let user_uuid = completeData?.status?.find(a=>+a.stage===3.5).user_uuid;
-            let userData = await Users.findOne(
-              { user_uuid },
-              { user_title: 1 }
-            );
-            result.push({
-              ...i,
-              counter_title: counter_data.counter_title,
-              invoice_number: completeData.invoice_number,
-              user_title: userData?.user_title||"",
-            });
-          } else {
-            result.push({ ...i, invoice_number: completeData.invoice_number });
-          }
-        } else result.push(i);
+        result.push(i);
       }
+    } else {
+      let completeData = await OrderCompleted.findOne(
+        { order_uuid: i.order_uuid },
+        { invoice_number: 1, counter_uuid: 1, status: 1 }
+      );
+      if (completeData) {
+        let counter_data = await CounterModel.findOne(
+          { counter_uuid: completeData.counter_uuid },
+          { counter_title: 1 }
+        );
+        if (counter_data) {
+          let user_uuid = completeData?.status?.find(
+            (a) => +a.stage === 3.5
+          ).user_uuid;
+          let userData = await Users.findOne({ user_uuid }, { user_title: 1 });
+          result.push({
+            ...i,
+            counter_title: counter_data.counter_title,
+            invoice_number: completeData.invoice_number,
+            user_title: userData?.user_title || "",
+          });
+        } else {
+          result.push({ ...i, invoice_number: completeData.invoice_number });
+        }
+      } else result.push(i);
     }
-    res.json({ result: result });
+  }
+  res.json({ result: result });
   // } catch (err) {
   //   res.status(500).json({ success: false, message: err });
   // }
