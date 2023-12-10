@@ -1549,12 +1549,11 @@ router.post("/GetOrderCheckingList", async (req, res) => {
 router.post("/GetOrderDeliveryList", async (req, res) => {
   try {
     let data = [];
-    let { trip_uuid } = req.body;
-
-    data = await Orders.find({});
+    let { trip_uuid,user_uuid } = req.body;
+console.log(+trip_uuid===0 ? { trip_uuid } : {$or:[{trip_uuid:{$exists:false}},{trip_uuid:{$eq:null}}]});
+    data = await Orders.find(+trip_uuid===0 ? {$or:[{trip_uuid:{$exists:false}},{trip_uuid:{$eq:null}}]}: { trip_uuid });
     data = JSON.parse(JSON.stringify(data));
-    if (+trip_uuid === 0) data = data.filter((a) => !a.trip_uuid);
-    else data = data.filter((a) => a.trip_uuid === trip_uuid);
+ console.log(data.length);
     let counterData = await Counters.find(
       {
         counter_uuid: {
@@ -1605,9 +1604,8 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
         (a) =>
           (a.status.length > 1
             ? +a.status
-                .map((c) => +c.stage)
-                .reduce((c, d) => Math.max(c, d)) === 3
-            : +a?.status[0]?.stage === 3) && a.item_details.length
+                .map((c) => +c.stage)[a.status.length-1] === 2
+            : +a?.status[0]?.stage === 2) && a.item_details.length
       );
 
     res.json({

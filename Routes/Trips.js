@@ -12,6 +12,7 @@ const Counters = require("../Models/Counters")
 const Item = require("../Models/Item")
 const OutStanding = require("../Models/OutStanding")
 const Warehouse = require("../Models/Warehouse")
+const { getOrderStage } = require("../utils/helperFunctions")
 
 router.post("/postTrip", async (req, res) => {
 	try {
@@ -590,7 +591,7 @@ router.post("/GetCheckingTripList", async (req, res) => {
 					.filter(b => !b.trip_uuid)
 					?.filter(b =>
 						b.status.length > 1
-							? +b.status.map(c => +c.stage).reduce((c, d) => Math.max(c, d)) === 2
+							? getOrderStage(b.status) === 2
 							: +b?.status[0]?.stage === 2
 					).length
 			},
@@ -600,7 +601,7 @@ router.post("/GetCheckingTripList", async (req, res) => {
 					.filter(b => a.trip_uuid === b.trip_uuid)
 					?.filter(b =>
 						b.status.length > 1
-							? +b.status.map(c => +c.stage).reduce((c, d) => Math.max(c, d)) === 2
+							? getOrderStage(b.status) === 2
 							: +b?.status[0]?.stage === 2
 					).length
 			}))
@@ -629,7 +630,7 @@ router.post("/GetDeliveryTripList", async (req, res) => {
 					.filter(b => a.trip_uuid === b.trip_uuid)
 					?.filter(b =>
 						b.status.length > 1
-							? +b.status.map(c => +c.stage).reduce((c, d) => Math.max(c, d)) === 3
+							? getOrderStage(b.status) === 3
 							: +b?.status[0]?.stage === 3
 					).length
 			}))
