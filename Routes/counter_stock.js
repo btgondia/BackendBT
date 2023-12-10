@@ -267,19 +267,16 @@ router.post("/getStocksItem", async (req, res) => {
 });
 router.post("/getCounterStocksReport", async (req, res) => {
   try {
-    const { counter_uuid = "", startDate, endDate } = req.body;
+    const { counter_uuid = 0, startDate, endDate } = req.body;
 
-    const counter_stock = await CounterStockModel.find({
-      counter_uuid,
-      timestamp: {
-        $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)).getTime(),
-        $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)).getTime(),
-      },
-    });
-    const counterData = await Counters.findOne(
-      { counter_uuid },
-      { counter_uuid: 1, counter_title: 1 }
-    );
+    const counter_stock = await CounterStockModel.find(counter_uuid?{ counter_uuid, timestamp: {
+      $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)).getTime(),
+      $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)).getTime(),
+    }, }:{ timestamp: {
+      $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)).getTime(),
+      $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)).getTime(),
+    },});
+   
 
     let data = [];
     for (let stock of counter_stock) {
@@ -290,6 +287,10 @@ router.post("/getCounterStocksReport", async (req, res) => {
       const itemsDetails = await Item.find(
         { item_uuid: { $in: stock.details.map((a) => a.item_uuid) } },
         { item_uuid: 1, item_title: 1, item_price: 1 }
+      );
+      const counterData = await Counters.findOne(
+        { counter_uuid: stock.counter_uuid },
+        { counter_uuid: 1, counter_title: 1 }
       );
       let details = [];
       for (let detail of stock.details) {
@@ -307,7 +308,7 @@ router.post("/getCounterStocksReport", async (req, res) => {
       }
       data.push({
         counter_uuid: stock.counter_uuid,
-        counter_title: counterData.counter_title,
+        counter_title: counterData?.counter_title??"",
         user_uuid: stock.user_uuid,
         user_title: userData.map((a) => a.user_title).join(","),
         timestamp: stock.timestamp,
