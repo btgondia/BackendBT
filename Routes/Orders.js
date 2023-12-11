@@ -454,7 +454,9 @@ router.put("/putOrders", async (req, res) => {
           }
         }
 
-        stocksUpdate = stocksUpdate.filter((i) => (i.free || 0)+(i.b || 0) + (i.p || 0));
+        stocksUpdate = stocksUpdate.filter(
+          (i) => (i.free || 0) + (i.b || 0) + (i.p || 0)
+        );
         await updateItemStock(warehouse_uuid, stocksUpdate);
       }
 
@@ -1045,13 +1047,14 @@ router.get("/getPendingEntry", async (req, res) => {
       order_uuid: { $in: data.map((a) => a.order_uuid) },
       status: 1,
     });
-    let replacementOrder = data.find((a) => a.replacement||a.shortage||a.adjustment);
+    let replacementOrder = data.find(
+      (a) => a.replacement || a.shortage || a.adjustment
+    );
     let result = [];
-	console.log(replacementOrder);
+    console.log(replacementOrder);
     if (replacementOrder) {
       for (let order of data) {
         if (order.replacement || order.shortage || order.adjustment) {
-
           let counterData = await Counters.findOne(
             { counter_uuid: order.counter_uuid },
             { gst: 1 }
@@ -1097,7 +1100,7 @@ router.get("/getPendingEntry", async (req, res) => {
               (b.order_uuid === order.order_uuid &&
                 b.counter_uuid === order.counter_uuid)
           );
-        
+
           result.push({
             ...order,
             modes: receipt?.modes || [],
@@ -1550,11 +1553,29 @@ router.post("/GetOrderCheckingList", async (req, res) => {
 router.post("/GetOrderDeliveryList", async (req, res) => {
   try {
     let data = [];
-    let { trip_uuid,user_uuid } = req.body;
-console.log(+trip_uuid===0 ? { trip_uuid } : {$or:[{trip_uuid:{$exists:false}},{trip_uuid:{$eq:null}}]});
-    data = await Orders.find(+trip_uuid===0 ? {$or:[{trip_uuid:{$exists:false}},{trip_uuid:{$eq:null}}]}: { trip_uuid });
+    let { trip_uuid, user_uuid } = req.body;
+    console.log(
+      +trip_uuid === 0
+        ? { trip_uuid }
+        : {
+            $or: [
+              { trip_uuid: { $exists: false } },
+              { trip_uuid: { $eq: null } },
+            ],
+          }
+    );
+    data = await Orders.find(
+      +trip_uuid === 0
+        ? {
+            $or: [
+              { trip_uuid: { $exists: false } },
+              { trip_uuid: { $eq: null } },
+            ],
+          }
+        : { trip_uuid }
+    );
     data = JSON.parse(JSON.stringify(data));
- console.log(data.length);
+    console.log(data.length);
     let counterData = await Counters.find(
       {
         counter_uuid: {
@@ -1697,7 +1718,7 @@ router.post("/getStockDetails", async (req, res) => {
       {
         counter_uuid: { $in: response.map((a) => a.counter_uuid) },
       },
-      { counter_uuid, counter_title }
+      { counter_uuid: 1, counter_title: 1 }
     );
     const warehouseData = await WarehouseModel.find({});
     responseVoucher = JSON.parse(JSON.stringify(responseVoucher));
@@ -1706,11 +1727,23 @@ router.post("/getStockDetails", async (req, res) => {
         order.created_at > value.startDate && order.created_at < endDate
     );
     let data = [];
+    let total = {
+      addedB: 0,
+      addedP: 0,
+      reduceB: 0,
+      reduceP: 0,
+    };
     for (let item of response) {
       let orderItem = item?.item_details?.find(
         (a) => a.item_uuid === value.item_uuid
       );
       if (orderItem?.b || orderItem?.p) {
+        total = {
+          addedB: total.addedB,
+          addedP: total.addedP,
+          reduceB: total.reduceB + orderItem?.b,
+          reduceP: total.reduceP + orderItem?.p,
+        };
         let obj = {
           date: item?.status?.find((a) => +a.stage === 1)?.time,
           to: counterData?.find((a) => a.counter_uuid === item.counter_uuid)
@@ -1721,6 +1754,7 @@ router.post("/getStockDetails", async (req, res) => {
         data.push(obj);
       }
     }
+
     for (let item of responseVoucher) {
       let orderItem = item.item_details.find(
         (a) => a.item_uuid === value.item_uuid
@@ -1728,6 +1762,12 @@ router.post("/getStockDetails", async (req, res) => {
       console.log(orderItem);
       if (orderItem?.b || orderItem?.p) {
         let added = item.to_warehouse === value.warehouse_uuid;
+        total = {
+          addedB: total.addedB + (added ? orderItem?.b : 0),
+          addedP: total.addedP + (added ? orderItem?.p : 0),
+          reduceB: total.reduceB + (added ? 0 : orderItem?.b),
+          reduceP: total.reduceP + (added ? 0 : orderItem?.p),
+        };
 
         let obj = {
           date: item.created_at,
@@ -1741,12 +1781,13 @@ router.post("/getStockDetails", async (req, res) => {
           added: added ? (orderItem?.b || 0) + ":" + (orderItem.p || 0) : 0,
           reduce: added ? 0 : (orderItem?.b || 0) + ":" + (orderItem.p || 0),
         };
+
         data.push(obj);
       }
     }
 
     if (data?.length) {
-      res.json({ success: true, result: data });
+      res.json({ success: true, result: data, total });
     } else res.json({ success: false, message: "Order Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
