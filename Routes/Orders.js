@@ -403,7 +403,7 @@ router.put("/putOrders", async (req, res) => {
       if (warehouse_uuid && prevData?.order_uuid && new_stage >= 3) {
         let stocksUpdate = [];
 
-        if (new_stage >= 3 && old_stage < 3) {
+        if (new_stage >= 3.5 && old_stage < 3.5) {
           for (const i of value?.item_details) {
             stocksUpdate.push({
               item_uuid: i.item_uuid,
