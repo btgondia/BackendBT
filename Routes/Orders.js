@@ -421,7 +421,7 @@ router.put("/putOrders", async (req, res) => {
           for (const i of deletedItems) {
             stocksUpdate.push({
               item_uuid: i.item_uuid,
-              free: i.free,
+              free: -i.free,
               b: -i.b,
               p: -i.p,
             });
@@ -434,7 +434,7 @@ router.put("/putOrders", async (req, res) => {
               );
               stocksUpdate.push({
                 item_uuid: i.item_uuid,
-                free: i.free,
+                free: -old_order_item.free,
                 b: -old_order_item.b,
                 p: -old_order_item.p,
               });
@@ -446,7 +446,7 @@ router.put("/putOrders", async (req, res) => {
               );
               stocksUpdate.push({
                 item_uuid: i.item_uuid,
-                free: i.free,
+                free: i.free - (old_order_item?.free || 0),
                 b: i.b - (old_order_item?.b || 0),
                 p: i.p - (old_order_item?.p || 0),
               });
@@ -454,7 +454,7 @@ router.put("/putOrders", async (req, res) => {
           }
         }
 
-        stocksUpdate = stocksUpdate.filter((i) => (i.b || 0) + (i.p || 0));
+        stocksUpdate = stocksUpdate.filter((i) => (i.free || 0)+(i.b || 0) + (i.p || 0));
         await updateItemStock(warehouse_uuid, stocksUpdate);
       }
 

@@ -229,18 +229,19 @@ router.post("/GetStockReportSummary", async (req, res) => {
     for (let item of data) {
       const itemData = await Item.findOne(
         { item_uuid: item.item_uuid },
-        { conversion: 1, item_title: 1 }
+        { conversion: 1, item_title: 1, item_price:1 }
       );
       if (itemData) {
         let obj = {
           item_uuid: itemData.item_uuid,
           item_title: itemData.item_title,
           qty: +item.b * +itemData.conversion + +item.p,
+          estValue: ((+item.b * +itemData.conversion + +item.p) * +itemData.item_price).toFixed(2),
         };
         if (result.filter((a) => a.item_uuid === item.item_uuid).length) {
           result = result.map((a) =>
             a.item_uuid === item.item_uuid
-              ? { ...a, qty: +a.qty + +obj.qty }
+              ? { ...a, qty: +a.qty + +obj.qty, estValue: +a.estValue + +obj.estValue }
               : a
           );
         } else {

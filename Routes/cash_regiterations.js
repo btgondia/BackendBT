@@ -22,10 +22,10 @@ router.get("/GetAllActiveCashRegistrations/:user_id", async (req, res) => {
 });
 router.post("/GetAllCompleteCashRegistrations", async (req, res) => {
   try {
-    let { toDate = "", fromDate = "", user_uuid = "" ,status=0} = req.body;
+    let { toDate = "", fromDate = "", user_uuid = 0 ,status=0} = req.body;
     let data = await CashRegister.find({
       status,
-      created_by: user_uuid,
+      created_by:user_uuid===0?{$ne:0}:user_uuid,
       created_at: {
         $gte: new Date(fromDate).getTime(),
         $lte: new Date(toDate).getTime(),
