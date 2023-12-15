@@ -123,7 +123,7 @@ router.put("/PutExpenseCashRegister", async (req, res) => {
 });
 
 router.get("/statement/:register_uuid", async (req, res) => {
-  // try {
+  try {
   const { register_uuid } = req.params;
   let transactionsData = await cash_register_transections.find({
     register_uuid,
@@ -146,7 +146,7 @@ router.get("/statement/:register_uuid", async (req, res) => {
     } else {
       let completeData = await OrderCompleted.findOne(
         { order_uuid: i.order_uuid },
-        { invoice_number: 1, counter_uuid: 1, status: 1 }
+        { invoice_number: 1, counter_uuid: 1, status: 1,order_grandtotal:1 }
       );
       if (completeData) {
         let counter_data = await CounterModel.findOne(
@@ -163,6 +163,7 @@ router.get("/statement/:register_uuid", async (req, res) => {
             counter_title: counter_data.counter_title,
             invoice_number: completeData.invoice_number,
             user_title: userData?.user_title || "",
+            amount: completeData.order_grandtotal||i.amount,
           });
         } else {
           result.push({ ...i, invoice_number: completeData.invoice_number });
@@ -171,9 +172,9 @@ router.get("/statement/:register_uuid", async (req, res) => {
     }
   }
   res.json({ result: result });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+     res.status(500).json({ success: false, message: err });
+   }
 });
 
 module.exports = router;

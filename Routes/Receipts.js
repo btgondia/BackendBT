@@ -34,6 +34,31 @@ router.post("/postReceipt", async (req, res) => {
       created_by: value.user_uuid,
       status: 1,
     });
+    if(cash_register&&cash_register.created_at<new Date(new Date().setHours(0, 0, 0, 0)).getTime()){
+      await CashRegister.updateMany(
+        {
+          created_by: value.user_uuid,
+          status: 1,
+        },
+        { status: 0 }
+      );
+      cash_register=await CashRegister.create({
+        balance: 0,
+        created_by: value.user_uuid,
+        register_uuid: uuid(),
+        created_at:new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
+        status: 1,
+      });
+    }else if(!cash_register){
+      cash_register=await CashRegister.create({
+        balance: 0,
+        created_by: value.user_uuid,
+        register_uuid: uuid(),
+        created_at:new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
+        status: 1,
+      });
+
+    }
 
     let resciptJson = await Receipts.findOne({
       $or: [
