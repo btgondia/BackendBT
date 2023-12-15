@@ -89,7 +89,7 @@ router.post("/postReceipt", async (req, res) => {
             {
               order_uuid: value.order_uuid,
             },
-            { $inc: { amount: cashAmountTwo } }
+            { $inc: { amount: cashAmountTwo-cashTransectionExits.amount } }
           );
         } else {
           await cash_register_transections.create({
