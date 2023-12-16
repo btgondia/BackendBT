@@ -36,6 +36,21 @@ router.post("/postOrderCancelMessageTemplate", async (req, res) => {
 	}
 }
 )
+router.post("/postSkipStages", async (req, res) => {
+	try {
+		let {skip_stages}  = req.body
+		console.log(skip_stages)
+		let data = await Details.updateOne({}, { skip_stages})
+		if (data?.acknowledged) {
+			let details = await Details.findOne({})
+			res.json({ success: true, result: details.skip_stages })
+		}
+		else res.json({ success: false, message: "Details Not found" })
+	} catch (err) {
+		res.status(500).json({ success: false, message: err })
+	}
+}
+)
 router.delete("/deleteOrderCancelMessageTemplate", async (req, res) => {
 	try {
 

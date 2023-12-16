@@ -26,6 +26,7 @@ const { sendMessages, compaignShooter } = require("../modules/messagesHandler");
 const { generatePDFs, getFileName } = require("../modules/puppeteerUtilities");
 const CounterCharges = require("../Models/CounterCharges");
 const { getOrderStage } = require("../utils/helperFunctions");
+const { get } = require("http");
 
 // const textTable = unpaid_receipts => {
 //   console.log(JSON.stringify(unpaid_receipts))
@@ -45,6 +46,32 @@ const { getOrderStage } = require("../utils/helperFunctions");
 
 //   return messages
 // }
+const checkingOrderSkip = async (status) => {
+  let order_status = status;
+  let skip_stages = await Details.findOne({});
+  skip_stages = skip_stages?.skip_stages || [];
+  let max_stage = getOrderStage(order_status);
+  let stage_exist = skip_stages.find((i) => i === max_stage);
+  while (stage_exist) {
+    console.log({ max_stage, stage_exist });
+    if (getOrderStage(status) !== max_stage) {
+      order_status.push({
+        stage: max_stage,
+        time: new Date().getTime(),
+        user_uuid: status.find((i) => +i.stage === getOrderStage(status))
+          .user_uuid,
+      });
+    }
+    max_stage = max_stage === 3 ? 3.5 : max_stage + 1;
+    stage_exist = skip_stages.find((i) => i === max_stage);
+  }
+  order_status.push({
+    stage: max_stage,
+    time: new Date().getTime(),
+    user_uuid: status.find((i) => i.stage === getOrderStage(status)).user_uuid,
+  });
+  return order_status;
+};
 
 const updateItemStock = async (warehouse_uuid, items) => {
   if (!warehouse_uuid || !items?.length) return;
@@ -91,11 +118,13 @@ router.get("/paymentPending/:counter_uuid", async (req, res) => {
 });
 
 router.post("/postOrder", async (req, res) => {
-  try {
+  // try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
     value = { ...value, order_uuid: uuid() };
+    let status=await checkingOrderSkip(value.status)
+
 
     if (!value.warehouse_uuid) {
       let counterData = await Counters.findOne(
@@ -134,11 +163,8 @@ router.post("/postOrder", async (req, res) => {
         ? +details?.next_estimate_number
         : +details?.next_invoice_number;
 
-    let orderStage = value.status
-      ? value?.status?.length > 1
-        ? +value.status.map((c) => +c.stage).reduce((c, d) => Math.max(c, d))
-        : +value?.status[0]?.stage
-      : "";
+    let orderStage =  getOrderStage(status)
+    
     let response;
     let incentives = 0;
     let counterGroupsData = await Counters.findOne(
@@ -152,7 +178,7 @@ router.post("/postOrder", async (req, res) => {
     let incentiveData = await Incentive.find({ status: 1 });
     incentiveData = JSON.parse(JSON.stringify(incentiveData));
 
-    let user_uuid = value.status.find((c) => +c.stage === 1)?.user_uuid;
+    let user_uuid = status.find((c) => +c.stage === 1)?.user_uuid;
     incentiveData = incentiveData
       .filter((a) => a.users.filter((b) => b === user_uuid).length)
       .filter(
@@ -347,13 +373,13 @@ router.post("/postOrder", async (req, res) => {
       }
       res.json({ success: true, result: response, incentives });
     } else res.json({ success: false, message: "Order Not created" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 
 router.put("/putOrders", async (req, res) => {
-  try {
+  // try {
     let response = [];
     for (let value of req.body) {
       if (!value) return res.json({ success: false, message: "Invalid Data" });
@@ -369,6 +395,7 @@ router.put("/putOrders", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
+        let status=await checkingOrderSkip(value.status)
 
       let itemData = value?.item_details?.length
         ? await Item.find({
@@ -385,8 +412,9 @@ router.put("/putOrders", async (req, res) => {
 
       let new_stage = +Math.max.apply(
         null,
-        value?.status?.map((a) => +a.stage)
+        status?.map((a) => +a.stage)
       );
+      
 
       let tripData = {};
       if (value.trip_uuid) {
@@ -514,10 +542,10 @@ router.put("/putOrders", async (req, res) => {
           let incentiveData = (await Incentive.find({ status: 1 }))?.map((i) =>
             i.toObject()
           );
-          let user_range_order = value.status.find(
+          let user_range_order = status.find(
             (c) => +c.stage === 1
           )?.user_uuid;
-          let user_delivery_intensive = value.status.find(
+          let user_delivery_intensive = status.find(
             (c) => +c.stage === 4
           )?.user_uuid;
 
@@ -824,10 +852,10 @@ router.put("/putOrders", async (req, res) => {
     if (response.length) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Order Not updated" });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ success: false, message: err?.message });
-  }
+  // } catch (err) {
+  //   console.log(err);
+  //   res.status(500).json({ success: false, message: err?.message });
+  // }
 });
 
 router.post("/sendMsg", async (req, res) => {

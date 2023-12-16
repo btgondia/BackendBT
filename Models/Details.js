@@ -23,6 +23,9 @@ const DetailsSchema = new mongoose.Schema({
 		id: { type: String, unique: true },
 		body: { type: String }
 	}],
+	skip_stages:[
+		{ type: Number }
+	]
 	
 })
 
