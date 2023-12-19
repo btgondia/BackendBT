@@ -68,11 +68,21 @@ router.post("/deliveredVouchers", async (req, res) => {
 
     let data = await Vochers.find(query);
     data = JSON.parse(JSON.stringify(data));
+    let item_uuids = data.map((a) => a.item_details);
+    item_uuids = item_uuids.flat().map((a) => a.item_uuid);
+    const itemData = await Item.find({ item_uuid: { $in: item_uuids } });
     if (data.length)
       res.json({
         success: true,
         result: data.map((a) => ({
           ...a,
+          item_details: a.item_details.map((b) => {
+            let item = itemData.find((c) => c.item_uuid === b.item_uuid);
+            return{
+            ...b,
+            estValue:
+              +b.b * +item.item_price * +item.conversion + +b.p * +item.item_price,
+          }}),
           vocher_number: a.vocher_number || 0,
         })),
       });

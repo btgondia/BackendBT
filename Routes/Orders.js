@@ -65,6 +65,7 @@ const checkingOrderSkip = async (status) => {
     max_stage = max_stage === 3 ? 3.5 : max_stage + 1;
     stage_exist = skip_stages.find((i) => i === max_stage);
   }
+  console.log({order_status})
   order_status.push({
     stage: max_stage,
     time: new Date().getTime(),
@@ -395,7 +396,9 @@ router.put("/putOrders", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-        let status=await checkingOrderSkip(value.status)
+        let status=value.status
+        if(status)
+         status=await checkingOrderSkip(value.status)
 
       let itemData = value?.item_details?.length
         ? await Item.find({

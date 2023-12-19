@@ -502,59 +502,18 @@ router.post("/GetCompletedTripList", async (req, res) => {
 
 router.post("/GetProcessingTripList", async (req, res) => {
 	try {
-		const orderPipeline = [
-			{
-				$project: {
-					status: "$status.stage",
-					priority: 1
-				}
-			},
-			{
-				$match: {
-					status: ["1"]
-				}
-			}
-		]
-		const nonTripOrders = await Orders.aggregate([{ $match: { trip_uuid: null } }, ...orderPipeline])
-		const trips = await Trips.aggregate([
-			{
-				$match: {
-					$and: [{ trip_title: { $exists: 1 } }, { trip_title: { $ne: "" } }]
-				}
-			},
-			{
-				$lookup: {
-					from: "orders",
-					localField: "trip_uuid",
-					foreignField: "trip_uuid",
-					as: "orderLength",
-					pipeline: orderPipeline
-				}
-			},
-			{
-				$addFields: {
-					orderLength: {
-						$size: "$orderLength"
-					},
-					priorityOrders: {
-						$sum: "$orderLength.priority"
-					}
-				}
-			},
-			{
-				$match: {
-					orderLength: {
-						$gt: 0
-					}
-				}
-			},
-			{
-				$sort: {
-					created_at: 1
-				}
-			}
-		])
-
+		const orderData=await Orders.find({status:{$elemMatch:{stage:1}}})
+		const nonTripOrders = await Orders.find({ trip_uuid: { $exists: 0 } })
+		let trips = await Trips.find({ status: 1, trip_uuid: { $in: orderData.map(a => a.trip_uuid) } })
+trips=JSON.parse(JSON.stringify(trips))
+		trips = trips.map(a => ({
+			...a,
+			ordersLength: orderData.filter(b => a.trip_uuid === b.trip_uuid).length,
+			priorityOrders: orderData
+				.filter(b => a.trip_uuid === b.trip_uuid)
+				.reduce((sum, i) => sum + (+i.priority || 0), 0)
+		}))
+		
 		const unknownTrip = nonTripOrders?.length
 			? [
 					{
