@@ -66,11 +66,15 @@ const checkingOrderSkip = async (status) => {
     stage_exist = skip_stages.find((i) => i === max_stage);
   }
   console.log({order_status})
+  if(!order_status.find((i) => +i.stage === max_stage))
   order_status.push({
     stage: max_stage,
     time: new Date().getTime(),
     user_uuid: status.find((i) => +i.stage === getOrderStage(status))?.user_uuid,
   });
+
+  
+  console.log({order_status})
   return order_status;
 };
 
