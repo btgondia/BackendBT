@@ -41,13 +41,30 @@ router.get("/GetPendingVoucharsList", async (req, res) => {
   try {
     let data = await Vochers.find({ delivered: 0 });
     data = JSON.parse(JSON.stringify(data));
-    if (data.length)
+    let result=[];
+    for(let item of data){
+      let item_details=item.item_details;
+      let item_uuids=item_details.map(a=>a.item_uuid);
+      let itemData=await Item.find({item_uuid:{$in:item_uuids}}, {item_uuid:1,item_title:1,item_price:1,conversion:1});
+      itemData=JSON.parse(JSON.stringify(itemData));
+      item_details=item_details.map(a=>{
+        let item=itemData.find(b=>b.item_uuid===a.item_uuid);
+        let estValue=(+a.b||0) * +item.item_price * +item.conversion + (+a.p||0) * +item.item_price;
+        return{
+          ...a,
+          item_title:item.item_title,
+          item_price:item.item_price,
+          conversion:item.conversion,
+          vocher_number: a.vocher_number || 0,
+          estValue
+        }
+      })
+      result=[...result,{...item,item_details}]
+    }
+    if (result.length)
       res.json({
         success: true,
-        result: data.map((a) => ({
-          ...a,
-          vocher_number: a.vocher_number || 0,
-        })),
+        result,
       });
     else res.json({ success: false, message: "Item Not found" });
   } catch (err) {

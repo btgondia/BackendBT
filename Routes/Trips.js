@@ -13,6 +13,7 @@ const Item = require("../Models/Item")
 const OutStanding = require("../Models/OutStanding")
 const Warehouse = require("../Models/Warehouse")
 const { getOrderStage } = require("../utils/helperFunctions")
+const { get } = require("mongoose")
 
 router.post("/postTrip", async (req, res) => {
 	try {
@@ -502,8 +503,11 @@ router.post("/GetCompletedTripList", async (req, res) => {
 
 router.post("/GetProcessingTripList", async (req, res) => {
 	try {
-		const orderData=await Orders.find({status:{$elemMatch:{stage:1}}})
-		const nonTripOrders = await Orders.find({ trip_uuid: { $exists: 0 } })
+		let orderData=await Orders.find({status:{$elemMatch:{stage:1}}})
+		orderData= orderData.filter(a=>getOrderStage(a.status)===1)
+		console.log(orderData.map(a=>getOrderStage(a.status)).length)
+		let nonTripOrders = await Orders.find({ trip_uuid: { $exists: 0 } })
+		nonTripOrders= nonTripOrders.filter(a=>getOrderStage(a.status)===1)
 		let trips = await Trips.find({ status: 1, trip_uuid: { $in: orderData.map(a => a.trip_uuid) } })
 trips=JSON.parse(JSON.stringify(trips))
 		trips = trips.map(a => ({
