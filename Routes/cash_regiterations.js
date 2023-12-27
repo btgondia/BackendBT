@@ -163,7 +163,7 @@ router.get("/statement/:register_uuid", async (req, res) => {
             counter_title: counter_data.counter_title,
             invoice_number: completeData.invoice_number,
             user_title: userData?.user_title || "",
-            amount: completeData.order_grandtotal||i.amount,
+            amount: i.amount,
           });
         } else {
           result.push({ ...i, invoice_number: completeData.invoice_number });

@@ -230,6 +230,7 @@ router.get("/performance-summary", async (req, res) => {
     });
 	completeOrders = JSON.parse(JSON.stringify(completeOrders));
     let AllOrders = [...runningOrders, ...completeOrders];
+    let counter_data = await Counters.find({counter_uuid:{$in:AllOrders.map(a=>a.counter_uuid)}});
 
     let result = [];
     for (let user of allUsers) {
@@ -282,22 +283,67 @@ router.get("/performance-summary", async (req, res) => {
       let placed = {
         count: placedOrders.length,
         amount: placedOrders.reduce((a, b) => a + +b.order_grandtotal, 0),
+        orders: placedOrders.map(a=>{
+            let counter=counter_data.find(b=>b.counter_uuid===a.counter_uuid);
+            return({
+                date:a.status.find(b=>+b.stage===1).time,
+                counter_title:counter?.counter_title || "",
+                invoice_number:a.invoice_number,
+                order_grandtotal:a.order_grandtotal
+            })
+        }),
       };
       let processed = {
         count: processedOrders.length,
         amount: processedOrders.reduce((a, b) => a + +b.order_grandtotal, 0),
+        orders: processedOrders.map(a=>{
+            let counter=counter_data.find(b=>b.counter_uuid===a.counter_uuid);
+            return({
+                date:a.status.find(b=>+b.stage===2).time,
+                counter_title:counter?.counter_title || "",
+                invoice_number:a.invoice_number,
+                order_grandtotal:a.order_grandtotal
+            })
+        }),
       };
       let checked = {
         count: checkedOrders.length,
         amount: checkedOrders.reduce((a, b) => a + +b.order_grandtotal, 0),
+        orders: checkedOrders.map(a=>{
+            let counter=counter_data.find(b=>b.counter_uuid===a.counter_uuid);
+            return({
+                date:a.status.find(b=>+b.stage===3).time,
+                counter_title:counter?.counter_title || "",
+                invoice_number:a.invoice_number,
+                order_grandtotal:a.order_grandtotal
+            })
+        }),
       };
       let delivered = {
         count: deliveredOrders.length,
         amount: deliveredOrders.reduce((a, b) => a + +b.order_grandtotal, 0),
+        orders: deliveredOrders.map(a=>{
+            let counter=counter_data.find(b=>b.counter_uuid===a.counter_uuid);
+            return({
+                date:a.status.find(b=>+b.stage===3.5).time,
+                counter_title:counter?.counter_title || "",
+                invoice_number:a.invoice_number,
+                order_grandtotal:a.order_grandtotal
+            })
+        }),
       };
       let completed = {
         count: completedOrders.length,
         amount: completedOrders.reduce((a, b) => a + +b.order_grandtotal, 0),
+        orders: completedOrders.map(a=>{
+            let counter=counter_data.find(b=>b.counter_uuid===a.counter_uuid);
+            return({
+                date:a.status.find(b=>+b.stage===4).time,
+                counter_title:counter?.counter_title || "",
+                invoice_number:a.invoice_number,
+                order_grandtotal:a.order_grandtotal
+            })
+        }),
       };
       let total = {
         count:

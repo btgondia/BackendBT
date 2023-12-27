@@ -123,7 +123,7 @@ router.get("/paymentPending/:counter_uuid", async (req, res) => {
 });
 
 router.post("/postOrder", async (req, res) => {
-  // try {
+  try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
@@ -378,9 +378,9 @@ router.post("/postOrder", async (req, res) => {
       }
       res.json({ success: true, result: response, incentives });
     } else res.json({ success: false, message: "Order Not created" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 
 router.put("/putOrders", async (req, res) => {
@@ -936,7 +936,7 @@ router.post("/sendPdf", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
-    let { additional_users, additional_numbers = [] } = await value;
+    let { additional_users, additional_numbers = [] ,sendCounter=true} = await value;
     if (additional_users?.length) {
       additional_users = await Users.find(
         { user_uuid: { $in: additional_users } },
@@ -964,7 +964,7 @@ router.post("/sendPdf", async (req, res) => {
     }
 
     await compaignShooter({
-      counterData,
+      counterData:sendCounter?counterData:{},
       value: { ...value, additional_numbers },
       options: { orderPDF: true },
     });
@@ -1751,6 +1751,7 @@ router.post("/getStockDetails", async (req, res) => {
           to: counterData?.find((a) => a.counter_uuid === item.counter_uuid)
             ?.counter_title,
           added: 0,
+          invoice_number: item.invoice_number,
           reduce: (orderItem?.b || 0) + ":" + (orderItem.p || 0),
         };
         data.push(obj);
