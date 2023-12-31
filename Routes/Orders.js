@@ -79,7 +79,7 @@ const checkingOrderSkip = async (status) => {
   return order_status;
 };
 
-const updateItemStock = async (warehouse_uuid, items, order_uuid) => {
+const updateItemStock = async (warehouse_uuid, items, order_uuid,invoice_number) => {
   if (!warehouse_uuid || !items?.length) return;
   try {
     for (let item of items) {
@@ -89,7 +89,7 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid) => {
   
       let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0);
       let stockData = await StockTracker.findOne({ item_uuid: item.item_uuid });
-      console.red({stockData,order_uuid})
+
       if (stockData) {
         let stock = stockData.stock;
 
@@ -102,7 +102,7 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid) => {
                     qty: +a.qty - +qty,
                     orders: [
                       ...a.orders,
-                      { order_uuid, time: new Date().getTime(), qty: -qty },
+                      { order_uuid,invoice_number, time: new Date().getTime(), qty: -qty },
                     ],
                   }
                 : a
@@ -113,10 +113,10 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid) => {
                 warehouse_uuid: warehouse_uuid,
               
                 qty: -qty,
-                orders: [{ order_uuid, time: new Date().getTime(), qty: -qty }],
+                orders: [{ order_uuid,invoice_number, time: new Date().getTime(), qty: -qty }],
               },
             ];
-            console.log({stock,})
+
         await StockTracker.updateOne({ item_uuid: item.item_uuid }, { stock });
       } else {
         let stock = [
@@ -124,10 +124,10 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid) => {
             warehouse_uuid: warehouse_uuid,
    
             qty: -qty,
-            orders: [{ order_uuid, timestamp: new Date().getTime(), qty: -qty }],
+            orders: [{ order_uuid,invoice_number, timestamp: new Date().getTime(), qty: -qty }],
           },
         ];
-        console.log({stock,orders:stock[0].orders[0]})
+
         await StockTracker.create({ item_uuid: item.item_uuid, stock });
       }
 
@@ -307,7 +307,7 @@ router.post("/postOrder", async (req, res) => {
     }
 
     if (orderStage >= 3) {
-      await updateItemStock(value?.warehouse_uuid, value?.item_details, value?.order_uuid);
+      await updateItemStock(value?.warehouse_uuid, value?.item_details, value?.order_uuid,value.invoice_number);
     }
 
     if (+orderStage === 4 || +orderStage === 5) {
@@ -534,7 +534,7 @@ router.put("/putOrders", async (req, res) => {
       stocksUpdate = stocksUpdate.filter(
         (i) => (i.free || 0) + (i.b || 0) + (i.p || 0)
       );
-      await updateItemStock(warehouse_uuid, stocksUpdate, value.order_uuid);
+      await updateItemStock(warehouse_uuid, stocksUpdate, value.order_uuid,prevData.invoice_number);
     }
 
     if (

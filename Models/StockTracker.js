@@ -12,6 +12,7 @@ const StockTrackerSchema = new mongoose.Schema({
             orders:[
                 {
                     order_uuid: { type: String,  },
+                    invoice_number: { type: String,  },
                     timestamp: { type: Number,  },
                     qty: { type: Number,  },
                 }
