@@ -48,7 +48,7 @@ const xpressRoutes = require("./routes/xpress")
 const CounterCharges = require("./routes/counterCharges")
 const CounterStock = require("./routes/counter_stock")
 const Expense = require("./routes/Expense")
-const StockTracker = require("./Routes/StockTracker")
+const StockTracker = require("./routes/StockTracker")
 
 
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads")
