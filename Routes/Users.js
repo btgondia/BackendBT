@@ -247,8 +247,8 @@ router.post("/performance-summary", async (req, res) => {
           (b) =>
             b.user_uuid === user.user_uuid &&
             +b.stage === 1 &&
-            new Date(b.time).getDate() >= new Date(from_date).getDate() &&
-            new Date(b.time).getDate() < new Date(to_date).getDate()
+            new Date(b.time).getDate() < new Date(from_date).getDate() &&
+            new Date(b.time).getDate() <= new Date(to_date).getDate()
         )
       );
       let processedOrders = AllOrders.filter((a) =>
@@ -256,8 +256,8 @@ router.post("/performance-summary", async (req, res) => {
           (b) =>
             b.user_uuid === user.user_uuid &&
             +b.stage === 2 &&
-            new Date(b.time).getDate() >= new Date(from_date).getDate() &&
-            new Date(b.time).getDate() < new Date(to_date).getDate()
+            new Date(b.time).getDate() > new Date(from_date).getDate() &&
+            new Date(b.time).getDate() <= new Date(to_date).getDate()
         ).length
       );
 
@@ -266,8 +266,8 @@ router.post("/performance-summary", async (req, res) => {
           (b) =>
             b.user_uuid === user.user_uuid &&
             +b.stage === 3 &&
-            new Date(b.time).getDate() >= new Date(from_date).getDate() &&
-            new Date(b.time).getDate() < new Date(to_date).getDate()
+            new Date(b.time).getDate() > new Date(from_date).getDate() &&
+            new Date(b.time).getDate() <= new Date(to_date).getDate()
         )
       );
       let deliveredOrders = AllOrders.filter((a) =>
@@ -275,8 +275,8 @@ router.post("/performance-summary", async (req, res) => {
           (b) =>
             b.user_uuid === user.user_uuid &&
             +b.stage === 3.5 &&
-            new Date(b.time).getDate() >= new Date(from_date).getDate() &&
-            new Date(b.time).getDate() < new Date(to_date).getDate()
+            new Date(b.time).getDate() > new Date(from_date).getDate() &&
+            new Date(b.time).getDate() <= new Date(to_date).getDate()
         )
       );
       let completedOrders = AllOrders.filter((a) =>
@@ -284,8 +284,8 @@ router.post("/performance-summary", async (req, res) => {
           (b) =>
             b.user_uuid === user.user_uuid &&
             +b.stage === 4 &&
-            new Date(b.time).getDate() >= new Date(from_date).getDate() &&
-            new Date(b.time).getDate() < new Date(to_date).getDate()
+            new Date(b.time).getDate() > new Date(from_date).getDate() &&
+            new Date(b.time).getDate() <= new Date(to_date).getDate()
         )
       );
       let placed = {
