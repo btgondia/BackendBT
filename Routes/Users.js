@@ -217,20 +217,28 @@ router.get("/getDetails", async (req, res) => {
   }
 });
 
-router.get("/performance-summary", async (req, res) => {
+router.post("/performance-summary", async (req, res) => {
   try {
-    const { from_date, to_date } = req.query;
+    const { from_date, to_date } = req.body;
+    console.log({
+      from_date,
+      to_date,
+      from_date_Data: new Date(from_date).getDate(),
+      to_date_Data: new Date(to_date).getDate(),
+    });
     let allUsers = await Users.find({});
     let runningOrders = await Orders.find({
       "status.time": { $gte: from_date, $lte: to_date },
-    });
+    },{status:1,invoice_number:1,order_grandtotal:1,counter_uuid:1});
     runningOrders = JSON.parse(JSON.stringify(runningOrders));
     let completeOrders = await OrderCompleted.find({
       "status.time": { $gte: from_date, $lte: to_date },
-    });
-	completeOrders = JSON.parse(JSON.stringify(completeOrders));
+    },{status:1,invoice_number:1,order_grandtotal:1,counter_uuid:1});
+    completeOrders = JSON.parse(JSON.stringify(completeOrders));
     let AllOrders = [...runningOrders, ...completeOrders];
-    let counter_data = await Counters.find({counter_uuid:{$in:AllOrders.map(a=>a.counter_uuid)}});
+    let counter_data = await Counters.find({
+      counter_uuid: { $in: AllOrders.map((a) => a.counter_uuid) },
+    });
 
     let result = [];
     for (let user of allUsers) {
@@ -239,27 +247,27 @@ router.get("/performance-summary", async (req, res) => {
           (b) =>
             b.user_uuid === user.user_uuid &&
             +b.stage === 1 &&
-            b.time > from_date &&
-            b.time < to_date
+            new Date(b.time).getDate() >= new Date(from_date).getDate() &&
+            new Date(b.time).getDate() < new Date(to_date).getDate()
         )
       );
-	  console.log(placedOrders.length)
       let processedOrders = AllOrders.filter((a) =>
-        a.status.find(
+        a.status.filter(
           (b) =>
             b.user_uuid === user.user_uuid &&
             +b.stage === 2 &&
-            b.time > from_date &&
-            b.time < to_date
-        )
+            new Date(b.time).getDate() >= new Date(from_date).getDate() &&
+            new Date(b.time).getDate() < new Date(to_date).getDate()
+        ).length
       );
+
       let checkedOrders = AllOrders.filter((a) =>
         a.status.find(
           (b) =>
             b.user_uuid === user.user_uuid &&
             +b.stage === 3 &&
-            b.time > from_date &&
-            b.time < to_date
+            new Date(b.time).getDate() >= new Date(from_date).getDate() &&
+            new Date(b.time).getDate() < new Date(to_date).getDate()
         )
       );
       let deliveredOrders = AllOrders.filter((a) =>
@@ -267,8 +275,8 @@ router.get("/performance-summary", async (req, res) => {
           (b) =>
             b.user_uuid === user.user_uuid &&
             +b.stage === 3.5 &&
-            b.time > from_date &&
-            b.time < to_date
+            new Date(b.time).getDate() >= new Date(from_date).getDate() &&
+            new Date(b.time).getDate() < new Date(to_date).getDate()
         )
       );
       let completedOrders = AllOrders.filter((a) =>
@@ -276,73 +284,83 @@ router.get("/performance-summary", async (req, res) => {
           (b) =>
             b.user_uuid === user.user_uuid &&
             +b.stage === 4 &&
-            b.time > from_date &&
-            b.time < to_date
+            new Date(b.time).getDate() >= new Date(from_date).getDate() &&
+            new Date(b.time).getDate() < new Date(to_date).getDate()
         )
       );
       let placed = {
         count: placedOrders.length,
         amount: placedOrders.reduce((a, b) => a + +b.order_grandtotal, 0),
-        orders: placedOrders.map(a=>{
-            let counter=counter_data.find(b=>b.counter_uuid===a.counter_uuid);
-            return({
-                date:a.status.find(b=>+b.stage===1).time,
-                counter_title:counter?.counter_title || "",
-                invoice_number:a.invoice_number,
-                order_grandtotal:a.order_grandtotal
-            })
+        orders: placedOrders.map((a) => {
+          let counter = counter_data.find(
+            (b) => b.counter_uuid === a.counter_uuid
+          );
+          return {
+            date: a.status.find((b) => +b.stage === 1).time,
+            counter_title: counter?.counter_title || "",
+            invoice_number: a.invoice_number,
+            order_grandtotal: a.order_grandtotal,
+          };
         }),
       };
       let processed = {
         count: processedOrders.length,
         amount: processedOrders.reduce((a, b) => a + +b.order_grandtotal, 0),
-        orders: processedOrders.map(a=>{
-            let counter=counter_data.find(b=>b.counter_uuid===a.counter_uuid);
-            return({
-                date:a.status.find(b=>+b.stage===2).time,
-                counter_title:counter?.counter_title || "",
-                invoice_number:a.invoice_number,
-                order_grandtotal:a.order_grandtotal
-            })
+        orders: processedOrders.map((a) => {
+          let counter = counter_data.find(
+            (b) => b.counter_uuid === a.counter_uuid
+          );
+          return {
+            date: a.status.find((b) => +b.stage === 2).time,
+            counter_title: counter?.counter_title || "",
+            invoice_number: a.invoice_number,
+            order_grandtotal: a.order_grandtotal,
+          };
         }),
       };
       let checked = {
         count: checkedOrders.length,
         amount: checkedOrders.reduce((a, b) => a + +b.order_grandtotal, 0),
-        orders: checkedOrders.map(a=>{
-            let counter=counter_data.find(b=>b.counter_uuid===a.counter_uuid);
-            return({
-                date:a.status.find(b=>+b.stage===3).time,
-                counter_title:counter?.counter_title || "",
-                invoice_number:a.invoice_number,
-                order_grandtotal:a.order_grandtotal
-            })
+        orders: checkedOrders.map((a) => {
+          let counter = counter_data.find(
+            (b) => b.counter_uuid === a.counter_uuid
+          );
+          return {
+            date: a.status.find((b) => +b.stage === 3).time,
+            counter_title: counter?.counter_title || "",
+            invoice_number: a.invoice_number,
+            order_grandtotal: a.order_grandtotal,
+          };
         }),
       };
       let delivered = {
         count: deliveredOrders.length,
         amount: deliveredOrders.reduce((a, b) => a + +b.order_grandtotal, 0),
-        orders: deliveredOrders.map(a=>{
-            let counter=counter_data.find(b=>b.counter_uuid===a.counter_uuid);
-            return({
-                date:a.status.find(b=>+b.stage===3.5).time,
-                counter_title:counter?.counter_title || "",
-                invoice_number:a.invoice_number,
-                order_grandtotal:a.order_grandtotal
-            })
+        orders: deliveredOrders.map((a) => {
+          let counter = counter_data.find(
+            (b) => b.counter_uuid === a.counter_uuid
+          );
+          return {
+            date: a.status.find((b) => +b.stage === 3.5).time,
+            counter_title: counter?.counter_title || "",
+            invoice_number: a.invoice_number,
+            order_grandtotal: a.order_grandtotal,
+          };
         }),
       };
       let completed = {
         count: completedOrders.length,
         amount: completedOrders.reduce((a, b) => a + +b.order_grandtotal, 0),
-        orders: completedOrders.map(a=>{
-            let counter=counter_data.find(b=>b.counter_uuid===a.counter_uuid);
-            return({
-                date:a.status.find(b=>+b.stage===4).time,
-                counter_title:counter?.counter_title || "",
-                invoice_number:a.invoice_number,
-                order_grandtotal:a.order_grandtotal
-            })
+        orders: completedOrders.map((a) => {
+          let counter = counter_data.find(
+            (b) => b.counter_uuid === a.counter_uuid
+          );
+          return {
+            date: a.status.find((b) => +b.stage === 4).time,
+            counter_title: counter?.counter_title || "",
+            invoice_number: a.invoice_number,
+            order_grandtotal: a.order_grandtotal,
+          };
         }),
       };
       let total = {
@@ -359,17 +377,17 @@ router.get("/performance-summary", async (req, res) => {
           delivered.amount +
           completed.amount,
       };
-	  if(total.count)
-      result.push({
-        user_uuid: user.user_uuid,
-        user_title: user.user_title,
-        placed,
-        processed,
-        checked,
-        delivered,
-        completed,
-        total,
-      });
+      if (total.count)
+        result.push({
+          user_uuid: user.user_uuid,
+          user_title: user.user_title,
+          placed,
+          processed,
+          checked,
+          delivered,
+          completed,
+          total,
+        });
     }
 
     if (result.length) res.json({ success: true, result });

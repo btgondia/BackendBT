@@ -1765,6 +1765,8 @@ router.post("/getStockDetails", async (req, res) => {
     console.log(endDate, value.startDate);
     let response = await OrderCompleted.find({
       "item_details.item_uuid": value.item_uuid,
+      "status.time": { $gt: value.startDate, $lt: endDate },
+      warehouse_uuid: value.warehouse_uuid,
     });
     let responseVoucher = await Vochers.find(
       {
