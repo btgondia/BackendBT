@@ -93,68 +93,68 @@ const updateItemStock = async (
       )?.toObject();
 
       let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0);
-      let stockData = await StockTracker.findOne({ item_uuid: item.item_uuid });
+      // let stockData = await StockTracker.findOne({ item_uuid: item.item_uuid });
 
-      if (stockData) {
-        let stock = stockData.stock;
+      // if (stockData) {
+      //   let stock = stockData.stock;
 
-        stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)
-          ?.length
-          ? stock.map(
-              (a =
-                a.warehouse_uuid === warehouse_uuid
-                  ? {
-                      ...a,
-                      qty: +a.qty - +qty,
-                      orders: [
-                        ...a.orders,
-                        {
-                          order_uuid,
-                          invoice_number,
-                          time: new Date().getTime(),
-                          qty: -qty,
-                        },
-                      ],
-                    }
-                  : a)
-            )
-          : [
-              ...(stock?.length ? stock : []),
-              {
-                warehouse_uuid: warehouse_uuid,
+      //   stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)
+      //     ?.length
+      //     ? stock.map(
+      //         (a =
+      //           a.warehouse_uuid === warehouse_uuid
+      //             ? {
+      //                 ...a,
+      //                 qty: +a.qty - +qty,
+      //                 orders: [
+      //                   ...a.orders,
+      //                   {
+      //                     order_uuid,
+      //                     invoice_number,
+      //                     time: new Date().getTime(),
+      //                     qty: -qty,
+      //                   },
+      //                 ],
+      //               }
+      //             : a)
+      //       )
+      //     : [
+      //         ...(stock?.length ? stock : []),
+      //         {
+      //           warehouse_uuid: warehouse_uuid,
 
-                qty: -qty,
-                orders: [
-                  {
-                    order_uuid,
-                    invoice_number,
-                    time: new Date().getTime(),
-                    qty: -qty,
-                  },
-                ],
-              },
-            ];
+      //           qty: -qty,
+      //           orders: [
+      //             {
+      //               order_uuid,
+      //               invoice_number,
+      //               time: new Date().getTime(),
+      //               qty: -qty,
+      //             },
+      //           ],
+      //         },
+      //       ];
 
-        await StockTracker.updateOne({ item_uuid: item.item_uuid }, { stock });
-      } else {
-        let stock = [
-          {
-            warehouse_uuid: warehouse_uuid,
+      //   await StockTracker.updateOne({ item_uuid: item.item_uuid }, { stock });
+      // } else {
+      //   let stock = [
+      //     {
+      //       warehouse_uuid: warehouse_uuid,
 
-            qty: -qty,
-            orders: [
-              {
-                order_uuid,
-                invoice_number,
-                timestamp: new Date().getTime(),
-                qty: -qty,
-              },
-            ],
-          },
-        ];
+      //       qty: -qty,
+      //       orders: [
+      //         {
+      //           order_uuid,
+      //           invoice_number,
+      //           timestamp: new Date().getTime(),
+      //           qty: -qty,
+      //         },
+      //       ],
+      //     },
+      //   ];
 
-        await StockTracker.create({ item_uuid: item.item_uuid, stock });
-      }
+      //   await StockTracker.create({ item_uuid: item.item_uuid, stock });
+      // }
 
       let stock = itemData.stock;
       stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)?.length
