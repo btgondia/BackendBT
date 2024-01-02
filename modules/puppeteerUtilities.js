@@ -50,7 +50,8 @@ const generatePDFs = async data => {
 			})
 		}
 
-		if (!BROWSER_INSTANCE?.isConnected()) return console.red("PROCESS FAILED! CONNECTION STATE: " + +BROWSER_INSTANCE?.isConnected())
+		if (!BROWSER_INSTANCE?.isConnected())
+			return console.red("PROCESS FAILED! CONNECTION STATE: " + +BROWSER_INSTANCE?.isConnected())
 		await processEnque(data)
 	} catch (err) {
 		console.red("ERROR IN PDF GENERATION. ERROR: " + err.message)
@@ -65,7 +66,7 @@ const checkPDFs = async data => {
 			?.filter(order => order.order_uuid && !fs.existsSync(`uploads/${getFileName(order)}`))
 			?.map(order => ({
 				filename: getFileName(order),
-				order_id: order.order_uuid,
+				order_id: order.order_uuid
 			}))
 
 		if (_data) await generatePDFs(_data)
@@ -98,16 +99,17 @@ if (process.env?.NODE_ENV !== "development")
 							top: "100px",
 							right: "50px",
 							bottom: "100px",
-							left: "50px",
+							left: "50px"
 						},
 						printBackground: true,
-						format: "A4",
+						format: "A4"
 					})
-					processDeque(job.id)
 					console.yellow(`JOB: ${job.id} TOOK ${Date.now() - init_time}ms`)
 				} else {
 					console.magenta(`SKIPPED JOB: ${job.id}. Document: ${filepath} already present.`)
 				}
+
+				await processDeque(job.id)
 
 				BROWSER_CLOSE_TIMER = setTimeout(async () => {
 					try {
@@ -122,15 +124,16 @@ if (process.env?.NODE_ENV !== "development")
 					}
 				}, 15000)
 			} catch (error) {
+				await processDeque(job.id)
 				console.log("ERROR IN PROCESSING:", {
 					message: error?.message,
 					data: job.data,
-					error,
+					error
 				})
 			}
 		},
 		{
-			connection: redisConnection,
+			connection: redisConnection
 		}
 	)
 

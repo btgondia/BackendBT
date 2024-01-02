@@ -19,7 +19,6 @@ const getRandomBetween = (max = processingGap, min = processingGap - 1000) => ~~
 const messageEnque = async doc => {
 	const job_count = (await queue.getJobCounts("delayed"))?.delayed
 	const delay = job_count * 2000 + getRandomBetween((job_count + 1) * 100, job_count * 100)
-	console.log({ doc })
 	if (doc?.message) doc.message = await `${doc.message}`.replaceAll("\n", "%0A")
 	console.log("MESSAGE ENQUE ", doc)
 	console.log("PROCESSING DELAY:", delay, { job_count })
@@ -52,6 +51,7 @@ if (process.env?.NODE_ENV !== "development") {
 				const filepath = `uploads/${filename}`
 
 				if (filename && !fs.existsSync(filepath)) {
+					await queue.remove(job.id)
 					return console.magenta(`SKIPPED JOB: ${job.id}. Document: ${filepath} not present.`)
 				}
 
@@ -61,11 +61,11 @@ if (process.env?.NODE_ENV !== "development") {
 					...(filename ? { media_url: `${process.env.HOST}/${filename}` } : {})
 				})
 
-				const response = await axios.get(url + query)
-				queue.remove(job.id)
+				await axios.get(url + query)
+				await queue.remove(job.id)
 				console.yellow(`JOB: ${job.id} TOOK ${Date.now() - init_time}ms`)
-				console.log(response?.data)
 			} catch (error) {
+				await queue.remove(job.id)
 				console.log("ERROR IN MESSAGE PROCESSING:", {
 					message: error?.message,
 					data: job.data,
