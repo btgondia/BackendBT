@@ -1,3 +1,4 @@
+const fs = require("fs")
 const { Queue } = require("bullmq")
 const { redisConnection } = require("../config/redis")
 
@@ -12,7 +13,7 @@ if (process.env?.NODE_ENV !== "development")
 
 const processEnque = async collection => {
 	for (const doc of collection) {
-		await queue?.add("PDF", doc)
+		if (!fs.existsSync(`uploads/${doc.filename}`)) await queue?.add("PDF", doc)
 	}
 }
 

@@ -41,7 +41,7 @@ const generatePDFs = async data => {
 		} else if (!BROWSER_INSTANCE?.isConnected()) {
 			BROWSER_INITIALIZING_INPROGRESS = true
 			console.green("LAUNCING BROWSER INSTANCE. CONNECTION STATE: " + +BROWSER_INSTANCE?.isConnected())
-			BROWSER_INSTANCE = await puppeteer.launch({ args: ["--no-sandbox"] })
+			BROWSER_INSTANCE = await puppeteer.launch({ headless: "new", args: ["--no-sandbox"] })
 			BROWSER_PAGE = await BROWSER_INSTANCE.newPage()
 			BROWSER_INITIALIZING_INPROGRESS = false
 			BROWSER_INSTANCE.on("disconnected", () => {
@@ -81,13 +81,13 @@ if (process.env?.NODE_ENV !== "development")
 		"PDFGeneration",
 		async job => {
 			try {
-				clearTimeout(BROWSER_CLOSE_TIMER)
-				await verifyInstance()
-
 				const { filename, order_id } = job.data
 				const filepath = `uploads/${filename}`
 
 				if (!fs.existsSync(filepath)) {
+					clearTimeout(BROWSER_CLOSE_TIMER)
+					await verifyInstance()
+
 					let init_time = Date.now()
 
 					const website_url = "https://btgondia.com/pdf/" + order_id
