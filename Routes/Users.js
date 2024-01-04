@@ -219,9 +219,8 @@ router.get("/getDetails", async (req, res) => {
 
 router.post("/performance-summary", async (req, res) => {
   try {
-    const { from_date, to_date } = req.body;
-    let from=from+1
-    let to=to+1;
+    const { from_date, to_date,to,from } = req.body;
+   
     console.log({
       from_date,
       to_date,
@@ -250,7 +249,7 @@ router.post("/performance-summary", async (req, res) => {
             b.user_uuid === user.user_uuid &&
             +b.stage === 1 &&
             new Date(b.time).getDate() >= from &&
-            new Date(b.time).getDate() < to
+            new Date(b.time).getDate() <= to
         )
       );
       let processedOrders = AllOrders.filter((a) =>
@@ -259,7 +258,7 @@ router.post("/performance-summary", async (req, res) => {
             b.user_uuid === user.user_uuid &&
             +b.stage === 2 &&
             new Date(b.time).getDate() >= from &&
-            new Date(b.time).getDate() < to
+            new Date(b.time).getDate() <= to
         ).length
       );
 
@@ -269,7 +268,7 @@ router.post("/performance-summary", async (req, res) => {
             b.user_uuid === user.user_uuid &&
             +b.stage === 3 &&
             new Date(b.time).getDate() >= from &&
-            new Date(b.time).getDate() < to
+            new Date(b.time).getDate() <=to
         )
       );
       let deliveredOrders = AllOrders.filter((a) =>
@@ -278,7 +277,7 @@ router.post("/performance-summary", async (req, res) => {
             b.user_uuid === user.user_uuid &&
             +b.stage === 3.5 &&
             new Date(b.time).getDate() >= from &&
-            new Date(b.time).getDate() < to
+            new Date(b.time).getDate() <= to
         )
       );
       let completedOrders = AllOrders.filter((a) =>
@@ -287,7 +286,7 @@ router.post("/performance-summary", async (req, res) => {
             b.user_uuid === user.user_uuid &&
             +b.stage === 4 &&
             new Date(b.time).getDate() >= from &&
-            new Date(b.time).getDate() < to
+            new Date(b.time).getDate() <= to
         )
       );
       let placed = {
