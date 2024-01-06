@@ -43,6 +43,15 @@ const ItemSchema = new mongoose.Schema({
 	item_price: {
 		type: String
 	},
+	item_price_a:{
+		type: String
+	},
+	item_price_b:{
+		type: String
+	},
+	item_price_c:{
+		type: String
+	},
 	item_gst: {
 		type: String
 	},

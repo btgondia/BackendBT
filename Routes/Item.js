@@ -148,7 +148,10 @@ router.post("/GetItemList", async (req, res) => {
 			barcode: 1,
 			item_group_uuid: 1,
 			// stock: 1,
-			created_at: 1
+			created_at: 1,
+			item_price_a: 1,
+			item_price_b: 1,
+			item_price_c: 1,
 		})
 
 		if (data.length)
@@ -186,7 +189,10 @@ router.get("/GetItemData", async (req, res) => {
 				barcode: 1,
 				item_group_uuid: 1,
 				billing_type: 1,
-				created_at: 1
+				created_at: 1,
+				item_price_a: 1,
+				item_price_b: 1,
+				item_price_c: 1,
 			}
 		)
 
@@ -295,7 +301,7 @@ router.put("/putItem", async (req, res) => {
 					return obj
 				}, {})
 			console.log(value)
-			let response = await Item.updateOne({ item_uuid: value.item_uuid }, value)
+			let response = await Item.updateMany({ item_uuid: value.item_uuid }, value)
 			if (response.acknowledged) {
 				result.push({ success: true, result: value })
 			} else result.push({ success: false, message: "Item Not created" })

@@ -76,7 +76,11 @@ const CounterSchema = new mongoose.Schema({
 			},
 			discount: {
 				type: String
-			}
+			},
+			item_rate:{
+				type: String
+			},
+			
 		}
 	],
 	average_lines_company: [
