@@ -540,9 +540,9 @@ router.put("/putOrders", async (req, res) => {
             );
             stocksUpdate.push({
               item_uuid: i.item_uuid,
-              free: -old_order_item.free,
-              b: -old_order_item.b,
-              p: -old_order_item.p,
+              free: -old_order_item?.free||0,
+              b: -old_order_item?.b||0,
+              p: -old_order_item?.p||0,
             });
           }
         } else {
