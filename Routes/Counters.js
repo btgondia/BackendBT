@@ -117,7 +117,7 @@ router.get("/GetCounterList", async (req, res) => {
   }
 });
 router.get("/GetCounter/:counter_uuid", async (req, res) => {
-  try {
+  // try {
     let data = await Counter.findOne(
       { counter_uuid: req.params.counter_uuid },
       {
@@ -148,15 +148,15 @@ router.get("/GetCounter/:counter_uuid", async (req, res) => {
     let RoutesData = await Routes.findOne({
       route_uuid: data.route_uuid,
     });
-    data = data.map((a) => ({
-      ...a,
+    data = {
+      ...data,
       route_title: RoutesData?.route_title || "",
-    }));
-    if (data.length) res.json({ success: true, result: data });
+    };
+    if (data) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Counters Not found" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 router.post("/GetCounterList", async (req, res) => {
   try {

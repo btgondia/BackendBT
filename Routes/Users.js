@@ -184,6 +184,9 @@ router.get("/getDetails", async (req, res) => {
         item_group_uuid: 1,
         stock: 1,
         created_at: 1,
+        item_price_a:1,
+        item_price_b:1,
+        item_price_c:1,
       }
     );
     items = items.filter(
