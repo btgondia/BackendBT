@@ -1,7 +1,7 @@
 const fs = require("fs")
 const puppeteer = require("puppeteer")
 const { Worker } = require("bullmq")
-const { processEnque, processDeque } = require("../queues/pdfQueue")
+const { processEnque } = require("../queues/pdfQueue")
 const { redisConnection } = require("../config/redis")
 
 let BROWSER_INSTANCE = null
@@ -109,8 +109,6 @@ if (process.env?.NODE_ENV !== "development")
 					console.magenta(`SKIPPED JOB: ${job.id}. Document: ${filepath} already present.`)
 				}
 
-				await processDeque(job.id)
-
 				BROWSER_CLOSE_TIMER = setTimeout(async () => {
 					try {
 						if (!BROWSER_INSTANCE?.isConnected()) return
@@ -124,7 +122,6 @@ if (process.env?.NODE_ENV !== "development")
 					}
 				}, 15000)
 			} catch (error) {
-				await processDeque(job.id)
 				console.log("ERROR IN PROCESSING:", {
 					message: error?.message,
 					data: job.data,

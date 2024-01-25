@@ -7,7 +7,9 @@ if (process.env?.NODE_ENV !== "development")
 	queue = new Queue("PDFGeneration", {
 		connection: redisConnection,
 		defaultJobOptions: {
-			attempts: 1
+			attempts: 1,
+			removeOnComplete: true,
+			removeOnFail: true
 		}
 	})
 

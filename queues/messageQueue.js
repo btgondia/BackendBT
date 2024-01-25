@@ -10,7 +10,9 @@ if (process.env?.NODE_ENV !== "development")
 	queue = new Queue("Messages", {
 		connection: redisConnection,
 		defaultJobOptions: {
-			attempts: 1
+			attempts: 1,
+			removeOnComplete: true,
+			removeOnFail: true
 		}
 	})
 
@@ -58,7 +60,6 @@ if (process.env?.NODE_ENV !== "development") {
 				const filepath = `uploads/${filename}`
 
 				if (filename && !fs.existsSync(filepath)) {
-					await queue.remove(job.id)
 					return console.magenta(`SKIPPED JOB: ${job.id}. Document: ${filepath} not present.`)
 				}
 
@@ -69,7 +70,6 @@ if (process.env?.NODE_ENV !== "development") {
 				})
 
 				await axios.get(url + query)
-				await queue.remove(job.id)
 				console.yellow(`JOB: ${job.id} TOOK ${Date.now() - init_time}ms`)
 			} catch (error) {
 				await queue.remove(job.id)
