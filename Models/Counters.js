@@ -54,6 +54,9 @@ const CounterSchema = new mongoose.Schema({
 			mobile: {
 				type: String
 			},
+			title: {
+				type: String
+			},
 			lable: [
 				{
 					type: {
