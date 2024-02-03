@@ -68,7 +68,7 @@ if (process.env?.NODE_ENV !== "development") {
 					...job.data,
 					...(filename ? { media_url: `${process.env.HOST}/${filename}` } : {})
 				})
-
+console.log('QUERY:', {url,query})
 				await axios.get(url + query)
 				console.yellow(`JOB: ${job.id} TOOK ${Date.now() - init_time}ms`)
 			} catch (error) {

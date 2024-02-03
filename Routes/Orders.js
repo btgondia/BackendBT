@@ -78,29 +78,34 @@ const checkingOrderSkip = async (status) => {
   // console.log({ order_status });
   return order_status;
 };
-const updateStockTracker = async (stockData, warehouse_uuid, qty, order_uuid,invoice_number,item) => {
+const updateStockTracker = async (
+  stockData,
+  warehouse_uuid,
+  qty,
+  order_uuid,
+  invoice_number,
+  item
+) => {
   if (stockData) {
     let stock = stockData.stock;
 
-    stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)
-      ?.length
-      ? stock.map(
-          a =>
-            a.warehouse_uuid === warehouse_uuid
-              ? {
-                  ...a,
-                  qty: +a.qty - +qty,
-                  orders: [
-                    ...a.orders,
-                    {
-                      order_uuid,
-                      invoice_number,
-                      time: new Date().getTime(),
-                      qty: -qty,
-                    },
-                  ],
-                }
-              : a
+    stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)?.length
+      ? stock.map((a) =>
+          a.warehouse_uuid === warehouse_uuid
+            ? {
+                ...a,
+                qty: +a.qty - +qty,
+                orders: [
+                  ...a.orders,
+                  {
+                    order_uuid,
+                    invoice_number,
+                    time: new Date().getTime(),
+                    qty: -qty,
+                  },
+                ],
+              }
+            : a
         )
       : [
           ...(stock?.length ? stock : []),
@@ -139,7 +144,7 @@ const updateStockTracker = async (stockData, warehouse_uuid, qty, order_uuid,inv
 
     await StockTracker.create({ item_uuid: item.item_uuid, stock });
   }
-}
+};
 const updateItemStock = async (
   warehouse_uuid,
   items,
@@ -156,7 +161,14 @@ const updateItemStock = async (
       let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0);
       let stockData = await StockTracker.findOne({ item_uuid: item.item_uuid });
 
-      updateStockTracker(stockData, warehouse_uuid, qty, order_uuid,invoice_number,item);
+      updateStockTracker(
+        stockData,
+        warehouse_uuid,
+        qty,
+        order_uuid,
+        invoice_number,
+        item
+      );
 
       let stock = itemData.stock;
       stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)?.length
@@ -542,9 +554,9 @@ router.put("/putOrders", async (req, res) => {
             );
             stocksUpdate.push({
               item_uuid: i.item_uuid,
-              free: -old_order_item?.free||0,
-              b: -old_order_item?.b||0,
-              p: -old_order_item?.p||0,
+              free: -old_order_item?.free || 0,
+              b: -old_order_item?.b || 0,
+              p: -old_order_item?.p || 0,
             });
           }
         } else {
@@ -978,6 +990,74 @@ router.post("/sendMsg", async (req, res) => {
     if (WhatsappNotification?.status && mobile?.length) {
       sendMessages({ value, WhatsappNotification, counterData });
       res.json({ success: true, message: "Message Sent Successfully" });
+    } else {
+      res.json({
+        success: false,
+        message: "No Verified Number for this Counter ",
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err?.message });
+  }
+});
+router.post("/copySendMessage", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) return res.json({ success: false, message: "Invalid Data" });
+    let WhatsappNotification = await whatsapp_notifications.findOne({
+      notification_uuid: value.notification_uuid,
+    });
+    let counterData = await Counters.findOne(
+      { counter_uuid: value.counter_uuid },
+      { mobile: 1, counter_title: 1, short_link: 1 }
+    );
+
+    console.log({
+      consolidated_payment_reminder: value?.consolidated_payment_reminder,
+    });
+    if (value?.consolidated_payment_reminder) {
+      const unpaid_receipts = (await getReceipts())?.result?.filter(
+        (i) => i.counter_uuid === value.counter_uuid
+      );
+      const orders = await Orders.find(
+        { order_uuid: { $in: unpaid_receipts?.map((i) => i.order_uuid) } },
+        { order_type: 1 }
+      );
+
+      WhatsappNotification.message = WhatsappNotification.message?.map((i) => ({
+        ...i,
+        text: i?.text?.replace(
+          /{details}/g,
+          unpaid_receipts
+            ?.sort((a, b) => +a.order_date - +b.order_date)
+            ?.map(
+              (_i) =>
+                `\n${getDate(+_i?.order_date)}       ${
+                  orders?.find((o) => o.order_uuid === _i.order_uuid)
+                    ?.order_type === "E"
+                    ? "E"
+                    : "N"
+                }${_i?.invoice_number}       Rs.${_i?.amt}`
+            )
+            ?.join("") +
+            `\n*TOTAL: Rs.${unpaid_receipts?.reduce(
+              (sum, _i) => sum + +_i?.amt,
+              0
+            )}*`
+        ),
+      }));
+    }
+
+    let mobile = counterData.mobile.filter(
+      (a) => a.mobile && a.lable.find((b) => b.type === "wa" && +b.varification)
+    );
+    if (WhatsappNotification?.status && mobile?.length) {
+      res.json({
+        success: true,
+        message: "Message Sent Successfully",
+        result: { value, WhatsappNotification, counterData },
+      });
     } else {
       res.json({
         success: false,
@@ -1770,7 +1850,7 @@ router.post("/getStockDetails", async (req, res) => {
       "status.time": { $gt: value.startDate, $lt: endDate },
       warehouse_uuid: value.warehouse_uuid,
     });
-    
+
     let responseVoucher = await Vochers.find(
       {
         "item_details.item_uuid": value.item_uuid,
