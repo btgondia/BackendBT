@@ -1087,7 +1087,7 @@ router.post("/sendPdf", async (req, res) => {
       );
       additional_numbers = await additional_numbers
         ?.concat(additional_users?.map((_i) => _i?.user_mobile))
-        ?.filter((_i) => _i?.toString()?.length === 10)
+        ?.filter((_i) => _i?.toString()?.length === 10||_i?.toString()?.includes("92"))
         ?.map((_i) => +_i);
     }
 
