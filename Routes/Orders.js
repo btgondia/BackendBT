@@ -980,7 +980,7 @@ router.post("/sendMsg", async (req, res) => {
               (sum, _i) => sum + +_i?.amt,
               0
             )}*`
-        ),
+        ).replace(/{counter_title}/g, counterData?.counter_title),
       }));
     }
 
@@ -1045,7 +1045,7 @@ router.post("/copySendMessage", async (req, res) => {
               (sum, _i) => sum + +_i?.amt,
               0
             )}*`
-        ),
+        ).replace(/{counter_title}/g, counterData?.counter_title),
       }));
     }
 
