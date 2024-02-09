@@ -7,7 +7,7 @@ const router = express.Router();
 router.post("/sound_api", async (req, res) => {
   const { box_id } = req.body;
   try {
-    // find by box_id
+   console.log(box_id)
     const soundApp = await SoundApp.findOne({ box_id });
     // if box_id exists
     if (soundApp) {

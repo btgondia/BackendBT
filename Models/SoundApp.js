@@ -28,4 +28,4 @@ const SoundAppSchema = new mongoose.Schema({
   box_id: String
 });
 
-module.exports = mongoose.model('SoundApp', SoundAppSchema);
+module.exports = mongoose.model('sound_app', SoundAppSchema);
