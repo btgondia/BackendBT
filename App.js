@@ -49,6 +49,7 @@ const CounterCharges = require("./routes/counterCharges")
 const CounterStock = require("./routes/counter_stock")
 const Expense = require("./routes/Expense")
 const StockTracker = require("./routes/StockTracker")
+const SoundApp = require("./Routes/SoundApp")
 
 
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads")
@@ -120,6 +121,7 @@ app.use("/cashRegistrations", CashRegister)
 app.use("/counterStock", CounterStock)
 app.use("/expense", Expense)
 app.use("/stockTracker", StockTracker)
+app.use("/soundApp", SoundApp)
 app.get("/MinLevelUpdate", async (req, res, next) => {
 	const response = await MinLevelUpdateAutomation()
 	res.json({ success: true, message: "Updated", result: response })
