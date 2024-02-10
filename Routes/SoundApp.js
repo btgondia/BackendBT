@@ -25,6 +25,16 @@ router.post("/sound_api", async (req, res) => {
   }
 });
 
-// export router
+router.post("/progress_report", async (req, res) => {
+  try{
+    let {completed_requests=[],completed_plays:[]}=req.body;
+
+    res.status(200).json({message:"Received Progress Report"});
+  }catch(error){
+    res.status(500).send(error);
+  }
+}
+);
+
 
 module.exports = router;
