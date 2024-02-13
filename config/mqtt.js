@@ -1,5 +1,5 @@
 const mqtt = require('mqtt')
-const connectUrl = `mqtts://u822ed90.ala.us-east-1.emqxsl.com:8883`
+const connectUrl = process.env.MQTT_URL || 'mqtt://localhost:1883'
 const client = mqtt.connect(connectUrl, {
 	clientId:"admin",
 	clean: true,
