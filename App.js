@@ -7,6 +7,7 @@ const gTTS = require("gtts")
 const multer = require("multer")
 const fs = require("fs")
 const bodyParser = require("body-parser")
+const mqtt = require('mqtt')
 
 const WarehouseModel = require("./Models/Warehouse")
 const ItemModel = require("./Models/Item")
@@ -50,6 +51,7 @@ const CounterStock = require("./Routes/counter_stock")
 const Expense = require("./Routes/Expense")
 const StockTracker = require("./Routes/StockTracker")
 const SoundApp = require("./Routes/SoundApp")
+const client = require("./config/mqtt")
 
 
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads")
@@ -279,4 +281,21 @@ setInterval(function () {
 	}
 }, 360000)
 app.use(express.static("uploads"))
+
+
+
+
+
+
+  client.on('connect', () => {
+	console.log('Connected')
+  })
+  client.on('reconnect', () => {
+	console.log('Reconnect')
+  })
+  client.on('error', (error) => {
+	console.log('Error')
+  })
+
+  
 module.exports = app

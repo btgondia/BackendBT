@@ -1,6 +1,7 @@
 const express = require("express");
 
 const SoundApp = require("../Models/SoundApp");
+const client = require("../config/mqtt");
 
 const router = express.Router();
 
@@ -35,6 +36,20 @@ router.post("/progress_report", async (req, res) => {
   }
 }
 );
+router.post('/send_message', (req, res) => {
+	const { deviceName, message } = req.body;
+  
+	// Publish message to a topic
+	client.publish(`devices/${deviceName}`, message, (error) => {
+	  if (error) {
+		console.error('Error publishing message:', error);
+		res.status(500).json({ error: 'Error publishing message' });
+	  } else {
+		console.log('Message published successfully');
+		res.status(200).json({ message: 'Message published successfully' });
+	  }
+	});
+  });
 
 
 module.exports = router;
