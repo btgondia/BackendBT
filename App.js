@@ -287,7 +287,7 @@ app.use(express.static("uploads"))
 
 
 
-  client.on('connect', () => {
+if(process.env.NODE_ENV!="development"){  client.on('connect', () => {
 	console.log('Connected')
   })
   client.on('reconnect', () => {
@@ -296,6 +296,6 @@ app.use(express.static("uploads"))
   client.on('error', (error) => {
 	console.log('Error')
   })
-
+}
   
 module.exports = app

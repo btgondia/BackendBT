@@ -4,6 +4,9 @@ const CounterSchema = new mongoose.Schema({
 	counter_title: {
 		type: String
 	},
+	credit_rating: {
+		type: String
+	},
 	counter_code: {
 		type: String
 	},

@@ -22,7 +22,6 @@ const IncentiveSchema = new mongoose.Schema({
   company_uuid: {
     type: String,
   },
-
   users: [
     {
       type: String,
@@ -35,7 +34,6 @@ const IncentiveSchema = new mongoose.Schema({
   counter_uuid: {
     type: String,
   },
-
 
   min_range: { type: String },
   calculation: { type: String },

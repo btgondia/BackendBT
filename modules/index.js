@@ -30,7 +30,7 @@ const getReceipts = async () => {
 		if (orderData) {
 			let counterData = await Counters.findOne(
 				{ counter_uuid: orderData.counter_uuid || item.counter_uuid },
-				{ counter_title: 1, counter_uuid: 1 }
+				{ counter_title: 1, counter_uuid: 1,payment_reminder_days:1 }
 			)
 			for (let item1 of modes) {
 				let obj = {
@@ -45,6 +45,7 @@ const getReceipts = async () => {
 					user_title: usersData.find(a => item.user_uuid === a.user_uuid)?.user_title,
 					amt: item1?.amt,
 					remarks: item1?.remarks,
+					payment_reminder_days: counterData?.payment_reminder_days || 0
 				}
 				data.push(obj)
 			}
