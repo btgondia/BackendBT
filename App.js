@@ -8,6 +8,7 @@ const multer = require("multer")
 const fs = require("fs")
 const bodyParser = require("body-parser")
 const mqtt = require('mqtt')
+const path = require('path')
 
 const WarehouseModel = require("./Models/Warehouse")
 const ItemModel = require("./Models/Item")
@@ -281,6 +282,7 @@ setInterval(function () {
 	}
 }, 360000)
 app.use(express.static("uploads"))
+app.use('/soundApp/getFile', express.static(path.join(__dirname, 'files')));
 
 
 
