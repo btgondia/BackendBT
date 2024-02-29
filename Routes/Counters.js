@@ -98,6 +98,7 @@ router.get("/GetCounterList", async (req, res) => {
         item_special_discount: 1,
         counter_group_uuid: 1,
         payment_modes: 1,
+        credit_rating: 1,
       }
     );
     data = JSON.parse(JSON.stringify(data));
@@ -238,6 +239,7 @@ router.get("/GetCounterData", async (req, res) => {
         item_special_discount: 1,
         counter_group_uuid: 1,
         payment_modes: 1,
+        credit_rating: 1,
       }
     );
 
