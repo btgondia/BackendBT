@@ -53,7 +53,8 @@ const Expense = require("./Routes/Expense")
 const StockTracker = require("./Routes/StockTracker")
 const SoundApp = require("./Routes/SoundApp")
 const client = require("./config/mqtt")
-
+const Ledger = require("./Routes/Ledger")
+const LedgerGroup = require("./Routes/LedgerGroups")
 
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads")
 
@@ -125,6 +126,8 @@ app.use("/counterStock", CounterStock)
 app.use("/expense", Expense)
 app.use("/stockTracker", StockTracker)
 app.use("/soundApp", SoundApp)
+app.use("/ledger", Ledger)
+app.use("/ledgerGroup", LedgerGroup)
 app.get("/MinLevelUpdate", async (req, res, next) => {
 	const response = await MinLevelUpdateAutomation()
 	res.json({ success: true, message: "Updated", result: response })
