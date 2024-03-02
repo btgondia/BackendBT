@@ -28,6 +28,7 @@ const CounterCharges = require("../Models/CounterCharges");
 const { getOrderStage } = require("../utils/helperFunctions");
 const { get } = require("http");
 const StockTracker = require("../Models/StockTracker");
+const AccountingVouchers = require("../Models/AccountingVoucher");
 
 // const textTable = unpaid_receipts => {
 //   console.log(JSON.stringify(unpaid_receipts))
@@ -391,6 +392,16 @@ router.post("/postOrder", async (req, res) => {
           order_status: "R",
           entry: +orderStage === 5 ? 1 : 0,
         });
+        AccountingVouchers.create({
+          order_uuid: value.order_uuid,
+          voucher_uuid: uuid(),
+          created_at:new Date().getTime(),
+          created_by: value.user_uuid,
+          type: "SALE_ORDER",
+          amount: value.order_grandtotal,
+          voucher_date:value.status.find((c) => +c.stage === 1)?.time||new Date().getTime(),
+          details:[]
+        })
       }
     } else
       response = await Orders.create({
@@ -608,6 +619,16 @@ router.put("/putOrders", async (req, res) => {
             ...value,
             entry: value?.order_type === "E" ? 2 : +new_stage === 5 ? 1 : 0,
           });
+          AccountingVouchers.create({
+            order_uuid: value.order_uuid,
+            voucher_uuid: uuid(),
+            created_at:new Date().getTime(),
+            created_by: value.user_uuid,
+            type: "SALE_ORDER",
+            amount: value.order_grandtotal,
+            voucher_date:value.status.find((c) => +c.stage === 1)?.time||new Date().getTime(),
+            details:[]
+          })
         }
 
         await Orders.deleteOne({ order_uuid: value.order_uuid });

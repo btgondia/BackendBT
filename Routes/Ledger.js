@@ -37,10 +37,15 @@ router.put("/putLedger", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    let response = await Ledger.findOneAndUpdate(
+    //delete _id
+    delete value._id;
+    console.log(value);
+    let response = await Ledger.updateOne(
       { ledger_uuid: value.ledger_uuid },
-      value,
-      { new: true }
+      {
+        ledger_group_uuid: value.ledger_group_uuid,
+        ledger_title: value.ledger_title,
+      },
     );
     if (response) {
       res.json({ success: true, result: response });
@@ -54,8 +59,9 @@ router.put("/putLedger", async (req, res) => {
 router.delete("/deleteLedger", async (req, res) => {
   try {
     let value = req.body;
+    console.log(value);
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    let response = await Ledger.findOneAndDelete({
+    let response = await Ledger.deleteMany({
       ledger_uuid: value.ledger_uuid,
     });
     if (response) {
