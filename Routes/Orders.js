@@ -1049,10 +1049,8 @@ router.post("/copySendMessage", async (req, res) => {
       }));
     }
 
-    let mobile = counterData.mobile.filter(
-      (a) => a.mobile && a.lable.find((b) => b.type === "wa" && +b.varification)
-    );
-    if (WhatsappNotification?.status && mobile?.length) {
+   
+    if (WhatsappNotification?.status) {
       res.json({
         success: true,
         message: "Message Sent Successfully",
