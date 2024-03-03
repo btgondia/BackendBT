@@ -11,7 +11,7 @@ const accountingVoucherSchema = new mongoose.Schema({
   details: [
     {
       ledger_uuid: String,
-      amt: Number
+      amount: Number
     }
   ]
 });
