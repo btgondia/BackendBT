@@ -4,8 +4,25 @@ const router = express.Router();
 const { v4: uuid } = require("uuid");
 const Details = require("../Models/Details");
 const Item = require("../Models/Item");
+const AccountingVoucher = require("../Models/AccountingVoucher");
 
 const Vochers = require("../Models/Vochers");
+
+router.post('/postAccountVoucher', async (req, res) => {
+  // try {
+      let value = req.body;
+      if (!value) res.json({ success: false, message: 'Invalid Data' });
+      value = { ...value, voucher_uuid: value.voucher_uuid || uuid() };
+  console.log(value);
+      let response = await AccountingVoucher.create(value);
+      if (response) {
+      res.json({ success: true, result: response });
+      } else res.json({ success: false, message: 'AccountVoucher Not created' });
+  // } catch (err) {
+  //     res.status(500).json({ success: false, message: err });
+  // }
+  });
+
 
 router.post("/postVoucher", async (req, res) => {
   try {
