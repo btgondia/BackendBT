@@ -10,6 +10,7 @@ const DetailsSchema = new mongoose.Schema({
 	sr_if_gst: { type: String },
 	timer_run_at: { type: Number },
 	next_collection_tag_number: { type: Number },
+	next_accounting_voucher_number: { type: Number },
 	preferred_xpress_config: { type: Number },
 	xpress_config: [
 		{

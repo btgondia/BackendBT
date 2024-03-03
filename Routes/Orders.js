@@ -125,16 +125,22 @@ const createAccountingVoucher = async (order, type) => {
         ?.reduce((a, b) => a + b, 0) || 0),
     ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
   });
+  arr.push({
+    ledger_uuid:order.counter_uuid,
+    amount:order.order_grandtotal,
+  })
 
   const voucher = {
-    voucher_uuid: uuid(),
-    voucher_type: type,
+    accounting_voucher_uuid: uuid(),
+    type: type,
     voucher_date: new Date().getTime(),
     user_uuid: order.user_uuid,
     counter_uuid: order.counter_uuid,
     order_uuid: order.order_uuid,
     invoice_number: order.invoice_number,
     amount: order.order_grandtotal,
+    voucher_verification:arr.reduce((a,b)=>a+ +b.amount,0)?1:0,
+    voucher_difference:arr.reduce((a,b)=>a+ +b.amount,0)||0,
     details: arr,
   };
   await AccountingVouchers.create(voucher);

@@ -8,21 +8,33 @@ const AccountingVoucher = require("../Models/AccountingVoucher");
 
 const Vochers = require("../Models/Vochers");
 
-router.post('/postAccountVoucher', async (req, res) => {
-  // try {
-      let value = req.body;
-      if (!value) res.json({ success: false, message: 'Invalid Data' });
-      value = { ...value, voucher_uuid: value.voucher_uuid || uuid() };
-  console.log(value);
-      let response = await AccountingVoucher.create(value);
-      if (response) {
-      res.json({ success: true, result: response });
-      } else res.json({ success: false, message: 'AccountVoucher Not created' });
-  // } catch (err) {
-  //     res.status(500).json({ success: false, message: err });
-  // }
-  });
+router.post("/postAccountVoucher", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let next_accounting_voucher_number = await Details.find({});
 
+    next_accounting_voucher_number =
+      next_accounting_voucher_number[0].next_accounting_voucher_number;
+
+    value = {
+      ...value,
+      accounting_voucher_uuid: value.accounting_voucher_uuid || uuid(),
+      accounting_voucher_number: "V" + next_accounting_voucher_number,
+    };
+    console.log(value);
+    let response = await AccountingVoucher.create(value);
+    if (response) {
+      await Details.updateMany(
+        {},
+        { next_accounting_voucher_number: +next_accounting_voucher_number + 1 }
+      );
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "AccountVoucher Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 
 router.post("/postVoucher", async (req, res) => {
   try {
@@ -58,25 +70,30 @@ router.get("/GetPendingVoucharsList", async (req, res) => {
   try {
     let data = await Vochers.find({ delivered: 0 });
     data = JSON.parse(JSON.stringify(data));
-    let result=[];
-    for(let item of data){
-      let item_details=item.item_details;
-      let item_uuids=item_details.map(a=>a.item_uuid);
-      let itemData=await Item.find({item_uuid:{$in:item_uuids}}, {item_uuid:1,item_title:1,item_price:1,conversion:1});
-      itemData=JSON.parse(JSON.stringify(itemData));
-      item_details=item_details.map(a=>{
-        let item=itemData.find(b=>b.item_uuid===a.item_uuid);
-        let estValue=(+a.b||0) * +item.item_price * +item.conversion + (+a.p||0) * +item.item_price;
-        return{
+    let result = [];
+    for (let item of data) {
+      let item_details = item.item_details;
+      let item_uuids = item_details.map((a) => a.item_uuid);
+      let itemData = await Item.find(
+        { item_uuid: { $in: item_uuids } },
+        { item_uuid: 1, item_title: 1, item_price: 1, conversion: 1 }
+      );
+      itemData = JSON.parse(JSON.stringify(itemData));
+      item_details = item_details.map((a) => {
+        let item = itemData.find((b) => b.item_uuid === a.item_uuid);
+        let estValue =
+          (+a.b || 0) * +item.item_price * +item.conversion +
+          (+a.p || 0) * +item.item_price;
+        return {
           ...a,
-          item_title:item.item_title,
-          item_price:item.item_price,
-          conversion:item.conversion,
+          item_title: item.item_title,
+          item_price: item.item_price,
+          conversion: item.conversion,
           vocher_number: a.vocher_number || 0,
-          estValue
-        }
-      })
-      result=[...result,{...item,item_details}]
+          estValue,
+        };
+      });
+      result = [...result, { ...item, item_details }];
     }
     if (result.length)
       res.json({
@@ -112,11 +129,13 @@ router.post("/deliveredVouchers", async (req, res) => {
           ...a,
           item_details: a.item_details.map((b) => {
             let item = itemData.find((c) => c.item_uuid === b.item_uuid);
-            return{
-            ...b,
-            estValue:
-              +b.b * +item.item_price * +item.conversion + +b.p * +item.item_price,
-          }}),
+            return {
+              ...b,
+              estValue:
+                +b.b * +item.item_price * +item.conversion +
+                +b.p * +item.item_price,
+            };
+          }),
           vocher_number: a.vocher_number || 0,
         })),
       });
@@ -273,19 +292,26 @@ router.post("/GetStockReportSummary", async (req, res) => {
     for (let item of data) {
       const itemData = await Item.findOne(
         { item_uuid: item.item_uuid },
-        { conversion: 1, item_title: 1, item_price:1 }
+        { conversion: 1, item_title: 1, item_price: 1 }
       );
       if (itemData) {
         let obj = {
           item_uuid: itemData.item_uuid,
           item_title: itemData.item_title,
           qty: +item.b * +itemData.conversion + +item.p,
-          estValue: ((+item.b * +itemData.conversion + +item.p) * +itemData.item_price).toFixed(2),
+          estValue: (
+            (+item.b * +itemData.conversion + +item.p) *
+            +itemData.item_price
+          ).toFixed(2),
         };
         if (result.filter((a) => a.item_uuid === item.item_uuid).length) {
           result = result.map((a) =>
             a.item_uuid === item.item_uuid
-              ? { ...a, qty: +a.qty + +obj.qty, estValue: +a.estValue + +obj.estValue }
+              ? {
+                  ...a,
+                  qty: +a.qty + +obj.qty,
+                  estValue: +a.estValue + +obj.estValue,
+                }
               : a
           );
         } else {
