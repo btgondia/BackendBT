@@ -103,7 +103,6 @@ const createAccountingVoucher = async (order, type) => {
 
     if (value) {
       let ledger = ledger_list.find((b) => b.value === a) || {};
-      console.log(ledger_uuid, a);
       arr.push({
         amount: (amt - value).toFixed(3),
         ledger_uuid: ledger?.amount_ledger,
