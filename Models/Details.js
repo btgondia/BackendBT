@@ -12,6 +12,7 @@ const DetailsSchema = new mongoose.Schema({
 	next_collection_tag_number: { type: Number },
 	next_accounting_voucher_number: { type: Number },
 	preferred_xpress_config: { type: Number },
+	next_purchase_invoice_number: { type: Number },
 	xpress_config: [
 		{
 			id: { type: Number, unique: true },

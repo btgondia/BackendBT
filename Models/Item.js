@@ -10,6 +10,9 @@ const ItemSchema = new mongoose.Schema({
 	exclude_discount: {
 		type: Number
 	},
+	hsn:{
+		type: Number
+	},
 	status: {
 		type: Number
 	},
