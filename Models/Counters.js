@@ -139,6 +139,11 @@ const CounterSchema = new mongoose.Schema({
 			type: String
 		}
 	],
+	transaction_tags: [
+		{
+			type: String
+		}
+	],
 	location_coords: {
 		latitude: { type: Number },
 		longitude: { type: Number }

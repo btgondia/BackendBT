@@ -13,6 +13,7 @@ const DetailsSchema = new mongoose.Schema({
 	next_accounting_voucher_number: { type: Number },
 	preferred_xpress_config: { type: Number },
 	next_purchase_invoice_number: { type: Number },
+	current_stock_locking: { type: String },
 	xpress_config: [
 		{
 			id: { type: Number, unique: true },

@@ -67,4 +67,16 @@ router.delete("/deleteOrderCancelMessageTemplate", async (req, res) => {
 }
 )
 
+router.get("/checkPassword/:current_stock_locking",async(req,res)=>{
+	try{
+		let {current_stock_locking} = req.params
+		let data = await Details.findOne({current_stock_locking})
+		if(data) res.json({success:true,result:data})
+		else res.json({success:false,message:"Details Not found"})
+	}catch(err){
+		res.status(500).json({success:false,message:err})
+	}
+}
+)
+
 module.exports = router
