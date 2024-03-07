@@ -126,7 +126,7 @@ const createAccountingVoucher = async (order, type) => {
   });
   arr.push({
     ledger_uuid:order.counter_uuid,
-    amount:order.order_grandtotal,
+    amount:-(order.order_grandtotal||0),
   })
 
   const voucher = {

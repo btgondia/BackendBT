@@ -3,6 +3,7 @@ const router = express.Router();
 const PurchaseINvoice = require('../Models/PurchaseInvoice');
 const Details = require('../Models/Details');
 const { v4: uuid } = require('uuid');
+const Item = require('../Models/Item');
 
 //post request to create a new purchase invoice
 
@@ -23,6 +24,12 @@ router.post("/postAccountVoucher", async (req, res) => {
       console.log(value);
       let response = await PurchaseINvoice.create(value);
       if (response) {
+        for(let item of (value.item_details)){
+          let item_uuid = item.item_uuid;
+          let last_purchase_price = item.price;
+          let item_details = await Item.updateOne({item_uuid},{last_purchase_price});
+          console.log(item_details);
+        }
         await Details.updateMany(
           {},
           { next_purchase_invoice_number: +next_purchase_invoice_number + 1 }

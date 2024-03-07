@@ -3,6 +3,7 @@ const router = express.Router();
 const Ledger = require("../Models/Ledger");
 const LedgerGroup = require("../Models/LedgerGroup");
 const { v4: uuid } = require("uuid");
+const AccountingVoucher = require("../Models/AccountingVoucher");
 
 router.post("/postLedger", async (req, res) => {
   try {
@@ -45,7 +46,7 @@ router.put("/putLedger", async (req, res) => {
       {
         ledger_group_uuid: value.ledger_group_uuid,
         ledger_title: value.ledger_title,
-      },
+      }
     );
     if (response) {
       res.json({ success: true, result: response });
@@ -67,6 +68,35 @@ router.delete("/deleteLedger", async (req, res) => {
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Ledger Not Deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+
+router.post("/getLegerReport", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    console.log(value);
+    let endDate = +value.endDate + 86400000;
+    console.log(endDate, value.startDate);
+    // ledger_uuid is in details
+    let response = await AccountingVoucher.find({
+      "details.ledger_uuid": value.counter_uuid,
+      created_at: { $gte: value.startDate, $lte: endDate },
+    });
+    response = JSON.parse(JSON.stringify(response));
+    let result = [];
+    for (let item of response) {
+      result.push({
+        ...item,
+        amount: item.details.find((i) => i.ledger_uuid === value.counter_uuid)
+          .amount,
+      });
+    }
+    if (result.length) {
+      res.json({ success: true, result });
+    } else res.json({ success: false, message: "Ledger Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }

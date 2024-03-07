@@ -6,7 +6,48 @@ const Details = require("../Models/Details");
 const CashRegister = require("../Models/cash_register");
 const cash_register_transections = require("../Models/cash_register_transections");
 const { getReceipts } = require("../modules/index");
+const PaymentModes = require("../Models/PaymentModes");
+const AccountingVoucher = require("../Models/AccountingVoucher");
 
+const createAccountingVoucher = async (order, type,recept_number) => {
+  const arr = [];
+ 
+
+  for (let a of (order.modes||[])) {
+    const data = await PaymentModes.findOne(
+      { mode_uuid: a.mode_uuid },
+      { ledger_uuid:1 }
+    );
+    if (!data) continue;
+
+    if (a.amt) {
+      arr.push({
+        amount: -(a.amt||0),
+        ledger_uuid: data.ledger_uuid,
+      });
+    }
+  }
+
+  arr.push({
+    ledger_uuid: order.counter_uuid,
+    amount: order.order_grandtotal || 0,
+  });
+
+  const voucher = {
+    accounting_voucher_uuid: uuid(),
+    type: type,
+    voucher_date: new Date().getTime(),
+    user_uuid: order.user_uuid,
+    counter_uuid: order.counter_uuid,
+    order_uuid: order.order_uuid,
+    recept_number,
+    amount: order.order_grandtotal,
+    voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
+    voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
+    details: arr,
+  };
+  await AccountingVoucher.create(voucher);
+};
 router.get("/getPendingEntry", async (req, res) => {
   try {
     let receiptData = await Receipts.find({
@@ -23,7 +64,7 @@ router.get("/getPendingEntry", async (req, res) => {
   }
 });
 router.post("/postReceipt", async (req, res) => {
-  try {
+  // try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     let cashAmount =
@@ -34,7 +75,11 @@ router.post("/postReceipt", async (req, res) => {
       created_by: value.user_uuid,
       status: 1,
     });
-    if(cash_register&&cash_register.created_at<new Date(new Date().setHours(0, 0, 0, 0)).getTime()){
+    if (
+      cash_register &&
+      cash_register.created_at <
+        new Date(new Date().setHours(0, 0, 0, 0)).getTime()
+    ) {
       await CashRegister.updateMany(
         {
           created_by: value.user_uuid,
@@ -42,22 +87,21 @@ router.post("/postReceipt", async (req, res) => {
         },
         { status: 0 }
       );
-      cash_register=await CashRegister.create({
+      cash_register = await CashRegister.create({
         balance: 0,
         created_by: value.user_uuid,
         register_uuid: uuid(),
-        created_at:new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
+        created_at: new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
         status: 1,
       });
-    }else if(!cash_register){
-      cash_register=await CashRegister.create({
+    } else if (!cash_register) {
+      cash_register = await CashRegister.create({
         balance: 0,
         created_by: value.user_uuid,
         register_uuid: uuid(),
-        created_at:new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
+        created_at: new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
         status: 1,
       });
-
     }
 
     let resciptJson = await Receipts.findOne({
@@ -89,7 +133,7 @@ router.post("/postReceipt", async (req, res) => {
             {
               order_uuid: value.order_uuid,
             },
-            { $inc: { amount: cashAmountTwo-cashTransectionExits.amount } }
+            { $inc: { amount: cashAmountTwo - cashTransectionExits.amount } }
           );
         } else {
           await cash_register_transections.create({
@@ -144,15 +188,16 @@ router.post("/postReceipt", async (req, res) => {
         time: new Date().getTime(),
         pending,
       });
+      await createAccountingVoucher(value, "RECEIPT_ORDER",next_receipt_number);
       next_receipt_number = "R" + (+next_receipt_number.match(/\d+/)[0] + 1);
       await Details.updateMany({}, { next_receipt_number });
       if (response) {
         res.json({ success: true, result: response });
       } else res.json({ success: false, message: "Receipts Not created" });
     }
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 router.post("/getRecipt", async (req, res) => {
   try {

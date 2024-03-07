@@ -46,6 +46,9 @@ const ItemSchema = new mongoose.Schema({
 	item_price: {
 		type: String
 	},
+	last_purchase_price: {
+		type: String
+	},
 	item_price_a:{
 		type: String
 	},

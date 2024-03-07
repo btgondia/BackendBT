@@ -7,6 +7,9 @@ const PaymentModesSchema = new mongoose.Schema({
   mode_uuid: {
     type: String,
   },
+  ledger_uuid: {
+    type: String,
+  },
 });
 
 module.exports = mongoose.model("payment_modes", PaymentModesSchema);
