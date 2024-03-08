@@ -148,7 +148,7 @@ const CounterSchema = new mongoose.Schema({
     longitude: { type: Number },
   },
   notes: [{ type: String }],
-  opening_ballance: [
+  opening_balance: [
     {
       amount: {
         type: Number,

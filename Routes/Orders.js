@@ -64,7 +64,7 @@ let ledger_list = [
       "b997b4f4-8baf-443c-85b9-0cfcccb013fd",
       "93456bbd-ffbe-4ce6-a2a7-d483c7917f92",
     ],
-    amount_ledger: " a48035a8-f9c3-4232-8f5b-d168850c016d",
+    amount_ledger: "a48035a8-f9c3-4232-8f5b-d168850c016d",
   },
   {
     value: 18,
@@ -141,6 +141,7 @@ const createAccountingVoucher = async (order, type) => {
     voucher_verification:arr.reduce((a,b)=>a+ +b.amount,0)?1:0,
     voucher_difference:arr.reduce((a,b)=>a+ +b.amount,0)||0,
     details: arr,
+    created_at: new Date().getTime(),
   };
   await AccountingVouchers.create(voucher);
 };

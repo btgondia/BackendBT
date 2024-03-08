@@ -10,7 +10,7 @@ const Ledger = new mongoose.Schema({
       type: String,
     },
   ],
-  opening_ballance: [
+  opening_balance: [
     {
       amount: {
         type: Number,

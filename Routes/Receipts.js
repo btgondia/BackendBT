@@ -45,6 +45,7 @@ const createAccountingVoucher = async (order, type,recept_number) => {
     voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
     voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
     details: arr,
+    created_at: new Date().getTime(),
   };
   await AccountingVoucher.create(voucher);
 };

@@ -25,6 +25,7 @@ router.get("/getLedger", async (req, res) => {
   try {
     let response = await Ledger.find();
     response = response.filter((item) => item.ledger_uuid);
+    console.log(response[0]);
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Ledger Not Found" });
@@ -46,6 +47,7 @@ router.put("/putLedger", async (req, res) => {
       {
         ledger_group_uuid: value.ledger_group_uuid,
         ledger_title: value.ledger_title,
+        opening_balance: value.opening_balance,
       }
     );
     if (response) {
