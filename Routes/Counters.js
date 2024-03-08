@@ -99,7 +99,8 @@ router.get("/GetCounterList", async (req, res) => {
         counter_group_uuid: 1,
         payment_modes: 1,
         credit_rating: 1,
-        opening_balance: [],
+        opening_balance :1,
+        closing_balance:1,
       }
     );
     data = JSON.parse(JSON.stringify(data));
@@ -145,6 +146,7 @@ router.get("/GetCounter/:counter_uuid", async (req, res) => {
       counter_group_uuid: 1,
       payment_modes: 1,
       opening_balance: 1,
+      closing_balance:1,
     }
   );
   data = JSON.parse(JSON.stringify(data));
@@ -191,6 +193,7 @@ router.post("/GetCounterList", async (req, res) => {
         counter_group_uuid: 1,
         payment_modes: 1,
         opening_balance: 1,
+        closing_balance:1,
       }
     );
     data = JSON.parse(JSON.stringify(data));
@@ -245,6 +248,7 @@ router.get("/GetCounterData", async (req, res) => {
         credit_rating: 1,
         transaction_tags: 1,
         opening_balance: 1,
+        closing_balance:1,
       }
     );
 

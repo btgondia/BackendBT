@@ -158,6 +158,16 @@ const CounterSchema = new mongoose.Schema({
       },
     },
   ],
+  closing_balance: [
+    {
+      amount: {
+        type: Number,
+      },
+      date: {
+        type: Number,
+      },
+    },
+  ],
 });
 
 module.exports = mongoose.model("counters", CounterSchema);

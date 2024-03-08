@@ -48,6 +48,7 @@ router.put("/putLedger", async (req, res) => {
         ledger_group_uuid: value.ledger_group_uuid,
         ledger_title: value.ledger_title,
         opening_balance: value.opening_balance,
+        closing_balance: value.closing_balance,
       }
     );
     if (response) {
