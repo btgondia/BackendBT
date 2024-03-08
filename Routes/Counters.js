@@ -240,7 +240,8 @@ router.get("/GetCounterData", async (req, res) => {
         counter_group_uuid: 1,
         payment_modes: 1,
         credit_rating: 1,
-        transaction_tags:1
+        transaction_tags:1,
+        opening_ballance:1,
       }
     );
 
