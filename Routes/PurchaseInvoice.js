@@ -1,11 +1,10 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const PurchaseINvoice = require('../Models/PurchaseInvoice');
-const Details = require('../Models/Details');
-const { v4: uuid } = require('uuid');
-const Item = require('../Models/Item');
-const AccountingVouchers = require('../Models/AccountingVoucher');
-
+const PurchaseINvoice = require("../Models/PurchaseInvoice");
+const Details = require("../Models/Details");
+const { v4: uuid } = require("uuid");
+const Item = require("../Models/Item");
+const AccountingVouchers = require("../Models/AccountingVoucher");
 
 let ledger_list = [
   {
@@ -62,13 +61,13 @@ const createAccountingVoucher = async (order, type) => {
     if (value) {
       let ledger = ledger_list.find((b) => b.value === a) || {};
       arr.push({
-        amount: -((amt - value).toFixed(3)),
+        amount: -(amt - value).toFixed(3),
         ledger_uuid: ledger?.amount_ledger,
       });
 
       for (let item of ledger?.ledger_uuid || []) {
         arr.push({
-          amount: -((value / 2).toFixed(3)),
+          amount: -(value / 2).toFixed(3),
           ledger_uuid: item,
         });
       }
@@ -83,9 +82,9 @@ const createAccountingVoucher = async (order, type) => {
     ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
   });
   arr.push({
-    ledger_uuid:order.counter_uuid,
-    amount:order.order_grandtotal||0,
-  })
+    ledger_uuid: order.counter_uuid,
+    amount: order.order_grandtotal || 0,
+  });
 
   const voucher = {
     accounting_voucher_uuid: uuid(),
@@ -96,8 +95,8 @@ const createAccountingVoucher = async (order, type) => {
     order_uuid: order.order_uuid,
     invoice_number: order.invoice_number,
     amount: order.order_grandtotal,
-    voucher_verification:arr.reduce((a,b)=>a+ +b.amount,0)?1:0,
-    voucher_difference:arr.reduce((a,b)=>a+ +b.amount,0)||0,
+    voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
+    voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
     details: arr,
     created_at: new Date().getTime(),
   };
@@ -107,40 +106,42 @@ const createAccountingVoucher = async (order, type) => {
 //post request to create a new purchase invoice
 
 router.post("/postAccountVoucher", async (req, res) => {
-    // try {
-      let value = req.body;
-      if (!value) res.json({ success: false, message: "Invalid Data" });
-      let next_purchase_invoice_number = await Details.find({});
-  
-      next_purchase_invoice_number =
-        next_purchase_invoice_number[0].next_purchase_invoice_number;
-  
-      value = {
-        ...value,
-        purchase_order_uuid: uuid(),
-        purchase_invoice_number: "P" + next_purchase_invoice_number,
-      };
-      console.log(value);
-      createAccountingVoucher(value, "PURCHASE_INVOICE");
-      res.json({ success: false, result: value });
-      return;
-      let response = await PurchaseINvoice.create(value);
-      if (response) {
-        for(let item of (value.item_details)){
-          let item_uuid = item.item_uuid;
-          let last_purchase_price = item.price;
-          let item_details = await Item.updateOne({item_uuid},{last_purchase_price});
-          console.log(item_details);
-        }
-        await Details.updateMany(
-          {},
-          { next_purchase_invoice_number: +next_purchase_invoice_number + 1 }
-        );
-        res.json({ success: true, result: response });
-      } else res.json({ success: false, message: "AccountVoucher Not created" });
-    // } catch (err) {
-    //   res.status(500).json({ success: false, message: err });
-    // }
-  });
+  try {
+  let value = req.body;
+  if (!value) res.json({ success: false, message: "Invalid Data" });
+  let next_purchase_invoice_number = await Details.find({});
 
-  module.exports = router;
+  next_purchase_invoice_number =
+    next_purchase_invoice_number[0].next_purchase_invoice_number;
+
+  value = {
+    ...value,
+    purchase_order_uuid: uuid(),
+    purchase_invoice_number: "P" + next_purchase_invoice_number,
+  };
+  console.log(value);
+  createAccountingVoucher(value, "PURCHASE_INVOICE");
+
+  let response = await PurchaseINvoice.create(value);
+  if (response) {
+    for (let item of value.item_details) {
+      let item_uuid = item.item_uuid;
+      let last_purchase_price = item.price;
+      let item_details = await Item.updateOne(
+        { item_uuid },
+        { last_purchase_price }
+      );
+      console.log(item_details);
+    }
+    await Details.updateMany(
+      {},
+      { next_purchase_invoice_number: +next_purchase_invoice_number + 1 }
+    );
+    res.json({ success: true, result: response });
+  } else res.json({ success: false, message: "AccountVoucher Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+
+module.exports = router;
