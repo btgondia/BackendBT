@@ -20,16 +20,9 @@ const Ledger = new mongoose.Schema({
       },
     },
   ],
-  closing_balance: [
-    {
-      amount: {
-        type: Number,
-      },
-      date: {
-        type: Number,
-      },
-    },
-  ],
+  closing_balance: {
+    type: Number,
+  },
 });
 
 module.exports = mongoose.model("ledger", Ledger);
