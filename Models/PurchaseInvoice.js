@@ -36,6 +36,10 @@ const OrdersSchema = new mongoose.Schema({
       p: { type: Number },
     },
   ],
+  party_invoice_date: {
+    type: Number,
+  },
+
   rate_type: {
     type: String,
   },
