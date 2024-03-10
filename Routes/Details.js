@@ -79,4 +79,32 @@ router.get("/checkPassword/:current_stock_locking",async(req,res)=>{
 }
 )
 
+router.put("/putBankStatementItem", async (req, res) => {
+	try {
+		let value = req.body
+		if (!value) res.json({ success: false, message: "Invalid Data" })
+		console.log(value)
+		let response = await Details.updateOne({}, { bank_statement_item: value })
+		if (response) {
+			res.json({ success: true, result: response,message:"Details Updated"})
+		} else res.json({ success: false, message: "Details Not Updated" })
+	} catch (err) {
+		res.status(500).json({ success: false, message: err })
+	}
+}
+)
+
+//get bank statement item
+router.get("/getBankStatementItem", async (req, res) => {
+	try {
+		let response = await Details.findOne({})
+		if (response) {
+			res.json({ success: true, result: response.bank_statement_item })
+		} else res.json({ success: false, message: "Details Not Found" })
+	} catch (err) {
+		res.status(500).json({ success: false, message: err })
+	}
+}
+)
+
 module.exports = router
