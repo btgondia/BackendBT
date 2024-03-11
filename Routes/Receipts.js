@@ -40,6 +40,7 @@ const createAccountingVoucher = async (order, type,recept_number) => {
     user_uuid: order.user_uuid,
     counter_uuid: order.counter_uuid,
     order_uuid: order.order_uuid,
+    invoice_number: order.invoice_number,
     recept_number,
     amount: order.order_grandtotal,
     voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
@@ -188,6 +189,7 @@ router.post("/postReceipt", async (req, res) => {
         receipt_number: next_receipt_number,
         time: new Date().getTime(),
         pending,
+        invoice_number: value.invoice_number,
       });
       await createAccountingVoucher(value, "RECEIPT_ORDER",next_receipt_number);
       next_receipt_number = "R" + (+next_receipt_number.match(/\d+/)[0] + 1);

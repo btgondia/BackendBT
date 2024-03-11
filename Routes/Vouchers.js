@@ -35,7 +35,39 @@ router.post("/postAccountVoucher", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/postAccountVouchers", async (req, res) => {
+  try {
+    let value = req.body;
+    let success = 0;
+    let failed = 0;
+    for (let item of value) {
+      let next_accounting_voucher_number = await Details.find({});
 
+      next_accounting_voucher_number =
+        next_accounting_voucher_number[0].next_accounting_voucher_number;
+
+      item = {
+        ...item,
+        accounting_voucher_uuid: item.accounting_voucher_uuid || uuid(),
+        accounting_voucher_number: "V" + next_accounting_voucher_number,
+      };
+      console.log(item);
+      let response = await AccountingVoucher.create(item);
+      if (response) {
+        await Details.updateMany(
+          {},
+          {
+            next_accounting_voucher_number: +next_accounting_voucher_number + 1,
+          }
+        );
+        success++;
+      } else failed++;
+    }
+    res.json({ success: true, result: { success, failed } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.post("/postVoucher", async (req, res) => {
   try {
     let value = req.body;

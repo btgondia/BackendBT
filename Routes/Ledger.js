@@ -7,6 +7,9 @@ const AccountingVoucher = require("../Models/AccountingVoucher");
 const Counters = require("../Models/Counters");
 const Details = require("../Models/Details");
 const Receipts = require("../Models/Receipts");
+const Routes = require("../Models/Routes");
+const OrderCompleted = require("../Models/OrderCompleted");
+const Orders = require("../Models/Orders");
 
 router.post("/postLedger", async (req, res) => {
   try {
@@ -56,8 +59,7 @@ function getAlphabetIndex(alphabet) {
 }
 router.post("/getExcelDetailsData", async (req, res) => {
   try {
-    let { array, ledger_uuid } = req.body;
-    let ledgerData = await Ledger.findOne({ ledger_uuid: ledger_uuid });
+    let { array } = req.body;
 
     let bankStatementItem = await Details.findOne(
       {},
@@ -69,33 +71,50 @@ router.post("/getExcelDetailsData", async (req, res) => {
       array.length
     );
     let data = [];
-    let total_recived_amount = 0;
+    let total_received_amount = 0;
     let total_paid_amount = 0;
-    for (let item of arrayData) {
+    for (let [index, item] of arrayData.entries()) {
       let narration =
         item[getAlphabetIndex(bankStatementItem.narration_column)];
       let received_amount =
         item[getAlphabetIndex(bankStatementItem.received_amount_column)];
       let paid_amount =
         item[getAlphabetIndex(bankStatementItem.paid_amount_column)];
-      if (received_amount) total_recived_amount += +received_amount;
+      if (received_amount) total_received_amount += +received_amount;
       if (paid_amount) total_paid_amount += +paid_amount;
       if (!narration) continue;
       let separators = bankStatementItem.separator;
 
-      //get nerations array saperated with separator
+      //get nerations array saperated with separator also separate with balnk sapces
       let narrationArray = [];
       for (let separator of separators) {
-        if (narration.includes(separator)) {
-          narrationArray = narration.split(separator);
-          break;
+        let narrationArrayTemp = narration.split(separator);
+        for (let narrationTemp of narrationArrayTemp) {
+          let narrationTempArray = narrationTemp.split(" ");
+          narrationArray = [...narrationArray, ...narrationTempArray];
         }
       }
+      //remove empty string from array
+      narrationArray = narrationArray.filter((i) => i);
+
+      //check anny neration starts with one or more 0 digit
+      let zeroStartedArray = narrationArray.filter((i) => i.match(/^0+/));
+      if (zeroStartedArray.length) {
+        //remove all stating zero from narration array
+        zeroStartedArray = zeroStartedArray.map((i) => i.replace(/^0+/, ""));
+      }
+      narrationArray = [...narrationArray, ...zeroStartedArray];
+      console.log({ narrationArray });
 
       // find counter or ledger includs transaction_tags matches with narration
       let countersData = await Counters.find(
         { transaction_tags: { $in: narrationArray } },
-        { counter_uuid: 1, counter_title: 1, transaction_tags: 1 }
+        {
+          counter_uuid: 1,
+          counter_title: 1,
+          transaction_tags: 1,
+          route_uuid: 1,
+        }
       );
       countersData = JSON.parse(JSON.stringify(countersData));
       if (countersData.length) {
@@ -116,44 +135,81 @@ router.post("/getExcelDetailsData", async (req, res) => {
         );
         countersData = countersData[0];
       }
-      console.log({
-        countersData,
-        received_amount,
-        bankStatementItem: bankStatementItem.received_amount_column,
+
+      let reciptsData = await Receipts.find({
+        ...(countersData.counter_uuid
+          ? { counter_uuid: countersData.counter_uuid }
+          : {
+              "modes.remarks": { $in: narrationArray },
+            }),
+        pending: 0,
+        "modes.mode_uuid": countersData.counter_uuid
+          ? "c67b5988-d2b6-11ec-9d64-0242ac120002"
+          : "c67b5794-d2b6-11ec-9d64-0242ac120002",
+        "modes.amt": received_amount,
       });
-      if (countersData.counter_uuid) {
-        let reciptsData = await Receipts.find({
-          counter_uuid: countersData.counter_uuid,
-          pending: 0,
-          "modes.mode_uuid": "c67b5988-d2b6-11ec-9d64-0242ac120002",
-          "modes.amt": received_amount,
+      reciptsData = JSON.parse(JSON.stringify(reciptsData));
+      reciptsData = reciptsData?.find((a) =>
+        a.modes.find((b) => {
+          if (!countersData.counter_uuid) {
+            let check =
+              b.amt === received_amount &&
+              b.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002" &&
+              narrationArray.find((i) => b.remarks === i);
+
+            return check;
+          } else
+            return (
+              b.amt === received_amount &&
+              b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002"
+            );
+        })
+      );
+      console.log({ reciptsData, countersData });
+      if (!countersData?.route_uuid && reciptsData?.counter_uuid) {
+        countersData = await Counters.findOne(
+          { counter_uuid: reciptsData.counter_uuid },
+          { counter_uuid: 1, counter_title: 1, route_uuid: 1 }
+        );
+      }
+      let routeData;
+      if (countersData.route_uuid) {
+        routeData = await Routes.findOne({
+          route_uuid: countersData.route_uuid,
         });
+      }
+
+      if (reciptsData)
         data.push({
-          narration,
+          sr: +bankStatementItem.start_from_line + index,
+          reference_no: reciptsData.invoice_number,
+          counter_title: countersData.counter_title || "",
+          route_title: routeData?.route_title || "",
+          counter_uuid: countersData.counter_uuid,
+          date: item[getAlphabetIndex(bankStatementItem.date_column)],
           received_amount,
-          countersData,
-          reciptsData,
+          paid_amount,
+        });
+      else {
+        data.push({
+          sr: +bankStatementItem.start_from_line + index,
+          reference_no: "",
+          counter_title: "Unmatched",
+          route_title: "",
+          received_amount,
+          paid_amount,
         });
       }
     }
+    let result = {
+      total_recode: arrayData.length,
+      matched_recode: data.length,
+      unmatched_recode: arrayData.length - data.length,
+      total_paid_amount,
+      total_received_amount,
+      data,
+    };
 
-    let result = [];
-    //Total Records	32
-    result.push({ name: "Total Records", value: arrayData.length });
-    //Matched Records	10
-    result.push({ name: "Matched Records", value: data.length });
-    //Unmatched Records	22
-    result.push({
-      name: "Unmatched Records",
-      value: arrayData.length - data.length,
-    });
-    //Total Paid Amount
-    result.push({ name: "Total Paid Amount", value: total_paid_amount });
-    //Total Received Amount
-    result.push({
-      name: "Total Received Amount",
-      value: total_recived_amount,
-    });
     if (result) {
       res.json({ success: true, result });
     } else res.json({ success: false, message: "Ledger Not Found" });
@@ -208,9 +264,34 @@ router.post("/getLegerReport", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    console.log(value);
+
     let endDate = +value.endDate + 86400000;
-    console.log(endDate, value.startDate);
+    let ledgerData = await Ledger.findOne(
+      { ledger_uuid: value.counter_uuid },
+      { ledger_uuid: 1, opening_balance: 1 }
+    );
+    if (!ledgerData)
+      ledgerData = await Counters.findOne(
+        { ledger_uuid: value.ledger_uuid },
+        { ledger_uuid: 1, opening_balance: 1 }
+      );
+
+    if (!ledgerData) res.json({ success: false, message: "Ledger Not Found" });
+
+    let opening_balance = ledgerData.opening_balance?.filter(
+      (a) => a.date < value.startDate
+    );
+
+    //get max date from opening balance
+    if (opening_balance.length > 1) {
+      let maxDate = Math.max(...opening_balance.map((a) => a.date));
+
+      //get opening balance of max date
+      opening_balance = opening_balance.find((a) => a.date === maxDate);
+    } else if (opening_balance.length === 1) {
+      opening_balance = opening_balance[0];
+    }
+
     // ledger_uuid is in details
     let response = await AccountingVoucher.find({
       "details.ledger_uuid": value.counter_uuid,
@@ -218,11 +299,27 @@ router.post("/getLegerReport", async (req, res) => {
     });
     response = JSON.parse(JSON.stringify(response));
     let result = [];
+    let balance = opening_balance?.amount || 0;
     for (let item of response) {
+      let orderData;
+      if (!item.invoice_number)
+        orderData = await OrderCompleted.findOne({
+          order_uuid: item.order_uuid,
+        });
+      if (!orderData) {
+        orderData = await Orders.findOne({
+          order_uuid: item.order_uuid,
+        });
+      }
+      let amount = item.details.find(
+        (i) => i.ledger_uuid === value.counter_uuid
+      ).amount;
+      balance += amount;
       result.push({
         ...item,
-        amount: item.details.find((i) => i.ledger_uuid === value.counter_uuid)
-          .amount,
+        amount,
+        invoice_number: item.invoice_number || orderData?.invoice_number || "",
+        balance,
       });
     }
     if (result.length) {
