@@ -68,6 +68,33 @@ router.post("/postAccountVouchers", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+
+//get accounting voucher by accounting_voucher_uuid
+router.get("/getAccountVoucher/:accounting_voucher_uuid", async (req, res) => {
+  try {
+    let { accounting_voucher_uuid } = req.params;
+    let data = await AccountingVoucher.findOne({ accounting_voucher_uuid });
+    if (data) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "AccountVoucher Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+//put accounting voucher by accounting_voucher_uuid
+router.put("/putAccountVoucher", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let response = await AccountingVoucher.updateOne(
+      { accounting_voucher_uuid: value.accounting_voucher_uuid },
+      value
+    );
+    if (response) res.json({ success: true, result: response });
+    else res.json({ success: false, message: "AccountVoucher Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.post("/postVoucher", async (req, res) => {
   try {
     let value = req.body;

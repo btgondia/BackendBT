@@ -189,8 +189,21 @@ router.post("/getExcelDetailsData", async (req, res) => {
           date: item[getAlphabetIndex(bankStatementItem.date_column)],
           received_amount,
           paid_amount,
+          unMatch: false,
         });
-      else {
+      else if (countersData.counter_uuid) {
+        data.push({
+          sr: +bankStatementItem.start_from_line + index,
+          reference_no: "Unmatched",
+          counter_title: countersData.counter_title || "",
+          route_title: routeData?.route_title || "",
+          counter_uuid: countersData.counter_uuid,
+          date: item[getAlphabetIndex(bankStatementItem.date_column)],
+          received_amount,
+          paid_amount,
+          unMatch: true,
+        });
+      } else {
         data.push({
           sr: +bankStatementItem.start_from_line + index,
           reference_no: "",
@@ -198,13 +211,14 @@ router.post("/getExcelDetailsData", async (req, res) => {
           route_title: "",
           received_amount,
           paid_amount,
+          unMatch: true,
         });
       }
     }
     let result = {
       total_recode: arrayData.length,
-      matched_recode: data.length,
-      unmatched_recode: arrayData.length - data.length,
+      matched_recode: data.filter((a) => !a.unMatch).length,
+      unmatched_recode: data.filter((a) => a.unMatch).length,
       total_paid_amount,
       total_received_amount,
       data,
