@@ -122,9 +122,10 @@ router.post("/getExcelDetailsData", async (req, res) => {
           ledger_uuid: 1,
           ledger_title: 1,
           transaction_tags: 1,
+          ledger_group_uuid: 1,
         }
       );
-      
+
       countersData = JSON.parse(JSON.stringify(countersData));
       ledgerData = JSON.parse(JSON.stringify(ledgerData));
       countersData = [...countersData, ...ledgerData];
@@ -201,6 +202,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
           received_amount,
           paid_amount,
           unMatch: false,
+          ledger_group_uuid: countersData.ledger_group_uuid || "",
         });
       else if (countersData.counter_uuid) {
         data.push({
@@ -322,7 +324,7 @@ router.post("/getLegerReport", async (req, res) => {
     });
     let balance = opening_balance?.amount || 0;
 
-    for(let item of oldAccountingVouchers){
+    for (let item of oldAccountingVouchers) {
       let amount = item.details.find(
         (i) => i.ledger_uuid === value.counter_uuid
       ).amount;
@@ -336,7 +338,7 @@ router.post("/getLegerReport", async (req, res) => {
     });
     response = JSON.parse(JSON.stringify(response));
     let result = [];
-    
+
     for (let item of response) {
       let orderData;
       if (!item.invoice_number)
