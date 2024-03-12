@@ -116,7 +116,18 @@ router.post("/getExcelDetailsData", async (req, res) => {
           route_uuid: 1,
         }
       );
+      let ledgerData = await Ledger.find(
+        { transaction_tags: { $in: narrationArray } },
+        {
+          ledger_uuid: 1,
+          ledger_title: 1,
+          transaction_tags: 1,
+        }
+      );
+      
       countersData = JSON.parse(JSON.stringify(countersData));
+      ledgerData = JSON.parse(JSON.stringify(ledgerData));
+      countersData = [...countersData, ...ledgerData];
       if (countersData.length) {
         //check counter with matches more narrations
         let narrationCountersData = [];

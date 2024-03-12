@@ -26,6 +26,11 @@ const Ledger = new mongoose.Schema({
   closing_balance: {
     type: Number,
   },
+  transaction_tags: [
+    {
+      type: String,
+    },
+  ],
 });
 
 module.exports = mongoose.model("ledger", Ledger);
