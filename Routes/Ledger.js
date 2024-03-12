@@ -316,6 +316,18 @@ router.post("/getLegerReport", async (req, res) => {
     } else if (opening_balance.length === 1) {
       opening_balance = opening_balance[0];
     }
+    let oldAccountingVouchers = await AccountingVoucher.find({
+      "details.ledger_uuid": value.counter_uuid,
+      created_at: { $gte: opening_balance.date, $lte: value.startDate },
+    });
+    let balance = opening_balance?.amount || 0;
+
+    for(let item of oldAccountingVouchers){
+      let amount = item.details.find(
+        (i) => i.ledger_uuid === value.counter_uuid
+      ).amount;
+      balance += amount;
+    }
 
     // ledger_uuid is in details
     let response = await AccountingVoucher.find({
@@ -324,7 +336,7 @@ router.post("/getLegerReport", async (req, res) => {
     });
     response = JSON.parse(JSON.stringify(response));
     let result = [];
-    let balance = opening_balance?.amount || 0;
+    
     for (let item of response) {
       let orderData;
       if (!item.invoice_number)

@@ -56,7 +56,9 @@ let ledger_list = [
       "036d4761-e375-4cae-b826-f2c154b3403b",
       "e13f277a-d700-4137-9395-c62598f26513",
     ],
-    amount_ledger: "1caf98e1-63c0-417c-81c8-fe85657f82e5",
+    local_sale_ledger: "1caf98e1-63c0-417c-81c8-fe85657f82e5",
+    central_sale_ledger: "8a0cac47-9eb6-40df-918f-ea744e1a142f",
+    purchase_igst_ledger: "19e35845-fb93-46ee-8160-20cecc4d52b3",
   },
   {
     value: 12,
@@ -64,7 +66,9 @@ let ledger_list = [
       "b997b4f4-8baf-443c-85b9-0cfcccb013fd",
       "93456bbd-ffbe-4ce6-a2a7-d483c7917f92",
     ],
-    amount_ledger: "a48035a8-f9c3-4232-8f5b-d168850c016d",
+    local_sale_ledger: "a48035a8-f9c3-4232-8f5b-d168850c016d",
+    central_sale_ledger: "6ba8115e-cc94-49f6-bd5b-386f000f8c1d",
+    purchase_igst_ledger: "d509223b-20e4-4cc2-941e-906ade1668dc",
   },
   {
     value: 18,
@@ -72,7 +76,9 @@ let ledger_list = [
       "ed787d1b-9b89-44e5-b828-c69352d1e336",
       "28b8428f-f8f3-404f-a696-c5777fbf4096",
     ],
-    amount_ledger: "81df442d-4106-49de-8a45-649c1ceb00ef",
+    local_sale_ledger: "81df442d-4106-49de-8a45-649c1ceb00ef",
+    central_sale_ledger: "3732892f-d5fa-415b-b72c-3e2d338e0e3f",
+    purchase_igst_ledger: "36ef8023-e769-4132-ad18-a368ba516782",
   },
   {
     value: 28,
@@ -80,11 +86,19 @@ let ledger_list = [
       "17612833-5f48-4cf8-8544-c5a1debed3ae",
       "60b6ccb7-37e4-40b2-a7d9-d84123c810e7",
     ],
-    amount_ledger: "b00a56db-344d-4c08-9d9a-933ab9ee378d",
+    local_sale_ledger: "b00a56db-344d-4c08-9d9a-933ab9ee378d",
+    central_sale_ledger: "aeae84fa-e4ce-4480-8448-250134d12004",
+    purchase_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
   },
 ];
 const createAccountingVoucher = async (order, type) => {
-  console.log(order);
+  let counterData = await Counters.findOne(
+    { counter_uuid: order.counter_uuid },
+    { gst: 1 }
+  );
+  let gst = counterData?.gst || "";
+  //check is gst starts with 27
+  let isGst = gst?.startsWith("27") ? true : false;
   const arr = [];
   const gst_value = Array.from(
     new Set(order.item_details.map((a) => +a.gst_percentage))
@@ -105,14 +119,22 @@ const createAccountingVoucher = async (order, type) => {
       let ledger = ledger_list.find((b) => b.value === a) || {};
       arr.push({
         amount: (amt - value).toFixed(3),
-        ledger_uuid: ledger?.amount_ledger,
+        ledger_uuid: isGst
+          ? ledger?.central_sale_ledger
+          : ledger?.local_sale_ledger,
       });
-
-      for (let item of ledger?.ledger_uuid || []) {
+      if (isGst) {
         arr.push({
-          amount: (value / 2).toFixed(3),
-          ledger_uuid: item,
+          amount: value.toFixed(3),
+          ledger_uuid: ledger?.purchase_igst_ledger,
         });
+      } else {
+        for (let item of ledger?.ledger_uuid || []) {
+          arr.push({
+            amount: (value / 2).toFixed(3),
+            ledger_uuid: item,
+          });
+        }
       }
     }
   }
@@ -125,9 +147,9 @@ const createAccountingVoucher = async (order, type) => {
     ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
   });
   arr.push({
-    ledger_uuid:order.counter_uuid,
-    amount:-(order.order_grandtotal||0),
-  })
+    ledger_uuid: order.counter_uuid,
+    amount: -(order.order_grandtotal || 0),
+  });
 
   const voucher = {
     accounting_voucher_uuid: uuid(),
@@ -138,8 +160,8 @@ const createAccountingVoucher = async (order, type) => {
     order_uuid: order.order_uuid,
     invoice_number: order.invoice_number,
     amount: order.order_grandtotal,
-    voucher_verification:arr.reduce((a,b)=>a+ +b.amount,0)?1:0,
-    voucher_difference:arr.reduce((a,b)=>a+ +b.amount,0)||0,
+    voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
+    voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
     details: arr,
     created_at: new Date().getTime(),
   };
