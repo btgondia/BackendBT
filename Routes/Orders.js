@@ -58,7 +58,7 @@ let ledger_list = [
     ],
     local_sale_ledger: "1caf98e1-63c0-417c-81c8-fe85657f82e5",
     central_sale_ledger: "8a0cac47-9eb6-40df-918f-ea744e1a142f",
-    purchase_igst_ledger: "19e35845-fb93-46ee-8160-20cecc4d52b3",
+    sale_igst_ledger: "f732ba11-c4fc-40c3-9b57-0f0e83e90c75",
   },
   {
     value: 12,
@@ -68,7 +68,7 @@ let ledger_list = [
     ],
     local_sale_ledger: "a48035a8-f9c3-4232-8f5b-d168850c016d",
     central_sale_ledger: "6ba8115e-cc94-49f6-bd5b-386f000f8c1d",
-    purchase_igst_ledger: "d509223b-20e4-4cc2-941e-906ade1668dc",
+    sale_igst_ledger: "61ba70f5-9de6-4a2e-8ace-bd0856358c42",
   },
   {
     value: 18,
@@ -78,7 +78,7 @@ let ledger_list = [
     ],
     local_sale_ledger: "81df442d-4106-49de-8a45-649c1ceb00ef",
     central_sale_ledger: "3732892f-d5fa-415b-b72c-3e2d338e0e3f",
-    purchase_igst_ledger: "36ef8023-e769-4132-ad18-a368ba516782",
+    sale_igst_ledger: "2d4f7d50-8c2e-457e-817a-a811bce3ac8d",
   },
   {
     value: 28,
@@ -88,7 +88,7 @@ let ledger_list = [
     ],
     local_sale_ledger: "b00a56db-344d-4c08-9d9a-933ab9ee378d",
     central_sale_ledger: "aeae84fa-e4ce-4480-8448-250134d12004",
-    purchase_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
+    sale_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
   },
 ];
 const createAccountingVoucher = async (order, type) => {
@@ -126,7 +126,7 @@ const createAccountingVoucher = async (order, type) => {
       if (isGst) {
         arr.push({
           amount: value.toFixed(3),
-          ledger_uuid: ledger?.purchase_igst_ledger,
+          ledger_uuid: ledger?.sale_igst_ledger,
         });
       } else {
         for (let item of ledger?.ledger_uuid || []) {
@@ -140,10 +140,10 @@ const createAccountingVoucher = async (order, type) => {
   }
   arr.push({
     amount:
-      order.order_grandtotal -
+      (order.order_grandtotal -
       (order.item_details
         ?.map((a) => +a?.item_total)
-        ?.reduce((a, b) => a + b, 0) || 0),
+        ?.reduce((a, b) => a + b, 0) || 0)).toFixed(3),
     ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
   });
   arr.push({

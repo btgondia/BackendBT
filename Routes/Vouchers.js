@@ -68,7 +68,17 @@ router.post("/postAccountVouchers", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-
+//delete accounting voucher by accounting_voucher_uuid
+router.delete("/deleteAccountVoucher", async (req, res) => {
+  try {
+    let { accounting_voucher_uuid } = req.body;
+    let response = await AccountingVoucher.deleteMany({ accounting_voucher_uuid });
+    if (response) res.json({ success: true, result: response });
+    else res.json({ success: false, message: "AccountVoucher Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 //get accounting voucher by accounting_voucher_uuid
 router.get("/getAccountVoucher/:accounting_voucher_uuid", async (req, res) => {
   try {

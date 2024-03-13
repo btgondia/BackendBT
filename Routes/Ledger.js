@@ -260,6 +260,7 @@ router.put("/putLedger", async (req, res) => {
         ledger_title: value.ledger_title,
         opening_balance: value.opening_balance,
         closing_balance: value.closing_balance,
+        transaction_tags: value.transaction_tags,
       }
     );
     if (response) {
