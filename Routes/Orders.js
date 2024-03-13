@@ -98,7 +98,7 @@ const createAccountingVoucher = async (order, type) => {
   );
   let gst = counterData?.gst || "";
   //check is gst starts with 27
-  let isGst = gst?.startsWith("27") ? true : false;
+  let isGst = gst?.startsWith("27")||!gst ? false : true;
   const arr = [];
   const gst_value = Array.from(
     new Set(order.item_details.map((a) => +a.gst_percentage))
