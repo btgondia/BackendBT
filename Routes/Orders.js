@@ -29,6 +29,19 @@ const { getOrderStage } = require("../utils/helperFunctions");
 const { get } = require("http");
 const StockTracker = require("../Models/StockTracker");
 const AccountingVouchers = require("../Models/AccountingVoucher");
+function truncateDecimals(number, digits) {
+  const stringNumber = number.toString();
+  const decimalIndex = stringNumber.indexOf(".");
+
+  if (decimalIndex === -1) {
+    // If there's no decimal point, return the original number
+    return number;
+  }
+
+  const truncatedString = stringNumber.slice(0, decimalIndex + 1 + digits);
+  console.log({ number, truncatedString });
+  return parseFloat(truncatedString).toFixed(2);
+}
 
 // const textTable = unpaid_receipts => {
 //   console.log(JSON.stringify(unpaid_receipts))
@@ -98,7 +111,7 @@ const createAccountingVoucher = async (order, type) => {
   );
   let gst = counterData?.gst || "";
   //check is gst starts with 27
-  let isGst = gst?.startsWith("27")||!gst ? false : true;
+  let isGst = gst?.startsWith("27") || !gst ? false : true;
   const arr = [];
   const gst_value = Array.from(
     new Set(order.item_details.map((a) => +a.gst_percentage))
@@ -108,7 +121,9 @@ const createAccountingVoucher = async (order, type) => {
     const data = order.item_details.filter((b) => +b.gst_percentage === a);
     const amt =
       data.length > 1
-        ? data.map((b) => +b?.item_total).reduce((a, b) => a + b, 0)
+        ? data
+            .map((b) => truncateDecimals(+b?.item_total, 3))
+            .reduce((a, b) => a + b, 0)
         : data.length
         ? +data[0].item_total
         : 0;
@@ -118,20 +133,20 @@ const createAccountingVoucher = async (order, type) => {
     if (value) {
       let ledger = ledger_list.find((b) => b.value === a) || {};
       arr.push({
-        amount: (amt - value).toFixed(3),
+        amount: truncateDecimals(amt - value, 3),
         ledger_uuid: isGst
           ? ledger?.central_sale_ledger
           : ledger?.local_sale_ledger,
       });
       if (isGst) {
         arr.push({
-          amount: value.toFixed(3),
+          amount: truncateDecimals(value, 3),
           ledger_uuid: ledger?.sale_igst_ledger,
         });
       } else {
         for (let item of ledger?.ledger_uuid || []) {
           arr.push({
-            amount: (value / 2).toFixed(3),
+            amount: truncateDecimals(value / 2, 3),
             ledger_uuid: item,
           });
         }
@@ -139,16 +154,18 @@ const createAccountingVoucher = async (order, type) => {
     }
   }
   arr.push({
-    amount:
-      (order.order_grandtotal -
-      (order.item_details
-        ?.map((a) => +a?.item_total)
-        ?.reduce((a, b) => a + b, 0) || 0)).toFixed(3),
+    amount: truncateDecimals(
+      order.order_grandtotal -
+        (order.item_details
+          ?.map((a) => +a?.item_total)
+          ?.reduce((a, b) => a + b, 0) || 0),
+      3
+    ),
     ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
   });
   arr.push({
     ledger_uuid: order.counter_uuid,
-    amount: -(order.order_grandtotal || 0),
+    amount: -truncateDecimals((order.order_grandtotal || 0),3),
   });
 
   const voucher = {
