@@ -7,6 +7,7 @@ const Item = require("../Models/Item");
 const AccountingVoucher = require("../Models/AccountingVoucher");
 
 const Vochers = require("../Models/Vochers");
+const { updateCounterClosingBalance } = require("../utils/helperFunctions");
 
 router.post("/postAccountVoucher", async (req, res) => {
   try {
@@ -23,6 +24,7 @@ router.post("/postAccountVoucher", async (req, res) => {
       accounting_voucher_number: "V" + next_accounting_voucher_number,
     };
     console.log(value);
+    await updateCounterClosingBalance(value.details, "add");
     let response = await AccountingVoucher.create(value);
     if (response) {
       await Details.updateMany(
@@ -52,6 +54,7 @@ router.post("/postAccountVouchers", async (req, res) => {
         accounting_voucher_number: "V" + next_accounting_voucher_number,
       };
       console.log(item);
+      await updateCounterClosingBalance(item.details, "add");
       let response = await AccountingVoucher.create(item);
       if (response) {
         await Details.updateMany(
@@ -72,9 +75,13 @@ router.post("/postAccountVouchers", async (req, res) => {
 router.delete("/deleteAccountVoucher", async (req, res) => {
   try {
     let { accounting_voucher_uuid } = req.body;
-    let response = await AccountingVoucher.deleteMany({ accounting_voucher_uuid });
-    if (response) res.json({ success: true, result: response });
-    else res.json({ success: false, message: "AccountVoucher Not created" });
+    await updateCounterClosingBalance([], "delete", accounting_voucher_uuid);
+    let response = await AccountingVoucher.deleteMany({
+      accounting_voucher_uuid,
+    });
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "AccountVoucher Not created" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -95,6 +102,11 @@ router.put("/putAccountVoucher", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
+    await updateCounterClosingBalance(
+      value.details,
+      "update",
+      value.accounting_voucher_uuid
+    );
     let response = await AccountingVoucher.updateOne(
       { accounting_voucher_uuid: value.accounting_voucher_uuid },
       value

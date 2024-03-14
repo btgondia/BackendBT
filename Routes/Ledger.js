@@ -342,6 +342,9 @@ router.post("/getLegerReport", async (req, res) => {
 
     for (let item of response) {
       let orderData;
+      if (!item.accounting_voucher_uuid) {
+        continue;
+      }
       if (!item.invoice_number)
         orderData = await OrderCompleted.findOne({
           order_uuid: item.order_uuid,
@@ -370,4 +373,111 @@ router.post("/getLegerReport", async (req, res) => {
   }
 });
 
+router.post("/getOpeningBalanceReport", async (req, res) => {
+  try {
+    let { date } = req.body;
+    let ledgersData = await Ledger.find(
+      {},
+      { ledger_uuid: 1, opening_balance: 1, ledger_title: 1 }
+    );
+    let countersData = await Counters.find(
+      {},
+      { counter_uuid: 1, opening_balance: 1, counter_title: 1 }
+    );
+    ledgersData = JSON.parse(JSON.stringify(ledgersData));
+    countersData = JSON.parse(JSON.stringify(countersData));
+    let result = [];
+    for (let item of ledgersData) {
+      let opening_balance = item.opening_balance.find((a) => a.date == date);
+      if (item.ledger_title)
+        result.push({
+          ledger_uuid: item.ledger_uuid,
+          opening_balance: opening_balance?.amount || 0,
+          title: item.ledger_title,
+        });
+    }
+    for (let item of countersData) {
+      let opening_balance = item.opening_balance.find((a) => +a.date === +date);
+      if (item.opening_balance.length) {
+        console.log(item.opening_balance, date, opening_balance);
+      }
+      if (item.counter_title)
+        result.push({
+          counter_uuid: item.counter_uuid,
+          opening_balance: opening_balance?.amount || 0,
+          title: item.counter_title,
+        });
+    }
+    if (result.length) {
+      res.json({ success: true, result });
+    } else res.json({ success: false, message: "Ledger Not Found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+
+//update opening balance of ledger or counter
+router.put("/updateOpeningBalance", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let response;
+    if (value.ledger_uuid) {
+      let ledgerData = await Ledger.findOne(
+        { ledger_uuid: value.ledger_uuid },
+        { opening_balance: 1 }
+      );
+      opening_balance = ledgerData.opening_balance;
+      if (opening_balance.length) {
+        let index = opening_balance.findIndex((a) => a.date === value.date);
+        if (index > -1) {
+          opening_balance[index].amount = value.amount;
+        } else {
+          opening_balance.push({ amount: value.amount, date: value.date });
+        }
+      } else {
+        opening_balance = [{ amount: value.amount, date: value.date }];
+      }
+      console.log({ opening_balance });
+      response = await Ledger.updateOne(
+        { ledger_uuid: value.ledger_uuid },
+        {
+          $set: {
+            opening_balance,
+          },
+        }
+      );
+    } else {
+      let counterData = await Counters.findOne(
+        { counter_uuid: value.counter_uuid },
+        { opening_balance: 1 }
+      );
+      opening_balance = counterData.opening_balance;
+      if (opening_balance.length) {
+        let index = opening_balance.findIndex((a) => a.date === value.date);
+        if (index > -1) {
+          opening_balance[index].amount = value.amount;
+        } else {
+          opening_balance.push({ amount: value.amount, date: value.date });
+        }
+      } else {
+        opening_balance = [{ amount: value.amount, date: value.date }];
+      }
+      console.log({ opening_balance });
+      response = await Counters.updateOne(
+        { counter_uuid: value.counter_uuid },
+        {
+          $set: {
+            opening_balance,
+          },
+        }
+      );
+    }
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Opening Balance Not Updated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 module.exports = router;

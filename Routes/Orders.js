@@ -25,7 +25,7 @@ const { getReceipts, getRunningOrders, getDate } = require("../modules/index");
 const { sendMessages, compaignShooter } = require("../modules/messagesHandler");
 const { generatePDFs, getFileName } = require("../modules/puppeteerUtilities");
 const CounterCharges = require("../Models/CounterCharges");
-const { getOrderStage } = require("../utils/helperFunctions");
+const { getOrderStage, updateCounterClosingBalance } = require("../utils/helperFunctions");
 const { get } = require("http");
 const StockTracker = require("../Models/StockTracker");
 const AccountingVouchers = require("../Models/AccountingVoucher");
@@ -165,7 +165,7 @@ const createAccountingVoucher = async (order, type) => {
   });
   arr.push({
     ledger_uuid: order.counter_uuid,
-    amount: -truncateDecimals((order.order_grandtotal || 0),3),
+    amount: -truncateDecimals(order.order_grandtotal || 0, 3),
   });
 
   const voucher = {
@@ -183,6 +183,7 @@ const createAccountingVoucher = async (order, type) => {
     created_at: new Date().getTime(),
   };
   await AccountingVouchers.create(voucher);
+  await updateCounterClosingBalance(voucher.details, "add");
 };
 const checkingOrderSkip = async (status) => {
   let order_status = status;

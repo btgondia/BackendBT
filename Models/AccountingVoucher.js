@@ -1,26 +1,29 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const accountingVoucherSchema = new mongoose.Schema({
-  accounting_voucher_uuid: String,
-  accounting_voucher_number: String,
-  created_at: Number,
-  created_by: String,
-  type: String,
-  amt: Number,
-  voucher_date: String,
-  order_uuid: String,
-  invoice_number: Number,
-  recept_number: String,
-  voucher_difference: Number,
-  voucher_verification: Number,
+  accounting_voucher_uuid: { type: String },
+  accounting_voucher_number: { type: String },
+  created_at: { type: Number },
+  created_by: { type: String },
+  type: { type: String },
+  amt: { type: Number },
+  voucher_date: { type: String },
+  order_uuid: { type: String },
+  invoice_number: { type: Number },
+  recept_number: { type: String },
+  voucher_difference: { type: Number },
+  voucher_verification: { type: Number },
   details: [
     {
-      ledger_uuid: String,
-      amount: Number
-    }
-  ]
+      ledger_uuid: { type: String },
+      amount: { type: Number },
+    },
+  ],
 });
 
-const AccountingVoucher = mongoose.model('accounting_voucher', accountingVoucherSchema);
+const AccountingVoucher = mongoose.model(
+  "accounting_voucher",
+  accountingVoucherSchema
+);
 
 module.exports = AccountingVoucher;
