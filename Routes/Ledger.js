@@ -203,11 +203,12 @@ router.post("/getExcelDetailsData", async (req, res) => {
           paid_amount,
           unMatch: false,
           ledger_group_uuid: countersData.ledger_group_uuid || "",
+          transaction_tags: narrationArray,
         });
       else if (countersData.counter_uuid) {
         data.push({
           sr: +bankStatementItem.start_from_line + index,
-          reference_no: "Unmatched",
+          reference_no: "",
           counter_title: countersData.counter_title || "",
           route_title: routeData?.route_title || "",
           counter_uuid: countersData.counter_uuid,
@@ -215,16 +216,18 @@ router.post("/getExcelDetailsData", async (req, res) => {
           received_amount,
           paid_amount,
           unMatch: true,
+          transaction_tags: narrationArray,
         });
       } else {
         data.push({
           sr: +bankStatementItem.start_from_line + index,
           reference_no: "",
-          counter_title: "Unmatched",
+          counter_title: "",
           route_title: "",
           received_amount,
           paid_amount,
           unMatch: true,
+          transaction_tags: narrationArray,
         });
       }
     }
@@ -476,6 +479,62 @@ router.put("/updateOpeningBalance", async (req, res) => {
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Opening Balance Not Updated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+//updateTransactionTags
+router.post("/updateTransactionTags", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let response;
+    if (value.ledger_uuid) {
+      let ledgerData = await Ledger.findOne(
+        { ledger_uuid: value.ledger_uuid },
+        { transaction_tags: 1 }
+      );
+      ledgerData = JSON.parse(JSON.stringify(ledgerData));
+      let transaction_tags = [
+        ...value.transaction_tags,
+        ...(ledgerData.transaction_tags || []),
+      ];
+      //remove duplicate transaction tags
+      transaction_tags = Array.from(new Set(transaction_tags));
+
+      response = await Ledger.updateOne(
+        { ledger_uuid: value.ledger_uuid },
+        {
+          $set: {
+            transaction_tags,
+          },
+        }
+      );
+    } else {
+      let counterData = await Counters.findOne(
+        { counter_uuid: value.counter_uuid },
+        { transaction_tags: 1 }
+      );
+      counterData = JSON.parse(JSON.stringify(counterData));
+      let transaction_tags = [
+        ...value.transaction_tags,
+        ...(counterData.transaction_tags || []),
+      ];
+      //remove duplicate transaction tags
+      transaction_tags = Array.from(new Set(transaction_tags));
+      response = await Counters.updateOne(
+        { counter_uuid: value.counter_uuid },
+        {
+          $set: {
+            transaction_tags,
+          },
+        }
+      );
+    }
+    if (response) {
+      res.json({ success: true, result: response });
+    } else
+      res.json({ success: false, message: "Transaction Tags Not Updated" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }

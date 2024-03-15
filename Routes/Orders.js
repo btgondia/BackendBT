@@ -25,42 +25,12 @@ const { getReceipts, getRunningOrders, getDate } = require("../modules/index");
 const { sendMessages, compaignShooter } = require("../modules/messagesHandler");
 const { generatePDFs, getFileName } = require("../modules/puppeteerUtilities");
 const CounterCharges = require("../Models/CounterCharges");
-const { getOrderStage, updateCounterClosingBalance } = require("../utils/helperFunctions");
-const { get } = require("http");
+const {
+  getOrderStage,
+  updateCounterClosingBalance,
+} = require("../utils/helperFunctions");
 const StockTracker = require("../Models/StockTracker");
 const AccountingVouchers = require("../Models/AccountingVoucher");
-function truncateDecimals(number, digits) {
-  const stringNumber = number.toString();
-  const decimalIndex = stringNumber.indexOf(".");
-
-  if (decimalIndex === -1) {
-    // If there's no decimal point, return the original number
-    return number;
-  }
-
-  const truncatedString = stringNumber.slice(0, decimalIndex + 1 + digits);
-  console.log({ number, truncatedString });
-  return parseFloat(truncatedString).toFixed(2);
-}
-
-// const textTable = unpaid_receipts => {
-//   console.log(JSON.stringify(unpaid_receipts))
-
-//   const heads = ["Order Date", "Order Number", "Amount"]
-//   const padding = length => (length > 0 ? Array(length).fill(" ").join("") : "")
-//   const rows = unpaid_receipts?.map(i => [
-//     new Date(+i?.order_date).toDateString(),
-//     i?.invoice_number?.toString(),
-//     i?.amt?.toString(),
-//   ])
-
-//   const max_length = Math.max(...heads.map(i => i.length).concat(rows.map(i => Math.max(...i.map(_i => _i?.length)))))
-//   const getString = str => str + padding(max_length - str.length)
-//   const messages =
-//     `\n${heads?.map(getString).join(" | ")}\n\n` + rows?.map(i => i.map(getString)?.join(" | "))?.join("\n")
-
-//   return messages
-// }
 
 let ledger_list = [
   {
@@ -121,32 +91,30 @@ const createAccountingVoucher = async (order, type) => {
     const data = order.item_details.filter((b) => +b.gst_percentage === a);
     const amt =
       data.length > 1
-        ? data
-            .map((b) => truncateDecimals(+b?.item_total, 3))
-            .reduce((a, b) => a + b, 0)
+        ? data.map((b) => +b?.item_total || 0).reduce((a, b) => a + b, 0)
         : data.length
         ? +data[0].item_total
         : 0;
-
-    const value = +amt - (+amt * 100) / (100 + a);
+    const value = (+amt - (+amt * 100) / (100 + a)).toFixed(3);
+    console.log({ value, amt });
 
     if (value) {
       let ledger = ledger_list.find((b) => b.value === a) || {};
       arr.push({
-        amount: truncateDecimals(amt - value, 3),
+        amount: (amt - value).toFixed(3),
         ledger_uuid: isGst
           ? ledger?.central_sale_ledger
           : ledger?.local_sale_ledger,
       });
       if (isGst) {
         arr.push({
-          amount: truncateDecimals(value, 3),
+          amount: value,
           ledger_uuid: ledger?.sale_igst_ledger,
         });
       } else {
         for (let item of ledger?.ledger_uuid || []) {
           arr.push({
-            amount: truncateDecimals(value / 2, 3),
+            amount: value / 2,
             ledger_uuid: item,
           });
         }
@@ -154,18 +122,17 @@ const createAccountingVoucher = async (order, type) => {
     }
   }
   arr.push({
-    amount: truncateDecimals(
+    amount: (
       order.order_grandtotal -
-        (order.item_details
-          ?.map((a) => +a?.item_total)
-          ?.reduce((a, b) => a + b, 0) || 0),
-      3
-    ),
+      (order.item_details
+        ?.map((a) => +a?.item_total)
+        ?.reduce((a, b) => a + b, 0) || 0)
+    ).toFixed(2),
     ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
   });
   arr.push({
     ledger_uuid: order.counter_uuid,
-    amount: -truncateDecimals(order.order_grandtotal || 0, 3),
+    amount: -order.order_grandtotal || 0,
   });
 
   const voucher = {

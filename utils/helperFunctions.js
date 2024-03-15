@@ -7,6 +7,18 @@ function getOrderStage(status = []) {
   let max = Math.max(...numbers);
   return max;
 }
+function truncateDecimals(number, digits) {
+  const stringNumber = number.toString();
+  const decimalIndex = stringNumber.indexOf(".");
+
+  if (decimalIndex === -1) {
+    // If there's no decimal point, return the original number
+    return number;
+  }
+
+  const truncatedString = stringNumber.slice(0, decimalIndex + 1 + digits);
+  return parseFloat(truncatedString);
+}
 const updateCounterClosingBalance = async (
   details,
   type,
@@ -24,7 +36,7 @@ const updateCounterClosingBalance = async (
             { counter_uuid: counter.ledger_uuid },
             {
               $inc: {
-                closing_balance: +(counter.amount || 0),
+                closing_balance: truncateDecimals(+(counter.amount || 0), 2),
               },
             }
           );
@@ -41,7 +53,7 @@ const updateCounterClosingBalance = async (
             { ledger_uuid: counter.ledger_uuid },
             {
               $inc: {
-                closing_balance: +(counter.amount || 0),
+                closing_balance: truncateDecimals(+(counter.amount || 0), 2),
               },
             }
           );
@@ -66,7 +78,10 @@ const updateCounterClosingBalance = async (
             { counter_uuid: counter.ledger_uuid },
             {
               $inc: {
-                closing_balance: +(counter.amount || 0) - (old_amount || 0),
+                closing_balance: truncateDecimals(
+                  +(counter.amount || 0) - (old_amount || 0),
+                  2
+                ),
               },
             }
           );
@@ -83,7 +98,10 @@ const updateCounterClosingBalance = async (
             { ledger_uuid: counter.ledger_uuid },
             {
               $inc: {
-                closing_balance: +(counter.amount || 0) - (old_amount || 0),
+                closing_balance: truncateDecimals(
+                  +(counter.amount || 0) - (old_amount || 0),
+                  2
+                ),
               },
             }
           );
@@ -108,7 +126,7 @@ const updateCounterClosingBalance = async (
             { counter_uuid: counter.ledger_uuid },
             {
               $inc: {
-                closing_balance: -(counter.amount || 0),
+                closing_balance: truncateDecimals(-(counter.amount || 0), 2),
               },
             }
           );
@@ -125,7 +143,7 @@ const updateCounterClosingBalance = async (
             { ledger_uuid: counter.ledger_uuid },
             {
               $inc: {
-                closing_balance: -(counter.amount || 0),
+                closing_balance: truncateDecimals(-(counter.amount || 0), 2),
               },
             }
           );
@@ -140,4 +158,5 @@ const updateCounterClosingBalance = async (
 module.exports = {
   getOrderStage,
   updateCounterClosingBalance,
+  truncateDecimals,
 };
