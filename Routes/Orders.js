@@ -74,7 +74,7 @@ let ledger_list = [
     sale_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
   },
 ];
-const createAccountingVoucher = async (order, type) => {
+const createAccountingVoucher = async (order, type, isEdit) => {
   let counterData = await Counters.findOne(
     { counter_uuid: order.counter_uuid },
     { gst: 1 }
@@ -134,23 +134,35 @@ const createAccountingVoucher = async (order, type) => {
     ledger_uuid: order.counter_uuid,
     amount: -order.order_grandtotal || 0,
   });
-
-  const voucher = {
-    accounting_voucher_uuid: uuid(),
-    type: type,
-    voucher_date: new Date().getTime(),
-    user_uuid: order.user_uuid,
-    counter_uuid: order.counter_uuid,
-    order_uuid: order.order_uuid,
-    invoice_number: order.invoice_number,
-    amount: order.order_grandtotal,
-    voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
-    voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
-    details: arr,
-    created_at: new Date().getTime(),
-  };
-  await AccountingVouchers.create(voucher);
-  await updateCounterClosingBalance(voucher.details, "add");
+  if (isEdit) {
+    await AccountingVouchers.updateOne(
+      { order_uuid: order.order_uuid },
+      {
+        details: arr,
+        voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
+        voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
+        amount: order.order_grandtotal,
+      }
+    );
+    await updateCounterClosingBalance(arr, "edit", order.order_uuid);
+  } else {
+    const voucher = {
+      accounting_voucher_uuid: uuid(),
+      type: type,
+      voucher_date: new Date().getTime(),
+      user_uuid: order.user_uuid,
+      counter_uuid: order.counter_uuid,
+      order_uuid: order.order_uuid,
+      invoice_number: order.invoice_number,
+      amount: order.order_grandtotal,
+      voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
+      voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
+      details: arr,
+      created_at: new Date().getTime(),
+    };
+    await AccountingVouchers.create(voucher);
+    await updateCounterClosingBalance(voucher.details, "add");
+  }
 };
 const checkingOrderSkip = async (status) => {
   let order_status = status;
@@ -710,6 +722,7 @@ router.put("/putOrders", async (req, res) => {
             { order_uuid: value.order_uuid },
             value
           );
+          createAccountingVoucher(value, "SALE_ORDER", true);
         } else {
           if (
             !(await OrderCompleted.exists({ order_uuid: value.order_uuid }))
@@ -985,7 +998,10 @@ router.put("/putOrders", async (req, res) => {
             { order_uuid: value.order_uuid },
             value
           );
-          if (data.acknowledged) response.push(value);
+          if (data.acknowledged) {
+            createAccountingVoucher(value, "SALE_ORDER", true);
+            response.push(value);
+          }
         }
       }
 
@@ -1487,6 +1503,7 @@ router.put("/putCompleteOrder", async (req, res) => {
       value
     );
     if (data.acknowledged) {
+      createAccountingVoucher(value, "SALE_ORDER", true);
       res.json({
         success: true,
         result: data,
@@ -1520,6 +1537,7 @@ router.put("/putOrderNotes", async (req, res) => {
         value
       );
     if (data.acknowledged) {
+      createAccountingVoucher(value, "SALE_ORDER", true);
       res.json({
         success: true,
         result: data,

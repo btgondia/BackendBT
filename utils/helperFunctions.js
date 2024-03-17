@@ -62,7 +62,15 @@ const updateCounterClosingBalance = async (
       break;
     case "update":
       let VoucherData = await AccountingVoucher.findOne(
-        { accounting_voucher_uuid: accounting_voucher_uuid },
+        {
+          $or: [
+            { accounting_voucher_uuid: accounting_voucher_uuid },
+            { voucher_no: accounting_voucher_uuid },
+            {order_uuid: accounting_voucher_uuid},
+            {recept_number: accounting_voucher_uuid},
+            
+          ],
+        },
         { details: 1 }
       );
       for (let counter of details) {
@@ -157,16 +165,16 @@ const updateCounterClosingBalance = async (
 
 function removeCommas(input) {
   // Check if input is not NaN and is a valid number
-  if (!isNaN(input) && typeof input === 'number') {
-      // Convert number to string and remove commas
-      return input.toString().replace(/,/g, '');
+  if (!isNaN(input) && typeof input === "number") {
+    // Convert number to string and remove commas
+    return input.toString().replace(/,/g, "");
   } else if (!isNaN(parseFloat(input))) {
-      // Convert string to number and remove commas
-      let numberWithoutCommas = parseFloat(input.replace(/,/g, ''));
-      // Check if the number is not NaN
-      if (!isNaN(numberWithoutCommas)) {
-          return numberWithoutCommas;
-      }
+    // Convert string to number and remove commas
+    let numberWithoutCommas = parseFloat(input.replace(/,/g, ""));
+    // Check if the number is not NaN
+    if (!isNaN(numberWithoutCommas)) {
+      return numberWithoutCommas;
+    }
   }
   return 0;
 }
@@ -174,5 +182,5 @@ module.exports = {
   getOrderStage,
   updateCounterClosingBalance,
   truncateDecimals,
-  removeCommas
+  removeCommas,
 };

@@ -85,6 +85,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
     if (paid_amount) total_paid_amount += +paid_amount;
     if (!narration) continue;
     let separators = bankStatementItem.separator;
+    console.log({  separators });
 
     let narrationArray = [];
     for (let separator of separators) {
@@ -110,6 +111,10 @@ router.post("/getExcelDetailsData", async (req, res) => {
     narrationArray = [...narrationArray, ...zeroStartedArray];
     //remove dulicates from narration array
     narrationArray = Array.from(new Set(narrationArray));
+    console.log({
+      sr: +bankStatementItem.start_from_line + index,
+      narrationArray,
+    });
 
     // find counter or ledger includs transaction_tags matches with narration
     let countersData = await Counters.find(
