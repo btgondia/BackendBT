@@ -8,6 +8,7 @@ const cash_register_transections = require("../Models/cash_register_transections
 const { getReceipts } = require("../modules/index");
 const PaymentModes = require("../Models/PaymentModes");
 const AccountingVoucher = require("../Models/AccountingVoucher");
+const { updateCounterClosingBalance } = require("../utils/helperFunctions");
 
 const createAccountingVoucher = async (order, type, recept_number, isEdit) => {
   const arr = [];

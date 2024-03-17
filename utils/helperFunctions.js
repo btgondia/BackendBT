@@ -1,6 +1,10 @@
 const AccountingVoucher = require("../Models/AccountingVoucher");
 const Counters = require("../Models/Counters");
+const Item = require("../Models/Item");
 const Ledger = require("../Models/Ledger");
+const OrderCompleted = require("../Models/OrderCompleted");
+const Orders = require("../Models/Orders");
+const StockTracker = require("../Models/StockTracker");
 
 function getOrderStage(status = []) {
   let numbers = status.map((item) => +item.stage);
@@ -66,9 +70,8 @@ const updateCounterClosingBalance = async (
           $or: [
             { accounting_voucher_uuid: accounting_voucher_uuid },
             { voucher_no: accounting_voucher_uuid },
-            {order_uuid: accounting_voucher_uuid},
-            {recept_number: accounting_voucher_uuid},
-            
+            { order_uuid: accounting_voucher_uuid },
+            { recept_number: accounting_voucher_uuid },
           ],
         },
         { details: 1 }
@@ -178,9 +181,77 @@ function removeCommas(input) {
   }
   return 0;
 }
+
+
+const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
+  console.log("isEdit", isEdit);
+  if (!warehouse_uuid || !items?.length) return;
+  try {
+    for (let item of items) {
+      let itemData = (
+        await Item.findOne({ item_uuid: item.item_uuid })
+      )?.toObject();
+
+      let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0);
+
+      let stock = itemData.stock;
+      stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)?.length
+        ? stock.map((a) =>
+            a.warehouse_uuid === warehouse_uuid
+              ? { ...a, qty: +a.qty - +qty }
+              : a
+          )
+        : [
+            ...(stock?.length ? stock : []),
+            {
+              warehouse_uuid: warehouse_uuid,
+              min_level: 0,
+              qty: -qty,
+            },
+          ];
+      console.log("stockAdd", qty);
+      await Item.updateOne({ item_uuid: item.item_uuid }, { stock });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+  if (isEdit) {
+    let orderData = await OrderCompleted.findOne({ order_uuid });
+    if (!orderData) orderData = await Orders.findOne({ order_uuid }, { item_details: 1 });
+    let old_items = orderData?.item_details || [];
+    console.log("old_items", old_items);
+    for (let item of old_items) {
+      let itemData = (
+        await Item.findOne({ item_uuid: item.item_uuid })
+      )?.toObject();
+
+      let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0);
+
+      let stock = itemData.stock;
+      stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)?.length
+        ? stock.map((a) =>
+            a.warehouse_uuid === warehouse_uuid
+              ? { ...a, qty: +a.qty + +qty }
+              : a
+          )
+        : [
+            ...(stock?.length ? stock : []),
+            {
+              warehouse_uuid: warehouse_uuid,
+              min_level: 0,
+              qty: qty,
+            },
+          ];
+      console.log("stockUpdate", qty);
+
+      await Item.updateOne({ item_uuid: item.item_uuid }, { stock });
+    }
+  }
+};
 module.exports = {
   getOrderStage,
   updateCounterClosingBalance,
   truncateDecimals,
   removeCommas,
+  updateItemStock,
 };

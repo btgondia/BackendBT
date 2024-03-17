@@ -28,6 +28,7 @@ const CounterCharges = require("../Models/CounterCharges");
 const {
   getOrderStage,
   updateCounterClosingBalance,
+  updateItemStock,
 } = require("../utils/helperFunctions");
 const StockTracker = require("../Models/StockTracker");
 const AccountingVouchers = require("../Models/AccountingVoucher");
@@ -195,120 +196,6 @@ const checkingOrderSkip = async (status) => {
   // console.log({ order_status });
   return order_status;
 };
-const updateStockTracker = async (
-  stockData,
-  warehouse_uuid,
-  qty,
-  order_uuid,
-  invoice_number,
-  item
-) => {
-  if (stockData) {
-    let stock = stockData.stock;
-
-    stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)?.length
-      ? stock.map((a) =>
-          a.warehouse_uuid === warehouse_uuid
-            ? {
-                ...a,
-                qty: +a.qty - +qty,
-                orders: [
-                  ...a.orders,
-                  {
-                    order_uuid,
-                    invoice_number,
-                    time: new Date().getTime(),
-                    qty: -qty,
-                  },
-                ],
-              }
-            : a
-        )
-      : [
-          ...(stock?.length ? stock : []),
-          {
-            warehouse_uuid: warehouse_uuid,
-
-            qty: -qty,
-            orders: [
-              {
-                order_uuid,
-                invoice_number,
-                time: new Date().getTime(),
-                qty: -qty,
-              },
-            ],
-          },
-        ];
-
-    await StockTracker.updateOne({ item_uuid: item.item_uuid }, { stock });
-  } else {
-    let stock = [
-      {
-        warehouse_uuid: warehouse_uuid,
-
-        qty: -qty,
-        orders: [
-          {
-            order_uuid,
-            invoice_number,
-            timestamp: new Date().getTime(),
-            qty: -qty,
-          },
-        ],
-      },
-    ];
-
-    await StockTracker.create({ item_uuid: item.item_uuid, stock });
-  }
-};
-const updateItemStock = async (
-  warehouse_uuid,
-  items,
-  order_uuid,
-  invoice_number
-) => {
-  if (!warehouse_uuid || !items?.length) return;
-  try {
-    for (let item of items) {
-      let itemData = (
-        await Item.findOne({ item_uuid: item.item_uuid })
-      )?.toObject();
-
-      let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0);
-      let stockData = await StockTracker.findOne({ item_uuid: item.item_uuid });
-
-      updateStockTracker(
-        stockData,
-        warehouse_uuid,
-        qty,
-        order_uuid,
-        invoice_number,
-        item
-      );
-
-      let stock = itemData.stock;
-      stock = stock?.filter((a) => a.warehouse_uuid === warehouse_uuid)?.length
-        ? stock.map((a) =>
-            a.warehouse_uuid === warehouse_uuid
-              ? { ...a, qty: +a.qty - +qty }
-              : a
-          )
-        : [
-            ...(stock?.length ? stock : []),
-            {
-              warehouse_uuid: warehouse_uuid,
-              min_level: 0,
-              qty: -qty,
-            },
-          ];
-
-      await Item.updateOne({ item_uuid: item.item_uuid }, { stock });
-    }
-  } catch (error) {
-    console.log(error);
-  }
-};
 
 router.get("/paymentPending/:counter_uuid", async (req, res) => {
   try {
@@ -461,12 +348,11 @@ router.post("/postOrder", async (req, res) => {
       }
     }
 
-    if (orderStage >= 3) {
+    if (orderStage >= 3.5) {
       await updateItemStock(
         value?.warehouse_uuid,
         value?.item_details,
-        value?.order_uuid,
-        value.invoice_number
+        value?.order_uuid
       );
     }
 
@@ -639,67 +525,34 @@ router.put("/putOrders", async (req, res) => {
 
       console.log({ old_stage, new_stage });
       if (warehouse_uuid && prevData?.order_uuid && new_stage >= 3) {
-        let stocksUpdate = [];
-
-        if (new_stage >= 3.5 && old_stage < 3.5) {
-          for (const i of value?.item_details) {
-            stocksUpdate.push({
-              item_uuid: i.item_uuid,
-              free: i.free,
-              b: i.b,
-              p: i.p,
-            });
-          }
-        } else if (old_stage >= 3) {
+        if (old_stage >= 3) {
           const deletedItems = prevData?.item_details?.filter(
             (i) =>
               !value?.item_details?.find((_i) => _i.item_uuid === i.item_uuid)
           );
-
-          for (const i of deletedItems) {
-            stocksUpdate.push({
-              item_uuid: i.item_uuid,
-              free: -i.free,
-              b: -i.b,
-              p: -i.p,
-            });
-          }
 
           if (new_stage === 5) {
             for (const i of value?.item_details) {
               old_order_item = prevData?.item_details?.find(
                 (_i) => _i.item_uuid === i.item_uuid
               );
-              stocksUpdate.push({
-                item_uuid: i.item_uuid,
-                free: -old_order_item?.free || 0,
-                b: -old_order_item?.b || 0,
-                p: -old_order_item?.p || 0,
-              });
             }
           } else {
             for (const i of value?.item_details) {
               old_order_item = prevData?.item_details?.find(
                 (_i) => _i.item_uuid === i.item_uuid
               );
-              stocksUpdate.push({
-                item_uuid: i.item_uuid,
-                free: i.free - (old_order_item?.free || 0),
-                b: i.b - (old_order_item?.b || 0),
-                p: i.p - (old_order_item?.p || 0),
-              });
             }
           }
         }
-
-        stocksUpdate = stocksUpdate.filter(
-          (i) => (i.free || 0) + (i.b || 0) + (i.p || 0)
-        );
+      }
+      console.log({ old_stage, new_stage });
+      if (old_stage <= 3.5 && new_stage >= 3.5) {
         await updateItemStock(
           warehouse_uuid,
-          stocksUpdate,
+          value?.item_details,
           value.order_uuid,
-          prevData.invoice_number
+          old_stage === new_stage
         );
       }
 
@@ -714,14 +567,27 @@ router.put("/putOrders", async (req, res) => {
 
         if (+new_stage === 5 || value?.item_details?.length === 0) {
           data = await CancelOrders.create(value);
+          await updateItemStock(
+            value?.warehouse_uuid,
+            value?.item_details,
+            value?.order_uuid,
+            true
+          );
           await Orders.deleteOne({ order_uuid: value.order_uuid });
           const filepath = `uploads/${getFileName(value)}`;
           if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
         } else if (data) {
+          await updateItemStock(
+            value?.warehouse_uuid,
+            value?.item_details,
+            value?.order_uuid,
+            true
+          );
           await OrderCompleted.updateOne(
             { order_uuid: value.order_uuid },
             value
           );
+
           createAccountingVoucher(value, "SALE_ORDER", true);
         } else {
           if (
@@ -988,21 +854,13 @@ router.put("/putOrders", async (req, res) => {
         if (data) response.push(data);
       } else {
         if (value?.preventPrintUpdate) delete value.to_print;
+
         let data = await Orders.updateOne(
           { order_uuid: value.order_uuid },
           value
         );
+        createAccountingVoucher(value, "SALE_ORDER", true);
         if (data.acknowledged) response.push(value);
-        else {
-          data = await OrderCompleted.updateOne(
-            { order_uuid: value.order_uuid },
-            value
-          );
-          if (data.acknowledged) {
-            createAccountingVoucher(value, "SALE_ORDER", true);
-            response.push(value);
-          }
-        }
       }
 
       if (value?.counter_charges?.[0]) {
@@ -1498,6 +1356,15 @@ router.put("/putCompleteOrder", async (req, res) => {
   try {
     let value = req.body;
     console.log(value);
+    if (value.item_details.length) {
+      await updateItemStock(
+        value?.warehouse_uuid,
+        value?.item_details,
+        value?.order_uuid,
+
+        true
+      );
+    }
     let data = await OrderCompleted.updateOne(
       { invoice_number: value.invoice_number },
       value
@@ -1537,7 +1404,6 @@ router.put("/putOrderNotes", async (req, res) => {
         value
       );
     if (data.acknowledged) {
-      createAccountingVoucher(value, "SALE_ORDER", true);
       res.json({
         success: true,
         result: data,
