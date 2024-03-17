@@ -155,8 +155,24 @@ const updateCounterClosingBalance = async (
   }
 };
 
+function removeCommas(input) {
+  // Check if input is not NaN and is a valid number
+  if (!isNaN(input) && typeof input === 'number') {
+      // Convert number to string and remove commas
+      return input.toString().replace(/,/g, '');
+  } else if (!isNaN(parseFloat(input))) {
+      // Convert string to number and remove commas
+      let numberWithoutCommas = parseFloat(input.replace(/,/g, ''));
+      // Check if the number is not NaN
+      if (!isNaN(numberWithoutCommas)) {
+          return numberWithoutCommas;
+      }
+  }
+  return 0;
+}
 module.exports = {
   getOrderStage,
   updateCounterClosingBalance,
   truncateDecimals,
+  removeCommas
 };

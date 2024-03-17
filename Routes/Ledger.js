@@ -10,6 +10,7 @@ const Receipts = require("../Models/Receipts");
 const Routes = require("../Models/Routes");
 const OrderCompleted = require("../Models/OrderCompleted");
 const Orders = require("../Models/Orders");
+const { removeCommas } = require("../utils/helperFunctions");
 
 router.post("/postLedger", async (req, res) => {
   try {
@@ -58,194 +59,197 @@ function getAlphabetIndex(alphabet) {
   return sequence.indexOf(alphabet.toLowerCase());
 }
 router.post("/getExcelDetailsData", async (req, res) => {
-  try {
-    let { array } = req.body;
+  // try {
+  let { array } = req.body;
 
-    let bankStatementItem = await Details.findOne(
-      {},
-      { bank_statement_item: 1 }
+  let bankStatementItem = await Details.findOne({}, { bank_statement_item: 1 });
+  bankStatementItem = bankStatementItem.bank_statement_item;
+  let arrayData = array.slice(
+    bankStatementItem.start_from_line - 1,
+    array.length
+  );
+  console.log(arrayData[0]);
+  let data = [];
+  let total_received_amount = 0;
+  let total_paid_amount = 0;
+  for (let [index, item] of arrayData.entries()) {
+    let narration = item[getAlphabetIndex(bankStatementItem.narration_column)];
+    let received_amount = removeCommas(
+      item[getAlphabetIndex(bankStatementItem.received_amount_column)]
     );
-    bankStatementItem = bankStatementItem.bank_statement_item;
-    let arrayData = array.slice(
-      bankStatementItem.start_from_line - 2,
-      array.length
+    let paid_amount = removeCommas(
+      item[getAlphabetIndex(bankStatementItem.paid_amount_column)]
     );
-    let data = [];
-    let total_received_amount = 0;
-    let total_paid_amount = 0;
-    for (let [index, item] of arrayData.entries()) {
-      let narration =
-        item[getAlphabetIndex(bankStatementItem.narration_column)];
-      let received_amount =
-        item[getAlphabetIndex(bankStatementItem.received_amount_column)];
-      let paid_amount =
-        item[getAlphabetIndex(bankStatementItem.paid_amount_column)];
-      if (received_amount) total_received_amount += +received_amount;
-      if (paid_amount) total_paid_amount += +paid_amount;
-      if (!narration) continue;
-      let separators = bankStatementItem.separator;
 
-      //get nerations array saperated with separator also separate with balnk sapces
-      let narrationArray = [];
-      for (let separator of separators) {
-        let narrationArrayTemp = narration.split(separator);
-        for (let narrationTemp of narrationArrayTemp) {
-          let narrationTempArray = narrationTemp.split(" ");
-          narrationArray = [...narrationArray, ...narrationTempArray];
-        }
-      }
-      //remove empty string from array
-      narrationArray = narrationArray.filter((i) => i);
+    if (received_amount) total_received_amount += +received_amount;
+    if (paid_amount) total_paid_amount += +paid_amount;
+    if (!narration) continue;
+    let separators = bankStatementItem.separator;
 
-      //check anny neration starts with one or more 0 digit
-      let zeroStartedArray = narrationArray.filter((i) => i.match(/^0+/));
-      if (zeroStartedArray.length) {
-        //remove all stating zero from narration array
-        zeroStartedArray = zeroStartedArray.map((i) => i.replace(/^0+/, ""));
-      }
-      narrationArray = [...narrationArray, ...zeroStartedArray];
-      console.log({ narrationArray });
-
-      // find counter or ledger includs transaction_tags matches with narration
-      let countersData = await Counters.find(
-        { transaction_tags: { $in: narrationArray } },
-        {
-          counter_uuid: 1,
-          counter_title: 1,
-          transaction_tags: 1,
-          route_uuid: 1,
-        }
-      );
-      let ledgerData = await Ledger.find(
-        { transaction_tags: { $in: narrationArray } },
-        {
-          ledger_uuid: 1,
-          ledger_title: 1,
-          transaction_tags: 1,
-          ledger_group_uuid: 1,
-        }
-      );
-
-      countersData = JSON.parse(JSON.stringify(countersData));
-      ledgerData = JSON.parse(JSON.stringify(ledgerData));
-      countersData = [...countersData, ...ledgerData];
-      if (countersData.length) {
-        //check counter with matches more narrations
-        let narrationCountersData = [];
-        for (let counter of countersData) {
-          let counterNarration = counter.transaction_tags.filter((i) =>
-            narrationArray.includes(i)
-          ).length;
-          narrationCountersData.push({
-            ...counter,
-            narration: counterNarration,
-          });
-        }
-        //get counter with max narration
-        countersData = narrationCountersData.sort(
-          (a, b) => b.narration - a.narration
-        );
-        countersData = countersData[0];
-      }
-
-      let reciptsData = await Receipts.find({
-        ...(countersData.counter_uuid
-          ? { counter_uuid: countersData.counter_uuid }
-          : {
-              "modes.remarks": { $in: narrationArray },
-            }),
-        pending: 0,
-        "modes.mode_uuid": countersData.counter_uuid
-          ? "c67b5988-d2b6-11ec-9d64-0242ac120002"
-          : "c67b5794-d2b6-11ec-9d64-0242ac120002",
-        "modes.amt": received_amount,
-      });
-      reciptsData = JSON.parse(JSON.stringify(reciptsData));
-      reciptsData = reciptsData?.find((a) =>
-        a.modes.find((b) => {
-          if (!countersData.counter_uuid) {
-            let check =
-              b.amt === received_amount &&
-              b.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002" &&
-              narrationArray.find((i) => b.remarks === i);
-
-            return check;
-          } else
-            return (
-              b.amt === received_amount &&
-              b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002"
-            );
-        })
-      );
-      console.log({ reciptsData, countersData });
-      if (!countersData?.route_uuid && reciptsData?.counter_uuid) {
-        countersData = await Counters.findOne(
-          { counter_uuid: reciptsData.counter_uuid },
-          { counter_uuid: 1, counter_title: 1, route_uuid: 1 }
-        );
-      }
-      let routeData;
-      if (countersData.route_uuid) {
-        routeData = await Routes.findOne({
-          route_uuid: countersData.route_uuid,
-        });
-      }
-
-      if (reciptsData)
-        data.push({
-          sr: +bankStatementItem.start_from_line + index,
-          reference_no: reciptsData.invoice_number,
-          counter_title: countersData.counter_title || "",
-          route_title: routeData?.route_title || "",
-          counter_uuid: countersData.counter_uuid,
-          date: item[getAlphabetIndex(bankStatementItem.date_column)],
-          received_amount,
-          paid_amount,
-          unMatch: false,
-          ledger_group_uuid: countersData.ledger_group_uuid || "",
-          transaction_tags: narrationArray,
-        });
-      else if (countersData.counter_uuid) {
-        data.push({
-          sr: +bankStatementItem.start_from_line + index,
-          reference_no: "",
-          counter_title: countersData.counter_title || "",
-          route_title: routeData?.route_title || "",
-          counter_uuid: countersData.counter_uuid,
-          date: item[getAlphabetIndex(bankStatementItem.date_column)],
-          received_amount,
-          paid_amount,
-          unMatch: true,
-          transaction_tags: narrationArray,
-        });
-      } else {
-        data.push({
-          sr: +bankStatementItem.start_from_line + index,
-          reference_no: "",
-          counter_title: "",
-          route_title: "",
-          received_amount,
-          paid_amount,
-          unMatch: true,
-          transaction_tags: narrationArray,
-        });
+    let narrationArray = [];
+    for (let separator of separators) {
+      let narrationArrayTemp = narration.split(separator);
+      for (let narrationTemp of narrationArrayTemp) {
+        let narrationTempArray = narrationTemp.split(" ");
+        narrationArray = [
+          ...narrationArray,
+          narrationTemp,
+          ...narrationTempArray,
+        ];
       }
     }
-    let result = {
-      total_recode: arrayData.length,
-      matched_recode: data.filter((a) => !a.unMatch).length,
-      unmatched_recode: data.filter((a) => a.unMatch).length,
-      total_paid_amount,
-      total_received_amount,
-      data,
-    };
+    //remove empty string from array
+    narrationArray = narrationArray.filter((i) => i);
 
-    if (result) {
-      res.json({ success: true, result });
-    } else res.json({ success: false, message: "Ledger Not Found" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
+    //check anny neration starts with one or more 0 digit
+    let zeroStartedArray = narrationArray.filter((i) => i.match(/^0+/));
+    if (zeroStartedArray.length) {
+      //remove all stating zero from narration array
+      zeroStartedArray = zeroStartedArray.map((i) => i.replace(/^0+/, ""));
+    }
+    narrationArray = [...narrationArray, ...zeroStartedArray];
+    //remove dulicates from narration array
+    narrationArray = Array.from(new Set(narrationArray));
+
+    // find counter or ledger includs transaction_tags matches with narration
+    let countersData = await Counters.find(
+      { transaction_tags: { $in: narrationArray } },
+      {
+        counter_uuid: 1,
+        counter_title: 1,
+        transaction_tags: 1,
+        route_uuid: 1,
+      }
+    );
+    let ledgerData = await Ledger.find(
+      { transaction_tags: { $in: narrationArray } },
+      {
+        ledger_uuid: 1,
+        ledger_title: 1,
+        transaction_tags: 1,
+        ledger_group_uuid: 1,
+      }
+    );
+
+    countersData = JSON.parse(JSON.stringify(countersData));
+    ledgerData = JSON.parse(JSON.stringify(ledgerData));
+    countersData = [...countersData, ...ledgerData];
+    if (countersData.length) {
+      //check counter with matches more narrations
+      let narrationCountersData = [];
+      for (let counter of countersData) {
+        let counterNarration = counter.transaction_tags.filter((i) =>
+          narrationArray.includes(i)
+        ).length;
+        narrationCountersData.push({
+          ...counter,
+          narration: counterNarration,
+        });
+      }
+      //get counter with max narration
+      countersData = narrationCountersData.sort(
+        (a, b) => b.narration - a.narration
+      );
+      countersData = countersData[0];
+    }
+
+    let reciptsData = await Receipts.find({
+      ...(countersData.counter_uuid
+        ? { counter_uuid: countersData.counter_uuid }
+        : {
+            "modes.remarks": { $in: narrationArray },
+          }),
+      pending: 0,
+      "modes.mode_uuid": countersData.counter_uuid
+        ? "c67b5988-d2b6-11ec-9d64-0242ac120002"
+        : "c67b5794-d2b6-11ec-9d64-0242ac120002",
+      "modes.amt": received_amount,
+    });
+    reciptsData = JSON.parse(JSON.stringify(reciptsData));
+    reciptsData = reciptsData?.find((a) =>
+      a.modes.find((b) => {
+        if (!countersData.counter_uuid) {
+          let check =
+            b.amt === received_amount &&
+            b.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002" &&
+            narrationArray.find((i) => b.remarks === i);
+
+          return check;
+        } else
+          return (
+            b.amt === received_amount &&
+            b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002"
+          );
+      })
+    );
+    if (!countersData?.route_uuid && reciptsData?.counter_uuid) {
+      countersData = await Counters.findOne(
+        { counter_uuid: reciptsData.counter_uuid },
+        { counter_uuid: 1, counter_title: 1, route_uuid: 1 }
+      );
+    }
+    let routeData;
+    if (countersData.route_uuid) {
+      routeData = await Routes.findOne({
+        route_uuid: countersData.route_uuid,
+      });
+    }
+
+    if (reciptsData)
+      data.push({
+        sr: +bankStatementItem.start_from_line + index,
+        reference_no: reciptsData.invoice_number,
+        counter_title: countersData.counter_title || "",
+        route_title: routeData?.route_title || "",
+        counter_uuid: countersData.counter_uuid,
+        date: item[getAlphabetIndex(bankStatementItem.date_column)],
+        received_amount,
+        paid_amount,
+        unMatch: false,
+        ledger_group_uuid: countersData.ledger_group_uuid || "",
+        transaction_tags: narrationArray,
+      });
+    else if (countersData.counter_uuid) {
+      data.push({
+        sr: +bankStatementItem.start_from_line + index,
+        reference_no: "",
+        counter_title: countersData.counter_title || "",
+        route_title: routeData?.route_title || "",
+        counter_uuid: countersData.counter_uuid,
+        date: item[getAlphabetIndex(bankStatementItem.date_column)],
+        received_amount,
+        paid_amount,
+        unMatch: true,
+        transaction_tags: narrationArray,
+      });
+    } else {
+      data.push({
+        sr: +bankStatementItem.start_from_line + index,
+        reference_no: "",
+        counter_title: "",
+        route_title: "",
+        received_amount,
+        paid_amount,
+        unMatch: true,
+        transaction_tags: narrationArray,
+      });
+    }
   }
+  let result = {
+    total_recode: arrayData.length,
+    matched_recode: data.filter((a) => !a.unMatch).length,
+    unmatched_recode: data.filter((a) => a.unMatch).length,
+    total_paid_amount,
+    total_received_amount,
+    data,
+  };
+
+  if (result) {
+    res.json({ success: true, result });
+  } else res.json({ success: false, message: "Ledger Not Found" });
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 
 //put ledger
