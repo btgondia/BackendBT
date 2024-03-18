@@ -99,7 +99,7 @@ const createAccountingVoucher = async (order, type, isEdit) => {
     const value = (+amt - (+amt * 100) / (100 + a)).toFixed(3);
     console.log({ value, amt });
 
-    if (value) {
+    if (amt && value) {
       let ledger = ledger_list.find((b) => b.value === a) || {};
       arr.push({
         amount: (amt - value).toFixed(3),
