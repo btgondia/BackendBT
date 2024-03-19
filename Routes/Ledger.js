@@ -111,10 +111,6 @@ router.post("/getExcelDetailsData", async (req, res) => {
     narrationArray = [...narrationArray, ...zeroStartedArray];
     //remove dulicates from narration array
     narrationArray = Array.from(new Set(narrationArray));
-    console.log({
-      sr: +bankStatementItem.start_from_line + index,
-      narrationArray,
-    });
 
     // find counter or ledger includs transaction_tags matches with narration
     let countersData = await Counters.find(
@@ -174,18 +170,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
     reciptsData = JSON.parse(JSON.stringify(reciptsData));
     reciptsData = reciptsData?.find((a) =>
       a.modes.find((b) => {
-        if (!countersData.counter_uuid) {
-          let check =
-            b.amt === received_amount &&
-            b.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002" &&
-            narrationArray.find((i) => b.remarks === i);
-
-          return check;
-        } else
-          return (
-            b.amt === received_amount &&
-            b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002"
-          );
+        return +b.amt === +received_amount;
       })
     );
     if (!countersData?.route_uuid && reciptsData?.counter_uuid) {
@@ -200,7 +185,8 @@ router.post("/getExcelDetailsData", async (req, res) => {
         route_uuid: countersData.route_uuid,
       });
     }
-
+    let date = item[getAlphabetIndex(bankStatementItem.data_column)];
+    console.log({ date, reciptsData, multipleNarration });
     if (reciptsData)
       data.push({
         sr: +bankStatementItem.start_from_line + index,
@@ -215,7 +201,6 @@ router.post("/getExcelDetailsData", async (req, res) => {
         ledger_group_uuid: countersData.ledger_group_uuid || "",
         transaction_tags: narrationArray,
         multipleNarration,
-        date: item[getAlphabetIndex(bankStatementItem.date_column)],
       });
     else if (countersData.counter_uuid || countersData.ledger_uuid) {
       data.push({
@@ -225,13 +210,12 @@ router.post("/getExcelDetailsData", async (req, res) => {
           countersData.counter_title || countersData.ledger_title || "",
         route_title: routeData?.route_title || "",
         counter_uuid: countersData.counter_uuid || countersData.ledger_uuid,
-        date: item[getAlphabetIndex(bankStatementItem.date_column)],
+        date,
         received_amount,
         paid_amount,
         unMatch: true,
         transaction_tags: narrationArray,
         multipleNarration,
-        date: item[getAlphabetIndex(bankStatementItem.date_column)],
       });
     } else {
       data.push({
@@ -244,7 +228,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
         unMatch: true,
         transaction_tags: narrationArray,
         narration,
-        date: item[getAlphabetIndex(bankStatementItem.date_column)],
+        date,
       });
     }
   }
