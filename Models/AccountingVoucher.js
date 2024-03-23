@@ -13,10 +13,12 @@ const accountingVoucherSchema = new mongoose.Schema({
   recept_number: { type: String },
   voucher_difference: { type: Number },
   voucher_verification: { type: Number },
+  notes:[{type:String}],
+
   details: [
     {
       ledger_uuid: { type: String },
-      amount: { type: Number },
+      amount: { type: Number },narration:{type:String},
     },
   ],
 });

@@ -32,9 +32,25 @@ router.get("/getLedger", async (req, res) => {
   try {
     let response = await Ledger.find();
     response = response.filter((item) => item.ledger_uuid);
-    console.log(response[0]);
-    if (response) {
-      res.json({ success: true, result: response });
+    response = JSON.parse(JSON.stringify(response));
+    let default_opening_balance_date = await Details.findOne(
+      {},
+      { default_opening_balance_date: 1 }
+    );
+    let result = response.map((item) => {
+      return {
+        ...item,
+        opening_balance_amount:
+          item.opening_balance.find(
+            (a) =>
+              a.date ===
+              default_opening_balance_date.default_opening_balance_date
+          )?.amount || 0,
+      };
+    });
+
+    if (result.length) {
+      res.json({ success: true, result });
     } else res.json({ success: false, message: "Ledger Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
@@ -59,7 +75,7 @@ function getAlphabetIndex(alphabet) {
   return sequence.indexOf(alphabet.toLowerCase());
 }
 router.post("/getExcelDetailsData", async (req, res) => {
-  // try {
+  try {
   let { array } = req.body;
 
   let bankStatementItem = await Details.findOne({}, { bank_statement_item: 1 });
@@ -237,9 +253,9 @@ router.post("/getExcelDetailsData", async (req, res) => {
   if (result) {
     res.json({ success: true, result });
   } else res.json({ success: false, message: "Ledger Not Found" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 
 //put ledger
@@ -287,84 +303,99 @@ router.delete("/deleteLedger", async (req, res) => {
 
 router.post("/getLegerReport", async (req, res) => {
   try {
-    let value = req.body;
-    if (!value) res.json({ success: false, message: "Invalid Data" });
+  let value = req.body;
+  if (!value) return res.json({ success: false, message: "Invalid Data" });
 
-    let endDate = +value.endDate + 86400000;
-    let ledgerData = await Ledger.findOne(
-      { ledger_uuid: value.counter_uuid },
+  let endDate = +value.endDate + 86400000;
+  console.log(value);
+  let ledgerData = await Ledger.findOne(
+    { ledger_uuid: value.ledger_uuid || value.counter_uuid },
+    { ledger_uuid: 1, opening_balance: 1 }
+  );
+  if (!ledgerData)
+    ledgerData = await Counters.findOne(
+      { counter_uuid: value.counter_uuid || value.ledger_uuid },
       { ledger_uuid: 1, opening_balance: 1 }
     );
-    if (!ledgerData)
-      ledgerData = await Counters.findOne(
-        { ledger_uuid: value.ledger_uuid },
-        { ledger_uuid: 1, opening_balance: 1 }
-      );
 
-    if (!ledgerData) res.json({ success: false, message: "Ledger Not Found" });
+  if (!ledgerData)
+    return res.json({ success: false, message: "Ledger Not Found" });
+  let default_opening_balance_date = await Details.findOne(
+    {},
+    { default_opening_balance_date: 1 }
+  );
+  let opening_balance =
+    ledgerData?.opening_balance?.filter(
+      (a) =>
+        a.date === default_opening_balance_date.default_opening_balance_date
+    ) || [];
 
-    let opening_balance = ledgerData.opening_balance?.filter(
-      (a) => a.date < value.startDate
-    );
+  //get max date from opening balance
+  if (opening_balance.length > 1) {
+    let maxDate = Math.max(...opening_balance.map((a) => a.date));
 
-    //get max date from opening balance
-    if (opening_balance.length > 1) {
-      let maxDate = Math.max(...opening_balance.map((a) => a.date));
+    //get opening balance of max date
+    opening_balance = opening_balance.find((a) => a.date === maxDate);
+  } else if (opening_balance.length === 1) {
+    opening_balance = opening_balance[0];
+  } else {
+    opening_balance = {
+      amount: 0,
+    };
+  }
 
-      //get opening balance of max date
-      opening_balance = opening_balance.find((a) => a.date === maxDate);
-    } else if (opening_balance.length === 1) {
-      opening_balance = opening_balance[0];
+  let oldAccountingVouchers = await AccountingVoucher.find({
+    "details.ledger_uuid": value.counter_uuid || value.ledger_uuid,
+    created_at: {
+      $gte: default_opening_balance_date.default_opening_balance_date,
+      $lte: value.startDate,
+    },
+  });
+  let balance = opening_balance?.amount || 0;
+
+  for (let item of oldAccountingVouchers) {
+    let amount = item.details.find(
+      (i) => i.ledger_uuid === value.counter_uuid
+    ).amount;
+    balance += amount;
+  }
+
+  // ledger_uuid is in details
+  let response = await AccountingVoucher.find({
+    "details.ledger_uuid": value.counter_uuid,
+    created_at: { $gte: value.startDate, $lte: endDate },
+  });
+  response = JSON.parse(JSON.stringify(response));
+  let result = [];
+
+  for (let item of response) {
+    let orderData;
+    if (!item.accounting_voucher_uuid) {
+      continue;
     }
-    let oldAccountingVouchers = await AccountingVoucher.find({
-      "details.ledger_uuid": value.counter_uuid,
-      created_at: { $gte: opening_balance.date, $lte: value.startDate },
-    });
-    let balance = opening_balance?.amount || 0;
-
-    for (let item of oldAccountingVouchers) {
-      let amount = item.details.find(
-        (i) => i.ledger_uuid === value.counter_uuid
-      ).amount;
-      balance += amount;
-    }
-
-    // ledger_uuid is in details
-    let response = await AccountingVoucher.find({
-      "details.ledger_uuid": value.counter_uuid,
-      created_at: { $gte: value.startDate, $lte: endDate },
-    });
-    response = JSON.parse(JSON.stringify(response));
-    let result = [];
-
-    for (let item of response) {
-      let orderData;
-      if (!item.accounting_voucher_uuid) {
-        continue;
-      }
-      if (!item.invoice_number)
-        orderData = await OrderCompleted.findOne({
-          order_uuid: item.order_uuid,
-        });
-      if (!orderData) {
-        orderData = await Orders.findOne({
-          order_uuid: item.order_uuid,
-        });
-      }
-      let amount = item.details.find(
-        (i) => i.ledger_uuid === value.counter_uuid
-      ).amount;
-      balance += amount;
-      result.push({
-        ...item,
-        amount,
-        invoice_number: item.invoice_number || orderData?.invoice_number || "",
-        balance,
+    if (!item.invoice_number)
+      orderData = await OrderCompleted.findOne({
+        order_uuid: item.order_uuid,
+      });
+    if (!orderData) {
+      orderData = await Orders.findOne({
+        order_uuid: item.order_uuid,
       });
     }
-    if (result.length) {
-      res.json({ success: true, result });
-    } else res.json({ success: false, message: "Ledger Not Found" });
+    let amount = item.details.find(
+      (i) => i.ledger_uuid === value.counter_uuid
+    ).amount;
+    balance += amount;
+    result.push({
+      ...item,
+      amount,
+      invoice_number: item.invoice_number || orderData?.invoice_number || "",
+      balance,
+    });
+  }
+  if (result.length) {
+    return res.json({ success: true, result });
+  } else return res.json({ success: false, message: "Ledger Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }

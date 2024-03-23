@@ -5,6 +5,8 @@ const Details = require("../Models/Details");
 const { v4: uuid } = require("uuid");
 const Item = require("../Models/Item");
 const AccountingVouchers = require("../Models/AccountingVoucher");
+const Ledger = require("../Models/Ledger");
+const { updateCounterClosingBalance } = require("../utils/helperFunctions");
 
 let ledger_list = [
   {
@@ -49,13 +51,13 @@ let ledger_list = [
   },
 ];
 const createAccountingVoucher = async (order, type) => {
-  let counterData = await Counters.findOne(
-    { counter_uuid: order.counter_uuid },
+  let counterData = await Ledger.findOne(
+    { ledger_uuid: order.ledger_uuid },
     { gst: 1 }
   );
   let gst = counterData?.gst || "";
   //check is gst starts with 27
-  let isGst = gst?.startsWith("27")||!gst ? false : true;
+  let isGst = gst?.startsWith("27") || !gst ? false : true;
 
   const arr = [];
   const gst_value = Array.from(
@@ -71,9 +73,9 @@ const createAccountingVoucher = async (order, type) => {
         ? +data[0].item_total
         : 0;
 
-    const value = +amt - (+amt * 100) / (100 + a);
-
-    if (value) {
+    const value = (+amt - (+amt * 100) / (100 + a)).toFixed(3);
+    console.log({ value, amt });
+    if (amt && value) {
       let ledger = ledger_list.find((b) => b.value === a) || {};
       arr.push({
         amount: -(amt - value).toFixed(3),
@@ -83,13 +85,13 @@ const createAccountingVoucher = async (order, type) => {
       });
       if (isGst) {
         arr.push({
-          amount: -value.toFixed(3),
+          amount: -value,
           ledger_uuid: ledger?.purchase_igst_ledger,
         });
       } else
         for (let item of ledger?.ledger_uuid || []) {
           arr.push({
-            amount: -(value / 2).toFixed(3),
+            amount: -(value / 2),
             ledger_uuid: item,
           });
         }
@@ -104,7 +106,7 @@ const createAccountingVoucher = async (order, type) => {
     ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
   });
   arr.push({
-    ledger_uuid: order.counter_uuid,
+    ledger_uuid: order.counter_uuid || order.ledger_uuid,
     amount: order.order_grandtotal || 0,
   });
 
@@ -123,6 +125,7 @@ const createAccountingVoucher = async (order, type) => {
     created_at: new Date().getTime(),
   };
   await AccountingVouchers.create(voucher);
+  await updateCounterClosingBalance(voucher.details, "add");
 };
 
 //post request to create a new purchase invoice

@@ -38,6 +38,7 @@ const DetailsSchema = new mongoose.Schema({
     separator: [{ type: String }],
     start_from_line: { type: String },
   },
+  default_opening_balance_date: { type: Number },
 });
 
 module.exports = mongoose.model("details", DetailsSchema);

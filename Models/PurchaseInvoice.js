@@ -64,6 +64,11 @@ const OrdersSchema = new mongoose.Schema({
   order_grandtotal: {
     type: Number,
   },
+  notes:[
+    {
+      type: String,
+    }
+  ]
 });
 
 module.exports = mongoose.model("purchase_invoice", OrdersSchema);

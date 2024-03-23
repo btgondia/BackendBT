@@ -15,6 +15,7 @@ const Campaigns = require("../Models/Campaigns");
 const { messageEnque } = require("../queues/messageQueue");
 const Counters = require("../Models/Counters");
 const { default: mongoose } = require("mongoose");
+const Details = require("../Models/Details");
 var msg91 = require("msg91-templateid")(
   "312759AUCbnlpoZeD61714959P1",
   "foodDo",
@@ -99,19 +100,28 @@ router.get("/GetCounterList", async (req, res) => {
         counter_group_uuid: 1,
         payment_modes: 1,
         credit_rating: 1,
-        opening_balance :1,
-        closing_balance:1,
+        opening_balance: 1,
+        closing_balance: 1,
       }
     );
     data = JSON.parse(JSON.stringify(data));
     let RoutesData = await Routes.find({
       route_uuid: { $in: data.map((a) => a.route_uuid) },
     });
+    let default_opening_balance_date = await Details.findOne(
+      {},
+      { default_opening_balance_date: 1 }
+    );
     data = data.map((a) => ({
       ...a,
       route_title:
         RoutesData.find((b) => b.route_uuid === a.route_uuid)?.route_title ||
         "",
+      opening_balance_amount:
+        a.opening_balance.find(
+          (b) =>
+            b.date === default_opening_balance_date.default_opening_balance_date
+        )?.amount || 0,
     }));
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Counters Not found" });
@@ -120,7 +130,7 @@ router.get("/GetCounterList", async (req, res) => {
   }
 });
 router.get("/GetCounter/:counter_uuid", async (req, res) => {
-  // try {
+  try {
   let data = await Counter.findOne(
     { counter_uuid: req.params.counter_uuid },
     {
@@ -146,7 +156,7 @@ router.get("/GetCounter/:counter_uuid", async (req, res) => {
       counter_group_uuid: 1,
       payment_modes: 1,
       opening_balance: 1,
-      closing_balance:1,
+      closing_balance: 1,
     }
   );
   data = JSON.parse(JSON.stringify(data));
@@ -159,9 +169,9 @@ router.get("/GetCounter/:counter_uuid", async (req, res) => {
   };
   if (data) res.json({ success: true, result: data });
   else res.json({ success: false, message: "Counters Not found" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 router.post("/GetCounterList", async (req, res) => {
   try {
@@ -193,7 +203,7 @@ router.post("/GetCounterList", async (req, res) => {
         counter_group_uuid: 1,
         payment_modes: 1,
         opening_balance: 1,
-        closing_balance:1,
+        closing_balance: 1,
       }
     );
     data = JSON.parse(JSON.stringify(data));
@@ -248,7 +258,7 @@ router.get("/GetCounterData", async (req, res) => {
         credit_rating: 1,
         transaction_tags: 1,
         opening_balance: 1,
-        closing_balance:1,
+        closing_balance: 1,
       }
     );
 

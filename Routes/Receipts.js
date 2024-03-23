@@ -79,7 +79,7 @@ router.get("/getPendingEntry", async (req, res) => {
   }
 });
 router.post("/postReceipt", async (req, res) => {
-  // try {
+  try {
   let value = req.body;
   if (!value) res.json({ success: false, message: "Invalid Data" });
   let cashAmount =
@@ -209,9 +209,9 @@ router.post("/postReceipt", async (req, res) => {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Receipts Not created" });
   }
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 router.post("/getRecipt", async (req, res) => {
   try {
