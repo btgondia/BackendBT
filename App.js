@@ -310,15 +310,10 @@ app.use("/soundApp/getFile", express.static(path.join(__dirname, "files")));
 if (process.env.NODE_ENV != "development") {
   client.on("connect", () => {
     console.log("Connected");
-    client.subscribe("admin", (error) => {
-      if (!error) {
-        console.log("Subscribed to admin");
-      }
-    });
   });
-//   client.on("reconnect", () => {
-//     console.log("Reconnect");
-//   });
+  //   client.on("reconnect", () => {
+  //     console.log("Reconnect");
+  //   });
   client.on("error", (error) => {
     console.log("Error", error);
   });
