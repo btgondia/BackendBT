@@ -4,8 +4,8 @@ const client = mqtt.connect(connectUrl, {
 	clientId:"admin",
 	clean: true,
 	connectTimeout: 4000,
-	username: 'test',
-	password: 'test',
+	username: 'wasi',
+	password: 'wasi123',
 	reconnectPeriod: 1000,
   })
   
