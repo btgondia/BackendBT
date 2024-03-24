@@ -316,9 +316,9 @@ if (process.env.NODE_ENV != "development") {
       }
     });
   });
-  client.on("reconnect", () => {
-    console.log("Reconnect");
-  });
+//   client.on("reconnect", () => {
+//     console.log("Reconnect");
+//   });
   client.on("error", (error) => {
     console.log("Error", error);
   });
