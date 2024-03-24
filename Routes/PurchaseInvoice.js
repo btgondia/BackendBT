@@ -50,7 +50,7 @@ let ledger_list = [
     central_purchase_ledger: "62e7a642-8738-4d0e-93fa-d2b8f8cafb6a",
   },
 ];
-const createAccountingVoucher = async (order, type) => {
+const createAccountingVoucher = async (order, type, isEdit) => {
   let counterData = await Ledger.findOne(
     { ledger_uuid: order.ledger_uuid },
     { gst: 1 }
@@ -102,35 +102,54 @@ const createAccountingVoucher = async (order, type) => {
       order.order_grandtotal -
       (order.item_details
         ?.map((a) => +a?.item_total)
-        ?.reduce((a, b) => a + b, 0) || 0),
+        ?.reduce((a, b) => a + b, 0) || 0) -
+      (order.deductions?.reduce((a, b) => a + +(b.amount || 0), 0) || 0),
     ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
   });
   arr.push({
     ledger_uuid: order.counter_uuid || order.ledger_uuid,
     amount: order.order_grandtotal || 0,
   });
-
-  const voucher = {
-    accounting_voucher_uuid: uuid(),
-    type: type,
-    voucher_date: new Date().getTime(),
-    user_uuid: order.user_uuid,
-    counter_uuid: order.counter_uuid,
-    order_uuid: order.order_uuid,
-    invoice_number: order.invoice_number,
-    amount: order.order_grandtotal,
-    voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
-    voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
-    details: arr,
-    created_at: new Date().getTime(),
-  };
-  await AccountingVouchers.create(voucher);
-  await updateCounterClosingBalance(voucher.details, "add");
+  for (let item of order.deductions || []) {
+    arr.push({
+      ledger_uuid: item.ledger_uuid,
+      amount: item.amount,
+    });
+  }
+  if (isEdit) {
+    await AccountingVouchers.updateOne(
+      { order_uuid: order.purchase_order_uuid },
+      {
+        details: arr,
+        voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
+        voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
+        amount: order.order_grandtotal,
+      }
+    );
+    await updateCounterClosingBalance(arr, "edit", order.purchase_order_uuid);
+  } else {
+    const voucher = {
+      accounting_voucher_uuid: uuid(),
+      type: type,
+      voucher_date: new Date().getTime(),
+      user_uuid: order.user_uuid,
+      counter_uuid: order.counter_uuid,
+      order_uuid: order.purchase_order_uuid,
+      invoice_number: order.purchase_invoice_number,
+      amount: order.order_grandtotal,
+      voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
+      voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
+      details: arr,
+      created_at: new Date().getTime(),
+    };
+    await AccountingVouchers.create(voucher);
+    await updateCounterClosingBalance(voucher.details, "add");
+  }
 };
 
 //post request to create a new purchase invoice
 
-router.post("/postAccountVoucher", async (req, res) => {
+router.post("/postPurchaseInvoice", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
@@ -169,4 +188,36 @@ router.post("/postAccountVoucher", async (req, res) => {
   }
 });
 
+// putPurchaseInvoice by id
+router.put("/putPurchaseInvoice", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value.purchase_order_uuid)
+      res.json({ success: false, message: "Invalid Data" });
+    //delete _id
+    delete value._id;
+    createAccountingVoucher(value, "PURCHASE_INVOICE", true);
+    let response = await PurchaseINvoice.findOneAndUpdate(
+      { purchase_order_uuid: value.purchase_order_uuid },
+      req.body
+    );
+    if (response) res.json({ success: true, result: response });
+    else res.json({ success: false, message: "AccountVoucher Not Found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+
+// get purchase invoice by id
+router.get("/getPurchaseInvoice/:id", async (req, res) => {
+  try {
+    let response = await PurchaseINvoice.findOne({
+      purchase_order_uuid: req.params.id,
+    });
+    if (response) res.json({ success: true, result: response });
+    else res.json({ success: false, message: "AccountVoucher Not Found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 module.exports = router;

@@ -90,7 +90,10 @@ router.delete("/deleteAccountVoucher", async (req, res) => {
 router.get("/getAccountVoucher/:accounting_voucher_uuid", async (req, res) => {
   try {
     let { accounting_voucher_uuid } = req.params;
-    let data = await AccountingVoucher.findOne({ accounting_voucher_uuid });
+    console.log({ accounting_voucher_uuid });
+    let data = await AccountingVoucher.findOne({
+      $or: [{ accounting_voucher_uuid},{order_uuid: accounting_voucher_uuid }],
+    });
     if (data) res.json({ success: true, result: data });
     else res.json({ success: false, message: "AccountVoucher Not found" });
   } catch (err) {
