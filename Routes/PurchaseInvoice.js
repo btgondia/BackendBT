@@ -97,15 +97,15 @@ const createAccountingVoucher = async (order, type, isEdit) => {
         }
     }
   }
-  arr.push({
-    amount:
-      order.order_grandtotal -
-      (order.item_details
-        ?.map((a) => +a?.item_total)
-        ?.reduce((a, b) => a + b, 0) || 0) -
-      (order.deductions?.reduce((a, b) => a + +(b.amount || 0), 0) || 0),
-    ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
-  });
+  // arr.push({
+  //   amount:
+  //     order.order_grandtotal -
+  //     (order.item_details
+  //       ?.map((a) => +a?.item_total)
+  //       ?.reduce((a, b) => a + b, 0) || 0) +
+  //     (order.deductions?.reduce((a, b) => a + +(b.amount || 0), 0) || 0),
+  //   ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
+  // });
   arr.push({
     ledger_uuid: order.counter_uuid || order.ledger_uuid,
     amount: order.order_grandtotal || 0,
@@ -113,7 +113,7 @@ const createAccountingVoucher = async (order, type, isEdit) => {
   for (let item of order.deductions || []) {
     arr.push({
       ledger_uuid: item.ledger_uuid,
-      amount: item.amount,
+      amount: -item.amount,
     });
   }
   if (isEdit) {
