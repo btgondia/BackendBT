@@ -11,6 +11,7 @@ const Routes = require("../Models/Routes");
 const OrderCompleted = require("../Models/OrderCompleted");
 const Orders = require("../Models/Orders");
 const { removeCommas } = require("../utils/helperFunctions");
+const PurchaseInvoice = require("../Models/PurchaseInvoice");
 
 router.post("/postLedger", async (req, res) => {
   try {
@@ -210,7 +211,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
         counter_title: countersData.counter_title || "",
         route_title: routeData?.route_title || "",
         counter_uuid: countersData.counter_uuid,
-        date: item[getAlphabetIndex(bankStatementItem.date_column)],
+        date,
         received_amount,
         paid_amount,
         unMatch: multipleNarration ? true : false,
@@ -382,6 +383,11 @@ router.post("/getLegerReport", async (req, res) => {
         order_uuid: item.order_uuid,
       });
     }
+    if(orderData){
+      orderData = await PurchaseInvoice.findOne({
+        purchase_order_uuid:item.order_uuid
+      })
+    }
     let amount = item.details.find(
       (i) => i.ledger_uuid === value.counter_uuid
     ).amount;
@@ -389,7 +395,8 @@ router.post("/getLegerReport", async (req, res) => {
     result.push({
       ...item,
       amount,
-      invoice_number: item.invoice_number || orderData?.invoice_number || "",
+      invoice_number: item.invoice_number || orderData?.invoice_number ||orderData?.purchase_invoice_number||"",
+      voucher_date: orderData?.party_invoice_date|| item.voucher_date||"",
       balance,
     });
   }

@@ -97,25 +97,29 @@ const createAccountingVoucher = async (order, type, isEdit) => {
         }
     }
   }
-  // arr.push({
-  //   amount:
-  //     order.order_grandtotal -
-  //     (order.item_details
-  //       ?.map((a) => +a?.item_total)
-  //       ?.reduce((a, b) => a + b, 0) || 0) +
-  //     (order.deductions?.reduce((a, b) => a + +(b.amount || 0), 0) || 0),
-  //   ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
-  // });
+  let round_off =
+    order.order_grandtotal -
+    (order.item_details
+      ?.map((a) => +a?.item_total)
+      ?.reduce((a, b) => a + b, 0) || 0) +
+    (order.deductions?.reduce((a, b) => a + +(b.amount || 0), 0) || 0);
+  if (round_off)
+    arr.push({
+      amount: round_off,
+      ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
+    });
   arr.push({
     ledger_uuid: order.counter_uuid || order.ledger_uuid,
     amount: order.order_grandtotal || 0,
   });
+
   for (let item of order.deductions || []) {
     arr.push({
       ledger_uuid: item.ledger_uuid,
       amount: -item.amount,
     });
   }
+  console.log(arr);
   if (isEdit) {
     await AccountingVouchers.updateOne(
       { order_uuid: order.purchase_order_uuid },
@@ -153,17 +157,12 @@ router.post("/postPurchaseInvoice", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    let next_purchase_invoice_number = await Details.find({});
-
-    next_purchase_invoice_number =
-      next_purchase_invoice_number[0].next_purchase_invoice_number;
 
     value = {
       ...value,
       purchase_order_uuid: uuid(),
-      purchase_invoice_number: "P" + next_purchase_invoice_number,
     };
-    console.log(value);
+
     createAccountingVoucher(value, "PURCHASE_INVOICE");
 
     let response = await PurchaseINvoice.create(value);
@@ -171,16 +170,9 @@ router.post("/postPurchaseInvoice", async (req, res) => {
       for (let item of value.item_details) {
         let item_uuid = item.item_uuid;
         let last_purchase_price = item.price;
-        let item_details = await Item.updateOne(
-          { item_uuid },
-          { last_purchase_price }
-        );
-        console.log(item_details);
+        await Item.updateOne({ item_uuid }, { last_purchase_price });
       }
-      await Details.updateMany(
-        {},
-        { next_purchase_invoice_number: +next_purchase_invoice_number + 1 }
-      );
+
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "AccountVoucher Not created" });
   } catch (err) {

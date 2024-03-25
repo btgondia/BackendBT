@@ -39,9 +39,10 @@ const updateCounterClosingBalance = async (
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
             {
-              $inc: {
-                closing_balance: truncateDecimals(+(counter.amount || 0), 2),
-              },
+              closing_balance: truncateDecimals(
+                +(counter_data.closing_balance || 0) + (counter.amount || 0),
+                2
+              ),
             }
           );
         } else if (!counter_data) {
@@ -56,9 +57,10 @@ const updateCounterClosingBalance = async (
           await Ledger.updateOne(
             { ledger_uuid: counter.ledger_uuid },
             {
-              $inc: {
-                closing_balance: truncateDecimals(+(counter.amount || 0), 2),
-              },
+              closing_balance: truncateDecimals(
+                +(counter_data.closing_balance || 0) + (counter.amount || 0),
+                2
+              ),
             }
           );
         }
@@ -88,12 +90,12 @@ const updateCounterClosingBalance = async (
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
             {
-              $inc: {
-                closing_balance: truncateDecimals(
-                  +(counter.amount || 0) - (old_amount || 0),
-                  2
-                ),
-              },
+              closing_balance: truncateDecimals(
+                +(counter_data.closing_balance || 0) +
+                  +(counter.amount || 0) -
+                  (old_amount || 0),
+                2
+              ),
             }
           );
         } else if (!counter_data) {
@@ -108,12 +110,12 @@ const updateCounterClosingBalance = async (
           await Ledger.updateOne(
             { ledger_uuid: counter.ledger_uuid },
             {
-              $inc: {
-                closing_balance: truncateDecimals(
-                  +(counter.amount || 0) - (old_amount || 0),
-                  2
-                ),
-              },
+              closing_balance: truncateDecimals(
+                +(counter_data.closing_balance || 0) +
+                  +(counter.amount || 0) -
+                  (old_amount || 0),
+                2
+              ),
             }
           );
         }
@@ -136,9 +138,10 @@ const updateCounterClosingBalance = async (
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
             {
-              $inc: {
-                closing_balance: truncateDecimals(-(counter.amount || 0), 2),
-              },
+              closing_balance: truncateDecimals(
+                +(counter_data.closing_balance || 0) + -(counter.amount || 0),
+                2
+              ),
             }
           );
         } else if (!counter_data) {
@@ -153,9 +156,10 @@ const updateCounterClosingBalance = async (
           await Ledger.updateOne(
             { ledger_uuid: counter.ledger_uuid },
             {
-              $inc: {
-                closing_balance: truncateDecimals(-(counter.amount || 0), 2),
-              },
+              closing_balance: truncateDecimals(
+                +(counter_data.closing_balance || 0) + -(counter.amount || 0),
+                2
+              ),
             }
           );
         }
@@ -181,7 +185,6 @@ function removeCommas(input) {
   }
   return 0;
 }
-
 
 const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
   console.log("isEdit", isEdit);
@@ -217,7 +220,8 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
   }
   if (isEdit) {
     let orderData = await OrderCompleted.findOne({ order_uuid });
-    if (!orderData) orderData = await Orders.findOne({ order_uuid }, { item_details: 1 });
+    if (!orderData)
+      orderData = await Orders.findOne({ order_uuid }, { item_details: 1 });
     let old_items = orderData?.item_details || [];
     console.log("old_items", old_items);
     for (let item of old_items) {

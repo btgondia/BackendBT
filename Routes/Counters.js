@@ -131,44 +131,44 @@ router.get("/GetCounterList", async (req, res) => {
 });
 router.get("/GetCounter/:counter_uuid", async (req, res) => {
   try {
-  let data = await Counter.findOne(
-    { counter_uuid: req.params.counter_uuid },
-    {
-      counter_title: 1,
-      counter_code: 1,
-      sort_order: 1,
-      payment_reminder_days: 1,
-      outstanding_type: 1,
-      credit_allowed: 1,
-      gst: 1,
-      food_license: 1,
-      counter_uuid: 1,
-      remarks: 1,
-      status: 1,
-      route_uuid: 1,
-      address: 1,
-      mobile: 1,
-      company_discount: 1,
-      // average_lines_company: 1,
-      // average_lines_category: 1,
-      item_special_price: 1,
-      item_special_discount: 1,
-      counter_group_uuid: 1,
-      payment_modes: 1,
-      opening_balance: 1,
-      closing_balance: 1,
-    }
-  );
-  data = JSON.parse(JSON.stringify(data));
-  let RoutesData = await Routes.findOne({
-    route_uuid: data.route_uuid,
-  });
-  data = {
-    ...data,
-    route_title: RoutesData?.route_title || "",
-  };
-  if (data) res.json({ success: true, result: data });
-  else res.json({ success: false, message: "Counters Not found" });
+    let data = await Counter.findOne(
+      { counter_uuid: req.params.counter_uuid },
+      {
+        counter_title: 1,
+        counter_code: 1,
+        sort_order: 1,
+        payment_reminder_days: 1,
+        outstanding_type: 1,
+        credit_allowed: 1,
+        gst: 1,
+        food_license: 1,
+        counter_uuid: 1,
+        remarks: 1,
+        status: 1,
+        route_uuid: 1,
+        address: 1,
+        mobile: 1,
+        company_discount: 1,
+        // average_lines_company: 1,
+        // average_lines_category: 1,
+        item_special_price: 1,
+        item_special_discount: 1,
+        counter_group_uuid: 1,
+        payment_modes: 1,
+        opening_balance: 1,
+        closing_balance: 1,
+      }
+    );
+    data = JSON.parse(JSON.stringify(data));
+    let RoutesData = await Routes.findOne({
+      route_uuid: data.route_uuid,
+    });
+    data = {
+      ...data,
+      route_title: RoutesData?.route_title || "",
+    };
+    if (data) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -213,11 +213,20 @@ router.post("/GetCounterList", async (req, res) => {
       },
       { route_title: 1, route_uuid: 1 }
     );
+    let default_opening_balance_date = await Details.findOne(
+      {},
+      { default_opening_balance_date: 1 }
+    );
     data = data.map((a) => ({
       ...a,
       route_title:
         RoutesData.find((b) => b.route_uuid === a.route_uuid)?.route_title ||
         "",
+      opening_balance_amount:
+        a.opening_balance.find(
+          (b) =>
+            b.date === default_opening_balance_date.default_opening_balance_date
+        )?.amount || 0,
     }));
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Counters Not found" });

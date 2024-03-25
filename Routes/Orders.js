@@ -1356,7 +1356,7 @@ router.put("/putCompleteOrder", async (req, res) => {
   try {
     let value = req.body;
     console.log(value);
-    if (value.item_details.length) {
+    if (value?.item_details?.length) {
       await updateItemStock(
         value?.warehouse_uuid,
         value?.item_details,
@@ -1370,6 +1370,7 @@ router.put("/putCompleteOrder", async (req, res) => {
       value
     );
     if (data.acknowledged) {
+      if(value?.item_details?.length)
       createAccountingVoucher(value, "SALE_ORDER", true);
       res.json({
         success: true,
