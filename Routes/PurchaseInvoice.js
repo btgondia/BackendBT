@@ -97,12 +97,7 @@ const createAccountingVoucher = async (order, type, isEdit) => {
         }
     }
   }
-  let round_off =
-    order.order_grandtotal -
-    (order.item_details
-      ?.map((a) => +a?.item_total)
-      ?.reduce((a, b) => a + b, 0) || 0) +
-    (order.deductions?.reduce((a, b) => a + +(b.amount || 0), 0) || 0);
+  let round_off = order.round_off || 0;
   if (round_off)
     arr.push({
       amount: round_off,
