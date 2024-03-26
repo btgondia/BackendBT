@@ -6,7 +6,7 @@ const { v4: uuid } = require("uuid");
 const Item = require("../Models/Item");
 const AccountingVouchers = require("../Models/AccountingVoucher");
 const Ledger = require("../Models/Ledger");
-const { updateCounterClosingBalance } = require("../utils/helperFunctions");
+const { updateCounterClosingBalance, truncateDecimals } = require("../utils/helperFunctions");
 
 let ledger_list = [
   {
@@ -91,7 +91,7 @@ const createAccountingVoucher = async (order, type, isEdit) => {
       } else
         for (let item of ledger?.ledger_uuid || []) {
           arr.push({
-            amount: -(value / 2),
+            amount: -truncateDecimals(value / 2,2),
             ledger_uuid: item,
           });
         }
