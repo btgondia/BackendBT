@@ -100,7 +100,7 @@ const createAccountingVoucher = async (order, type, isEdit) => {
   let round_off = order.round_off || 0;
   if (round_off)
     arr.push({
-      amount: round_off,
+      amount: -round_off,
       ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
     });
   arr.push({
