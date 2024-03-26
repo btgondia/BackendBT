@@ -29,6 +29,7 @@ const {
   getOrderStage,
   updateCounterClosingBalance,
   updateItemStock,
+  truncateDecimals,
 } = require("../utils/helperFunctions");
 const StockTracker = require("../Models/StockTracker");
 const AccountingVouchers = require("../Models/AccountingVoucher");
@@ -76,6 +77,7 @@ let ledger_list = [
   },
 ];
 const createAccountingVoucher = async (order, type, isEdit) => {
+  console.log({ order });
   let counterData = await Counters.findOne(
     { counter_uuid: order.counter_uuid },
     { gst: 1 }
@@ -102,7 +104,7 @@ const createAccountingVoucher = async (order, type, isEdit) => {
     if (amt && value) {
       let ledger = ledger_list.find((b) => b.value === a) || {};
       arr.push({
-        amount: (amt - value).toFixed(3),
+        amount: (amt - value).toFixed(2),
         ledger_uuid: isGst
           ? ledger?.central_sale_ledger
           : ledger?.local_sale_ledger,
@@ -115,7 +117,7 @@ const createAccountingVoucher = async (order, type, isEdit) => {
       } else {
         for (let item of ledger?.ledger_uuid || []) {
           arr.push({
-            amount: value / 2,
+            amount: value/2,
             ledger_uuid: item,
           });
         }
@@ -135,6 +137,13 @@ const createAccountingVoucher = async (order, type, isEdit) => {
     ledger_uuid: order.counter_uuid,
     amount: -order.order_grandtotal || 0,
   });
+  let voucher_round_off = (arr.reduce((a, b) => a + +(b.amount||0), 0)||0).toFixed(3)
+  if (voucher_round_off) {
+    arr.push({
+      ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
+      amount: -voucher_round_off,
+    });
+  }
   if (isEdit) {
     await AccountingVouchers.updateOne(
       { order_uuid: order.order_uuid },
@@ -1370,8 +1379,8 @@ router.put("/putCompleteOrder", async (req, res) => {
       value
     );
     if (data.acknowledged) {
-      if(value?.item_details?.length)
-      createAccountingVoucher(value, "SALE_ORDER", true);
+      if (value?.item_details?.length)
+        createAccountingVoucher(value, "SALE_ORDER", true);
       res.json({
         success: true,
         result: data,
@@ -1830,17 +1839,9 @@ router.post("/getCompleteOrderList", async (req, res) => {
       order_date: order.status.find((a) => +a.stage === 1)?.time,
       delivery_date: order.status.find((a) => +a.stage === 4)?.time,
       qty:
-        (order?.item_details?.length > 1
-          ? order.item_details.map((a) => a.b).reduce((a, b) => +a + b)
-          : order?.item_details?.length
-          ? order?.item_details[0]?.b
-          : 0) +
+        order.item_details.reduce((a, b) => +a + +(b.b || 0), 0) +
         ":" +
-        (order?.item_details?.length > 1
-          ? order.item_details.map((a) => a.p).reduce((a, b) => +a + b)
-          : order?.item_details?.length
-          ? order?.item_details[0]?.p
-          : 0),
+        order.item_details.reduce((a, b) => +a + +(b.p || 0), 0),
       amt: order.order_grandtotal || 0,
     }));
     if (response?.length) {

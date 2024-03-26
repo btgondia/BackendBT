@@ -26,7 +26,8 @@ function truncateDecimals(number, digits) {
 const updateCounterClosingBalance = async (
   details,
   type,
-  accounting_voucher_uuid
+  accounting_voucher_uuid,
+  ledger_uuid
 ) => {
   switch (type) {
     case "add":
@@ -73,7 +74,7 @@ const updateCounterClosingBalance = async (
             { accounting_voucher_uuid: accounting_voucher_uuid },
             { voucher_no: accounting_voucher_uuid },
             { order_uuid: accounting_voucher_uuid },
-            { recept_number: accounting_voucher_uuid },
+            { recept_number: accounting_voucher_uuid, ledger_uuid },
           ],
         },
         { details: 1 }
@@ -85,7 +86,7 @@ const updateCounterClosingBalance = async (
         );
         let old_amount = VoucherData.details.find(
           (item) => item.ledger_uuid === counter.ledger_uuid
-        ).amount;
+        )?.amount||0;
         if (counter_data) {
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
@@ -123,7 +124,14 @@ const updateCounterClosingBalance = async (
       break;
     case "delete":
       let voucherData = await AccountingVoucher.findOne(
-        { accounting_voucher_uuid: accounting_voucher_uuid },
+        {
+          $or: [
+            { accounting_voucher_uuid: accounting_voucher_uuid },
+            { voucher_no: accounting_voucher_uuid },
+            { order_uuid: accounting_voucher_uuid },
+            { recept_number: accounting_voucher_uuid },
+          ],
+        },
         { details: 1 }
       );
 
