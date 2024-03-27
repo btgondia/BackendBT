@@ -41,7 +41,7 @@ const updateCounterClosingBalance = async (
             { counter_uuid: counter.ledger_uuid },
             {
               closing_balance: truncateDecimals(
-                +(counter_data.closing_balance || 0) + (counter.amount || 0),
+                +(counter_data.closing_balance || 0) + +(counter.amount || 0),
                 2
               ),
             }
@@ -59,7 +59,7 @@ const updateCounterClosingBalance = async (
             { ledger_uuid: counter.ledger_uuid },
             {
               closing_balance: truncateDecimals(
-                +(counter_data.closing_balance || 0) + (counter.amount || 0),
+                +(counter_data.closing_balance || 0) + +(counter.amount || 0),
                 2
               ),
             }
@@ -94,7 +94,7 @@ const updateCounterClosingBalance = async (
               closing_balance: truncateDecimals(
                 +(counter_data.closing_balance || 0) +
                   +(counter.amount || 0) -
-                  (old_amount || 0),
+                  +(old_amount || 0),
                 2
               ),
             }
@@ -114,7 +114,7 @@ const updateCounterClosingBalance = async (
               closing_balance: truncateDecimals(
                 +(counter_data.closing_balance || 0) +
                   +(counter.amount || 0) -
-                  (old_amount || 0),
+                  +(old_amount || 0),
                 2
               ),
             }

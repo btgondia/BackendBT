@@ -13,6 +13,68 @@ const Orders = require("../Models/Orders");
 const { removeCommas } = require("../utils/helperFunctions");
 const PurchaseInvoice = require("../Models/PurchaseInvoice");
 
+router.get("/getLedgerClosingBalance", async (req, res) => {
+  try {
+    let ledgerData = await Ledger.find(
+      {},
+      {
+        closing_balance: 1,
+        ledger_uuid: 1,
+        ledger_group_uuid: 1,
+        ledger_title: 1,
+      }
+    );
+    ledgerData = JSON.parse(JSON.stringify(ledgerData));
+    let counterData = await Counters.find(
+      { status: 1 },
+      { closing_balance: 1, counter_uuid: 1, route_uuid: 1, counter_title: 1 }
+    );
+    counterData = JSON.parse(JSON.stringify(counterData));
+    let response = [];
+    let ledgerGroupData = await LedgerGroup.find(
+      {
+        ledger_group_uuid: { $in: ledgerData.map((a) => a.ledger_group_uuid) },
+      },
+      { ledger_group_title: 1, ledger_group_uuid: 1 }
+    );
+    for (let item of ledgerData) {
+      if (!item.ledger_uuid) continue;
+      let ledger_group_title =
+        ledgerGroupData.find(
+          (a) => a.ledger_group_uuid === item.ledger_group_uuid
+        )?.ledger_group_title || "";
+      response.push({
+        ledger_uuid: item.ledger_uuid,
+        closing_balance: item.closing_balance,
+        ledger_group_title,
+        title: item.ledger_title,
+      });
+    }
+    let routeData = await Routes.find(
+      { route_uuid: { $in: counterData.map((a) => a.route_uuid) } },
+      { route_title: 1, route_uuid: 1 }
+    );
+    for (let item of counterData) {
+      if (!item.counter_uuid) continue;
+      let route_title =
+        routeData.find((a) => a.route_uuid === item.route_uuid)?.route_title ||
+        "";
+
+      response.push({
+        counter_uuid: item.counter_uuid,
+        closing_balance: item.closing_balance,
+        route_title,
+        title: item.counter_title,
+      });
+    }
+    if (response.length) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Ledger Not Found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+
 router.post("/postLedger", async (req, res) => {
   try {
     let value = req.body;
@@ -575,6 +637,37 @@ router.post("/updateTransactionTags", async (req, res) => {
       res.json({ success: true, result: response });
     } else
       res.json({ success: false, message: "Transaction Tags Not Updated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+//updateLedgerClosingBalance
+router.post("/updateLedgerClosingBalance", async (req, res) => {
+  try {
+    let { ledger_uuid, counter_uuid, closing_balance } = req.body;
+    if (!ledger_uuid && !counter_uuid)
+      return res.json({ success: false, message: "Invalid Data" });
+
+    let response;
+    if (ledger_uuid) {
+      response = await Ledger.updateOne(
+        { ledger_uuid: ledger_uuid },
+        {
+          closing_balance,
+        }
+      );
+    } else {
+      response = await Counters.updateOne(
+        { counter_uuid: counter_uuid },
+        {
+          closing_balance,
+        }
+      );
+    }
+
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Closing Balance Not Updated" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
