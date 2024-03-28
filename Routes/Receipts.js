@@ -10,7 +10,7 @@ const PaymentModes = require("../Models/PaymentModes");
 const AccountingVoucher = require("../Models/AccountingVoucher");
 const { updateCounterClosingBalance } = require("../utils/helperFunctions");
 
-const createAccountingVoucher = async (order, type, recept_number, isEdit) => {
+const createAccountingVoucher = async (order, type, recept_number) => {
   for (let a of order.modes || []) {
     if (!a.amt) continue;
     const arr = [];
@@ -40,42 +40,44 @@ const createAccountingVoucher = async (order, type, recept_number, isEdit) => {
         amount: -voucher_round_off,
       });
     }
-    if (isEdit) {
-      await AccountingVoucher.updateOne(
-        { recept_number: recept_number, ledger_uuid: data.ledger_uuid },
-        {
-          amount: a.amt || 0,
-          voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
-          voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
-          details: arr,
-        }
-      );
-      updateCounterClosingBalance(
-        arr,
-        "update",
-        order.receipt_number,
-        data.ledger_uuid
-      );
-    } else {
-      const voucher = {
-        accounting_voucher_uuid: uuid(),
-        type: type,
-        voucher_date: new Date().getTime(),
-        user_uuid: order.user_uuid,
-        counter_uuid: order.counter_uuid,
-        order_uuid: order.order_uuid,
-        invoice_number: order.invoice_number,
-        recept_number,
-        amount: a.amt || 0,
-        voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
-        voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
-        details: arr,
-        created_at: new Date().getTime(),
-      };
-      await AccountingVoucher.create(voucher);
-      updateCounterClosingBalance(arr, "add");
-    }
+
+    const voucher = {
+      accounting_voucher_uuid: uuid(),
+      type: type,
+      voucher_date: new Date().getTime(),
+      user_uuid: order.user_uuid,
+      counter_uuid: order.counter_uuid,
+      order_uuid: order.order_uuid,
+      invoice_number: order.invoice_number,
+      recept_number,
+      amount: a.amt || 0,
+      voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
+      voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
+      details: arr,
+      created_at: new Date().getTime(),
+    };
+    await AccountingVoucher.create(voucher);
+    updateCounterClosingBalance(arr, "add");
   }
+};
+const deleteAccountingVoucher = async (recept_number, type) => {
+  let voucherData = await AccountingVoucher.find({
+    recept_number,
+    type,
+  });
+  console.log(type, voucherData.length);
+  if (voucherData.length) {
+    await AccountingVoucher.deleteMany({
+      recept_number,
+      type,
+    });
+    for (let voucher of voucherData)
+      await updateCounterClosingBalance(voucher.details, "delete");
+  }
+};
+const updateAccountingVoucher = async (order, type, recept_number) => {
+  await deleteAccountingVoucher(recept_number, type);
+  await createAccountingVoucher(order, type, recept_number);
 };
 router.get("/getPendingEntry", async (req, res) => {
   try {
@@ -281,12 +283,7 @@ router.put("/putReceipt", async (req, res) => {
     );
 
     if (response.acknowledged) {
-      createAccountingVoucher(
-        value,
-        "RECEIPT_ORDER",
-        value.receipt_number,
-        true
-      );
+      updateAccountingVoucher(value, "RECEIPT_ORDER", value.receipt_number);
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Receipts Not created" });
   } catch (err) {

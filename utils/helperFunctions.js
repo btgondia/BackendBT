@@ -29,6 +29,7 @@ const updateCounterClosingBalance = async (
   accounting_voucher_uuid,
   ledger_uuid
 ) => {
+  console.log("details", details);
   switch (type) {
     case "add":
       for (let counter of details) {

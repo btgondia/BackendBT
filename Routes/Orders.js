@@ -31,7 +31,6 @@ const {
   updateItemStock,
   truncateDecimals,
 } = require("../utils/helperFunctions");
-const StockTracker = require("../Models/StockTracker");
 const AccountingVouchers = require("../Models/AccountingVoucher");
 
 let ledger_list = [
@@ -76,7 +75,7 @@ let ledger_list = [
     sale_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
   },
 ];
-const createAccountingVoucher = async (order, type, isEdit) => {
+const createAccountingVoucher = async (order, type) => {
   console.log({ order });
   let counterData = await Counters.findOne(
     { counter_uuid: order.counter_uuid },
@@ -117,7 +116,7 @@ const createAccountingVoucher = async (order, type, isEdit) => {
       } else {
         for (let item of ledger?.ledger_uuid || []) {
           arr.push({
-            amount: value/2,
+            amount: value / 2,
             ledger_uuid: item,
           });
         }
@@ -137,43 +136,66 @@ const createAccountingVoucher = async (order, type, isEdit) => {
     ledger_uuid: order.counter_uuid,
     amount: -order.order_grandtotal || 0,
   });
-  let voucher_round_off = (arr.reduce((a, b) => a + +(b.amount||0), 0)||0).toFixed(3)
+  let voucher_round_off = (
+    arr.reduce((a, b) => a + +(b.amount || 0), 0) || 0
+  ).toFixed(3);
   if (voucher_round_off) {
     arr.push({
       ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
       amount: -voucher_round_off,
     });
   }
-  if (isEdit) {
-    await AccountingVouchers.updateOne(
-      { order_uuid: order.order_uuid },
-      {
-        details: arr,
-        voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
-        voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
-        amount: order.order_grandtotal,
-      }
-    );
-    await updateCounterClosingBalance(arr, "edit", order.order_uuid);
-  } else {
-    const voucher = {
-      accounting_voucher_uuid: uuid(),
-      type: type,
-      voucher_date: new Date().getTime(),
-      user_uuid: order.user_uuid,
-      counter_uuid: order.counter_uuid,
-      order_uuid: order.order_uuid,
-      invoice_number: order.invoice_number,
-      amount: order.order_grandtotal,
-      voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
-      voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
-      details: arr,
-      created_at: new Date().getTime(),
-    };
-    await AccountingVouchers.create(voucher);
-    await updateCounterClosingBalance(voucher.details, "add");
+
+  const voucher = {
+    accounting_voucher_uuid: uuid(),
+    type: type,
+    voucher_date: new Date().getTime(),
+    user_uuid: order.user_uuid,
+    counter_uuid: order.counter_uuid,
+    order_uuid: order.order_uuid,
+    invoice_number: order.invoice_number,
+    amount: order.order_grandtotal,
+    voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
+    voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
+    details: arr,
+    created_at: new Date().getTime(),
+  };
+  await AccountingVouchers.create(voucher);
+  await updateCounterClosingBalance(voucher.details, "add");
+};
+const deleteAccountingVoucher = async (
+  order_uuid,
+  invoice_number,
+  type,
+  deletedOrder
+) => {
+  let voucherData = await AccountingVouchers.find({
+    $or: [{ invoice_number }, { order_uuid }],
+    ...(deletedOrder ? {} : { type }),
+  });
+  console.log(type,voucherData.length);
+  if (voucherData.length) {
+    await AccountingVouchers.deleteMany({
+      $or: [{ invoice_number }, { order_uuid }],
+      ...(deletedOrder ? {} : { type }),
+    });
+    for (let voucher of voucherData)
+      await updateCounterClosingBalance(voucher.details, "delete");
   }
 };
+const updateAccountingVoucher = async (order, type) => {
+  let voucherData = await AccountingVouchers.find({
+    $or: [
+      { invoice_number: order.invoice_number },
+      { order_uuid: order.order_uuid },
+    ],
+  });
+  if (voucherData.length) {
+    await deleteAccountingVoucher(order.order_uuid, order.invoice_number,"SALE_ORDER");
+    await createAccountingVoucher(order, type);
+  }
+};
+
 const checkingOrderSkip = async (status) => {
   let order_status = status;
   let skip_stages = await Details.findOne({});
@@ -484,196 +506,314 @@ router.post("/postOrder", async (req, res) => {
 });
 
 router.put("/putOrders", async (req, res) => {
-  try {
-    let response = [];
-    for (let value of req.body) {
-      if (!value) return res.json({ success: false, message: "Invalid Data" });
-      let prevData = (
-        await Orders.findOne({ invoice_number: value.invoice_number })
+  // try {
+  let response = [];
+  for (let value of req.body) {
+    if (!value) return res.json({ success: false, message: "Invalid Data" });
+    let prevData = (
+      await Orders.findOne({ invoice_number: value.invoice_number })
+    )?.toObject();
+
+    delete prevData?._id;
+
+    value = Object.keys(value)
+      .filter((key) => key !== "_id")
+      .reduce((obj, key) => {
+        obj[key] = value[key];
+        return obj;
+      }, {});
+    let status = value.status;
+    if (status) status = await checkingOrderSkip(value.status);
+
+    let itemData = value?.item_details?.length
+      ? await Item.find({
+          item_uuid: { $in: value.item_details.map((a) => a.item_uuid) },
+        })
+      : [];
+
+    let old_stage = prevData
+      ? +Math.max.apply(
+          null,
+          prevData?.status?.map((a) => +a.stage)
+        )
+      : 0;
+
+    let new_stage = +Math.max.apply(
+      null,
+      status?.map((a) => +a.stage)
+    );
+
+    let tripData = {};
+    if (value.trip_uuid) {
+      tripData = (
+        await Trips.findOne({ trip_uuid: value.trip_uuid })
       )?.toObject();
+    }
 
-      delete prevData?._id;
+    const warehouse_uuid = value.warehouse_uuid || tripData?.warehouse_uuid;
+    if (!value?.warehouse_uuid && warehouse_uuid)
+      value = await { ...value, warehouse_uuid };
 
-      value = Object.keys(value)
-        .filter((key) => key !== "_id")
-        .reduce((obj, key) => {
-          obj[key] = value[key];
-          return obj;
-        }, {});
-      let status = value.status;
-      if (status) status = await checkingOrderSkip(value.status);
-
-      let itemData = value?.item_details?.length
-        ? await Item.find({
-            item_uuid: { $in: value.item_details.map((a) => a.item_uuid) },
-          })
-        : [];
-
-      let old_stage = prevData
-        ? +Math.max.apply(
-            null,
-            prevData?.status?.map((a) => +a.stage)
-          )
-        : 0;
-
-      let new_stage = +Math.max.apply(
-        null,
-        status?.map((a) => +a.stage)
-      );
-
-      let tripData = {};
-      if (value.trip_uuid) {
-        tripData = (
-          await Trips.findOne({ trip_uuid: value.trip_uuid })
-        )?.toObject();
-      }
-
-      const warehouse_uuid = value.warehouse_uuid || tripData?.warehouse_uuid;
-      if (!value?.warehouse_uuid && warehouse_uuid)
-        value = await { ...value, warehouse_uuid };
-
-      console.log({ old_stage, new_stage });
-      if (warehouse_uuid && prevData?.order_uuid && new_stage >= 3) {
-        if (old_stage >= 3) {
-          const deletedItems = prevData?.item_details?.filter(
-            (i) =>
-              !value?.item_details?.find((_i) => _i.item_uuid === i.item_uuid)
-          );
-
-          if (new_stage === 5) {
-            for (const i of value?.item_details) {
-              old_order_item = prevData?.item_details?.find(
-                (_i) => _i.item_uuid === i.item_uuid
-              );
-            }
-          } else {
-            for (const i of value?.item_details) {
-              old_order_item = prevData?.item_details?.find(
-                (_i) => _i.item_uuid === i.item_uuid
-              );
-            }
-          }
-        }
-      }
-      console.log({ old_stage, new_stage });
-      if (old_stage <= 3.5 && new_stage >= 3.5) {
-        await updateItemStock(
-          warehouse_uuid,
-          value?.item_details,
-          value.order_uuid,
-          old_stage === new_stage
+    console.log({ old_stage, new_stage });
+    if (warehouse_uuid && prevData?.order_uuid && new_stage >= 3) {
+      if (old_stage >= 3) {
+        const deletedItems = prevData?.item_details?.filter(
+          (i) =>
+            !value?.item_details?.find((_i) => _i.item_uuid === i.item_uuid)
         );
-      }
 
-      if (
-        +new_stage === 4 ||
-        +new_stage === 5 ||
-        value?.item_details?.length === 0
-      ) {
-        let data = await OrderCompleted.findOne({
-          order_uuid: value.order_uuid,
-        });
-
-        if (+new_stage === 5 || value?.item_details?.length === 0) {
-          data = await CancelOrders.create(value);
-          await updateItemStock(
-            value?.warehouse_uuid,
-            value?.item_details,
-            value?.order_uuid,
-            true
-          );
-          await Orders.deleteOne({ order_uuid: value.order_uuid });
-          const filepath = `uploads/${getFileName(value)}`;
-          if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
-        } else if (data) {
-          await updateItemStock(
-            value?.warehouse_uuid,
-            value?.item_details,
-            value?.order_uuid,
-            true
-          );
-          await OrderCompleted.updateOne(
-            { order_uuid: value.order_uuid },
-            value
-          );
-
-          createAccountingVoucher(value, "SALE_ORDER", true);
-        } else {
-          if (
-            !(await OrderCompleted.exists({ order_uuid: value.order_uuid }))
-          ) {
-            data = await OrderCompleted.create({
-              ...prevData,
-              ...value,
-              entry: value?.order_type === "E" ? 2 : +new_stage === 5 ? 1 : 0,
-            });
-            await createAccountingVoucher(value, "SALE_ORDER");
+        if (new_stage === 5) {
+          for (const i of value?.item_details) {
+            old_order_item = prevData?.item_details?.find(
+              (_i) => _i.item_uuid === i.item_uuid
+            );
           }
+        } else {
+          for (const i of value?.item_details) {
+            old_order_item = prevData?.item_details?.find(
+              (_i) => _i.item_uuid === i.item_uuid
+            );
+          }
+        }
+      }
+    }
+    console.log({ old_stage, new_stage });
+    if (old_stage <= 3.5 && new_stage >= 3.5) {
+      await updateItemStock(
+        warehouse_uuid,
+        value?.item_details,
+        value.order_uuid,
+        old_stage === new_stage
+      );
+    }
 
-          await Orders.deleteOne({ order_uuid: value.order_uuid });
-          const filepath = `uploads/${getFileName(value)}`;
-          fs.access(filepath, (err) => {
-            if (err) return console.log(err);
-            fs.unlink(filepath, (err) => err && console.log(err));
+    if (
+      +new_stage === 4 ||
+      +new_stage === 5 ||
+      value?.item_details?.length === 0
+    ) {
+      let data = await OrderCompleted.findOne({
+        order_uuid: value.order_uuid,
+      });
+
+      if (+new_stage === 5 || value?.item_details?.length === 0) {
+        data = await CancelOrders.create(value);
+        await updateItemStock(
+          value?.warehouse_uuid,
+          value?.item_details,
+          value?.order_uuid,
+          true
+        );
+        await Orders.deleteOne({ order_uuid: value.order_uuid });
+        await OrderCompleted.deleteOne({ order_uuid: value.order_uuid });
+        deleteAccountingVoucher(value.order_uuid, value.invoice_number, "SALE_ORDER", true);
+
+        const filepath = `uploads/${getFileName(value)}`;
+        if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+      } else if (data) {
+        await updateItemStock(
+          value?.warehouse_uuid,
+          value?.item_details,
+          value?.order_uuid,
+          true
+        );
+        await OrderCompleted.updateOne({ order_uuid: value.order_uuid }, value);
+
+        updateAccountingVoucher(value, "SALE_ORDER");
+      } else {
+        if (!(await OrderCompleted.exists({ order_uuid: value.order_uuid }))) {
+          data = await OrderCompleted.create({
+            ...prevData,
+            ...value,
+            entry: value?.order_type === "E" ? 2 : +new_stage === 5 ? 1 : 0,
           });
+          await createAccountingVoucher(value, "SALE_ORDER");
         }
 
-        if (+new_stage === 4) {
-          let counterGroupsData = await Counters.findOne(
-            { counter_uuid: value.counter_uuid },
-            { counter_group_uuid: 1 }
-          );
-          let itemsData = value?.item_details?.length
-            ? await Item.find({
-                item_uuid: {
-                  $in: value?.item_details?.map((a) => a.item_uuid) || [],
-                },
-              })
-            : [];
+        await Orders.deleteOne({ order_uuid: value.order_uuid });
+        const filepath = `uploads/${getFileName(value)}`;
+        fs.access(filepath, (err) => {
+          if (err) return console.log(err);
+          fs.unlink(filepath, (err) => err && console.log(err));
+        });
+      }
 
-          let incentiveData = (await Incentive.find({ status: 1 }))?.map((i) =>
-            i.toObject()
-          );
-          let user_range_order = status.find((c) => +c.stage === 1)?.user_uuid;
-          let user_delivery_intensive = status.find(
-            (c) => +c.stage === 4
-          )?.user_uuid;
+      if (+new_stage === 4) {
+        let counterGroupsData = await Counters.findOne(
+          { counter_uuid: value.counter_uuid },
+          { counter_group_uuid: 1 }
+        );
+        let itemsData = value?.item_details?.length
+          ? await Item.find({
+              item_uuid: {
+                $in: value?.item_details?.map((a) => a.item_uuid) || [],
+              },
+            })
+          : [];
 
-          incentiveData = incentiveData.filter(
-            (a) =>
-              a.counters.filter((b) => b === value.counter_uuid).length ||
-              a.counter_groups.filter((b) =>
-                counterGroupsData?.counter_group_uuid?.find((c) => b === c)
-              ).length
-          );
-          let rangeOrderIncentive = incentiveData.filter(
-            (a) =>
-              a.users.filter((b) => b === user_range_order).length &&
-              a.type === "range-order"
-          );
+        let incentiveData = (await Incentive.find({ status: 1 }))?.map((i) =>
+          i.toObject()
+        );
+        let user_range_order = status.find((c) => +c.stage === 1)?.user_uuid;
+        let user_delivery_intensive = status.find(
+          (c) => +c.stage === 4
+        )?.user_uuid;
 
-          let rangeDeliveryIntensive = incentiveData.filter(
+        incentiveData = incentiveData.filter(
+          (a) =>
+            a.counters.filter((b) => b === value.counter_uuid).length ||
+            a.counter_groups.filter((b) =>
+              counterGroupsData?.counter_group_uuid?.find((c) => b === c)
+            ).length
+        );
+        let rangeOrderIncentive = incentiveData.filter(
+          (a) =>
+            a.users.filter((b) => b === user_range_order).length &&
+            a.type === "range-order"
+        );
+
+        let rangeDeliveryIntensive = incentiveData.filter(
+          (a) =>
+            a.users.filter((b) => b === user_delivery_intensive).length &&
+            a.type === "delivery-incentive"
+        );
+        if (!rangeDeliveryIntensive?.length) {
+          user_delivery_intensive = tripData?.users?.length
+            ? tripData?.users[0]
+            : "";
+          rangeDeliveryIntensive = incentiveData.filter(
             (a) =>
               a.users.filter((b) => b === user_delivery_intensive).length &&
               a.type === "delivery-incentive"
           );
-          if (!rangeDeliveryIntensive?.length) {
-            user_delivery_intensive = tripData?.users?.length
-              ? tripData?.users[0]
-              : "";
-            rangeDeliveryIntensive = incentiveData.filter(
-              (a) =>
-                a.users.filter((b) => b === user_delivery_intensive).length &&
-                a.type === "delivery-incentive"
-            );
-          }
-          let rangeItemIntensive = incentiveData.filter(
-            (a) =>
-              a.users.filter((b) => b === user_range_order).length &&
-              a.type === "item-incentive"
-          );
+        }
+        let rangeItemIntensive = incentiveData.filter(
+          (a) =>
+            a.users.filter((b) => b === user_range_order).length &&
+            a.type === "item-incentive"
+        );
 
-          for (let incentive_item of rangeOrderIncentive) {
+        for (let incentive_item of rangeOrderIncentive) {
+          let eligibleItems = value.item_details.filter(
+            (a) =>
+              +a.status !== 3 &&
+              (a.b || a.p) &&
+              (incentive_item.items.find((b) => b === a.item_uuid) ||
+                incentive_item.item_groups.find(
+                  (b) =>
+                    itemsData
+                      .find((c) => c.item_uuid === a.item_uuid)
+                      ?.item_group_uuid.filter((d) => b === d).length
+                ))
+          );
+          if (+incentive_item.min_range <= eligibleItems.length) {
+            let userData = (
+              await Users.findOne({ user_uuid: user_range_order })
+            )?.toObject();
+            let amt = eligibleItems.length * incentive_item.amt;
+            let incentive_balance = (
+              +(userData.incentive_balance || 0) + amt
+            ).toFixed(2);
+
+            await Users.updateMany(
+              { user_uuid: user_range_order },
+              { incentive_balance }
+            );
+            let time = new Date();
+            let statment = await IncentiveStatment.create({
+              user_uuid: user_range_order,
+              order_uuid: value.order_uuid,
+              counter_uuid: value.counter_uuid,
+              incentive_uuid: incentive_item.incentive_uuid,
+              time: time.getTime(),
+              amt: amt.toFixed(2),
+            });
+          }
+        }
+        for (let incentive_item of rangeDeliveryIntensive) {
+          if (incentive_item.value) {
+            let userData = (
+              await Users.findOne({ user_uuid: user_delivery_intensive })
+            )?.toObject();
+            let amt = 0;
+            let incentive_balance = 0;
+            if (incentive_item.calculation === "amt" && incentive_item.value) {
+              amt =
+                (incentive_item.value / 100) *
+                (value.order_grandtotal || value.order_grandtotal);
+              incentive_balance = (
+                +(userData.incentive_balance || 0) + amt
+              ).toFixed(2);
+            }
+            if (incentive_item.calculation === "qty" && incentive_item.value) {
+              amt =
+                (incentive_item.value || 0) *
+                (value.item_details.filter((a) => +a.status !== 3).length > 1
+                  ? value.item_details
+                      .filter((a) => +a.status !== 3)
+                      .map((a) => {
+                        return (
+                          (+a.b *
+                            +itemData.find((c) => c.item_uuid === a.item_uuid)
+                              ?.conversion || 0) + a.p
+                        );
+                      })
+                      .reduce((a, b) => a + b)
+                  : value.item_details.length
+                  ? (+value.item_details[0].b *
+                      +itemData.find(
+                        (c) => c.item_uuid === value.item_details[0].item_uuid
+                      )?.conversion || 0) + value.item_details[0].p
+                  : 0);
+
+              incentive_balance = (
+                +(userData.incentive_balance || 0) + amt
+              ).toFixed(2);
+            }
+
+            if (tripData?.users?.length > 1) {
+              for (let tripUser of tripData.users) {
+                let update = await Users.updateMany(
+                  { user_uuid: tripUser },
+                  {
+                    $inc: {
+                      incentive_balance: (amt / tripData?.users.length).toFixed(
+                        2
+                      ),
+                    },
+                  }
+                );
+                let time = new Date();
+                let statment = await IncentiveStatment.create({
+                  user_uuid: tripUser,
+                  order_uuid: value.order_uuid,
+                  counter_uuid: value.counter_uuid,
+                  incentive_uuid: incentive_item.incentive_uuid,
+                  time: time.getTime(),
+                  amt: (amt / tripData?.users.length).toFixed(2),
+                });
+                console.log(update, statment, amt, incentive_balance);
+              }
+            } else {
+              let update = await Users.updateMany(
+                { user_uuid: user_delivery_intensive },
+                { incentive_balance }
+              );
+              let time = new Date();
+              let statment = await IncentiveStatment.create({
+                user_uuid: user_delivery_intensive,
+                order_uuid: value.order_uuid,
+                counter_uuid: value.counter_uuid,
+                incentive_uuid: incentive_item.incentive_uuid,
+                time: time.getTime(),
+                amt: amt.toFixed(2),
+              });
+              console.log(update, statment, amt, incentive_balance);
+            }
+          }
+        }
+        for (let incentive_item of rangeItemIntensive) {
+          if (incentive_item.value) {
             let eligibleItems = value.item_details.filter(
               (a) =>
                 +a.status !== 3 &&
@@ -686,261 +826,129 @@ router.put("/putOrders", async (req, res) => {
                         ?.item_group_uuid.filter((d) => b === d).length
                   ))
             );
-            if (+incentive_item.min_range <= eligibleItems.length) {
-              let userData = (
-                await Users.findOne({ user_uuid: user_range_order })
-              )?.toObject();
-              let amt = eligibleItems.length * incentive_item.amt;
-              let incentive_balance = (
-                +(userData.incentive_balance || 0) + amt
-              ).toFixed(2);
-
-              await Users.updateMany(
-                { user_uuid: user_range_order },
-                { incentive_balance }
-              );
-              let time = new Date();
-              let statment = await IncentiveStatment.create({
-                user_uuid: user_range_order,
-                order_uuid: value.order_uuid,
-                counter_uuid: value.counter_uuid,
-                incentive_uuid: incentive_item.incentive_uuid,
-                time: time.getTime(),
-                amt: amt.toFixed(2),
-              });
+            let userData = (
+              await Users.findOne({ user_uuid: user_range_order })
+            )?.toObject();
+            let amt = 0;
+            let incentive_balance = 0;
+            if (incentive_item.calculation === "amt" && incentive_item.value) {
+              for (let item of eligibleItems) {
+                amt = +amt + (incentive_item.value / 100) * item.item_total;
+              }
             }
-          }
-          for (let incentive_item of rangeDeliveryIntensive) {
-            if (incentive_item.value) {
-              let userData = (
-                await Users.findOne({ user_uuid: user_delivery_intensive })
-              )?.toObject();
-              let amt = 0;
-              let incentive_balance = 0;
-              if (
-                incentive_item.calculation === "amt" &&
-                incentive_item.value
-              ) {
-                amt =
-                  (incentive_item.value / 100) *
-                  (value.order_grandtotal || value.order_grandtotal);
-                incentive_balance = (
-                  +(userData.incentive_balance || 0) + amt
-                ).toFixed(2);
-              }
-              if (
-                incentive_item.calculation === "qty" &&
-                incentive_item.value
-              ) {
-                amt =
-                  (incentive_item.value || 0) *
-                  (value.item_details.filter((a) => +a.status !== 3).length > 1
-                    ? value.item_details
-                        .filter((a) => +a.status !== 3)
-                        .map((a) => {
-                          return (
-                            (+a.b *
-                              +itemData.find((c) => c.item_uuid === a.item_uuid)
-                                ?.conversion || 0) + a.p
-                          );
-                        })
-                        .reduce((a, b) => a + b)
-                    : value.item_details.length
-                    ? (+value.item_details[0].b *
-                        +itemData.find(
-                          (c) => c.item_uuid === value.item_details[0].item_uuid
-                        )?.conversion || 0) + value.item_details[0].p
-                    : 0);
-
-                incentive_balance = (
-                  +(userData.incentive_balance || 0) + amt
-                ).toFixed(2);
-              }
-
-              if (tripData?.users?.length > 1) {
-                for (let tripUser of tripData.users) {
-                  let update = await Users.updateMany(
-                    { user_uuid: tripUser },
-                    {
-                      $inc: {
-                        incentive_balance: (
-                          amt / tripData?.users.length
-                        ).toFixed(2),
-                      },
-                    }
-                  );
-                  let time = new Date();
-                  let statment = await IncentiveStatment.create({
-                    user_uuid: tripUser,
-                    order_uuid: value.order_uuid,
-                    counter_uuid: value.counter_uuid,
-                    incentive_uuid: incentive_item.incentive_uuid,
-                    time: time.getTime(),
-                    amt: (amt / tripData?.users.length).toFixed(2),
-                  });
-                  console.log(update, statment, amt, incentive_balance);
-                }
-              } else {
-                let update = await Users.updateMany(
-                  { user_uuid: user_delivery_intensive },
-                  { incentive_balance }
-                );
-                let time = new Date();
-                let statment = await IncentiveStatment.create({
-                  user_uuid: user_delivery_intensive,
-                  order_uuid: value.order_uuid,
-                  counter_uuid: value.counter_uuid,
-                  incentive_uuid: incentive_item.incentive_uuid,
-                  time: time.getTime(),
-                  amt: amt.toFixed(2),
+            if (incentive_item.calculation === "qty" && incentive_item.value) {
+              for (let item of eligibleItems) {
+                let itemData = await Item.findOne({
+                  item_uuid: item.item_uuid,
                 });
-                console.log(update, statment, amt, incentive_balance);
+                amt =
+                  +amt +
+                  ((+item?.b * +itemData?.conversion || 0) + item.p) *
+                    +incentive_item.value;
               }
             }
-          }
-          for (let incentive_item of rangeItemIntensive) {
-            if (incentive_item.value) {
-              let eligibleItems = value.item_details.filter(
-                (a) =>
-                  +a.status !== 3 &&
-                  (a.b || a.p) &&
-                  (incentive_item.items.find((b) => b === a.item_uuid) ||
-                    incentive_item.item_groups.find(
-                      (b) =>
-                        itemsData
-                          .find((c) => c.item_uuid === a.item_uuid)
-                          ?.item_group_uuid.filter((d) => b === d).length
-                    ))
-              );
-              let userData = (
-                await Users.findOne({ user_uuid: user_range_order })
-              )?.toObject();
-              let amt = 0;
-              let incentive_balance = 0;
-              if (
-                incentive_item.calculation === "amt" &&
-                incentive_item.value
-              ) {
-                for (let item of eligibleItems) {
-                  amt = +amt + (incentive_item.value / 100) * item.item_total;
-                }
-              }
-              if (
-                incentive_item.calculation === "qty" &&
-                incentive_item.value
-              ) {
-                for (let item of eligibleItems) {
-                  let itemData = await Item.findOne({
-                    item_uuid: item.item_uuid,
-                  });
-                  amt =
-                    +amt +
-                    ((+item?.b * +itemData?.conversion || 0) + item.p) *
-                      +incentive_item.value;
-                }
-              }
-              incentive_balance = (
-                +(userData.incentive_balance || 0) + amt
-              ).toFixed(2);
+            incentive_balance = (
+              +(userData.incentive_balance || 0) + amt
+            ).toFixed(2);
 
-              await Users.updateMany(
-                { user_uuid: user_range_order },
-                { incentive_balance }
-              );
-              let time = new Date();
-              let statment = await IncentiveStatment.create({
-                user_uuid: user_range_order,
-                order_uuid: value.order_uuid,
-                counter_uuid: value.counter_uuid,
-                incentive_uuid: incentive_item.incentive_uuid,
-                time: time.getTime(),
-                amt: amt.toFixed(2),
-              });
-            }
+            await Users.updateMany(
+              { user_uuid: user_range_order },
+              { incentive_balance }
+            );
+            let time = new Date();
+            let statment = await IncentiveStatment.create({
+              user_uuid: user_range_order,
+              order_uuid: value.order_uuid,
+              counter_uuid: value.counter_uuid,
+              incentive_uuid: incentive_item.incentive_uuid,
+              time: time.getTime(),
+              amt: amt.toFixed(2),
+            });
           }
         }
-
-        if (data) response.push(data);
-      } else {
-        if (value?.preventPrintUpdate) delete value.to_print;
-
-        let data = await Orders.updateOne(
-          { order_uuid: value.order_uuid },
-          value
-        );
-        createAccountingVoucher(value, "SALE_ORDER", true);
-        if (data.acknowledged) response.push(value);
       }
 
-      if (value?.counter_charges?.[0]) {
-        const status = +new_stage === 4 ? 1 : +new_stage === 5 ? 0 : 2;
-        const updated_data = {
-          status,
-          invoice_number: `${value?.order_type}${value?.invoice_number}`,
-        };
-        if (+new_stage === 4) updated_data.completed_at = Date.now();
-        else if (+new_stage === 5) updated_data.invoice_number = null;
-        await CounterCharges.updateMany(
-          { charge_uuid: { $in: value?.counter_charges } },
-          updated_data
-        );
-      }
+      if (data) response.push(data);
+    } else {
+      if (value?.preventPrintUpdate) delete value.to_print;
 
-      if (+new_stage === 2 && old_stage === 1) {
-        const WhatsappNotification = await whatsapp_notifications.findOne({
-          notification_uuid: "out-for-delivery",
-        });
+      let data = await Orders.updateOne(
+        { order_uuid: value.order_uuid },
+        value
+      );
+      updateAccountingVoucher(value, "SALE_ORDER");
+      if (data.acknowledged) response.push(value);
+    }
+
+    if (value?.counter_charges?.[0]) {
+      const status = +new_stage === 4 ? 1 : +new_stage === 5 ? 0 : 2;
+      const updated_data = {
+        status,
+        invoice_number: `${value?.order_type}${value?.invoice_number}`,
+      };
+      if (+new_stage === 4) updated_data.completed_at = Date.now();
+      else if (+new_stage === 5) updated_data.invoice_number = null;
+      await CounterCharges.updateMany(
+        { charge_uuid: { $in: value?.counter_charges } },
+        updated_data
+      );
+    }
+
+    if (+new_stage === 2 && old_stage === 1) {
+      const WhatsappNotification = await whatsapp_notifications.findOne({
+        notification_uuid: "out-for-delivery",
+      });
+      const counterData = await Counters.findOne(
+        { counter_uuid: value.counter_uuid },
+        {
+          mobile: 1,
+          counter_title: 1,
+          short_link: 1,
+        }
+      );
+
+      if (WhatsappNotification?.status && counterData?.mobile?.length) {
+        sendMessages({ value, WhatsappNotification, counterData });
+      }
+    }
+
+    if (value.accept_notification || value.notifyCancellation) {
+      const WhatsappNotification = await whatsapp_notifications.findOne({
+        notification_uuid: value.notifyCancellation
+          ? "order_cancellation"
+          : +value.accept_notification
+          ? "order-accept-notification"
+          : "order-decline-notification",
+      });
+
+      if (WhatsappNotification?.status) {
         const counterData = await Counters.findOne(
           { counter_uuid: value.counter_uuid },
-          {
-            mobile: 1,
-            counter_title: 1,
-            short_link: 1,
-          }
+          { mobile: 1, counter_title: 1, short_link: 1 }
         );
 
-        if (WhatsappNotification?.status && counterData?.mobile?.length) {
+        if (counterData?.mobile?.length) {
           sendMessages({ value, WhatsappNotification, counterData });
         }
       }
-
-      if (value.accept_notification || value.notifyCancellation) {
-        const WhatsappNotification = await whatsapp_notifications.findOne({
-          notification_uuid: value.notifyCancellation
-            ? "order_cancellation"
-            : +value.accept_notification
-            ? "order-accept-notification"
-            : "order-decline-notification",
-        });
-
-        if (WhatsappNotification?.status) {
-          const counterData = await Counters.findOne(
-            { counter_uuid: value.counter_uuid },
-            { mobile: 1, counter_title: 1, short_link: 1 }
-          );
-
-          if (counterData?.mobile?.length) {
-            sendMessages({ value, WhatsappNotification, counterData });
-          }
-        }
-      }
-
-      try {
-        const filename = getFileName(value);
-        if (fs.existsSync(`uploads/${filename}`))
-          fs.unlinkSync(`uploads/${filename}`);
-        await generatePDFs([{ filename, order_id: value.order_uuid }]);
-      } catch (err) {
-        console.log(err);
-      }
     }
-    if (response.length) {
-      res.json({ success: true, result: response });
-    } else res.json({ success: false, message: "Order Not updated" });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ success: false, message: err?.message });
+
+    try {
+      const filename = getFileName(value);
+      if (fs.existsSync(`uploads/${filename}`))
+        fs.unlinkSync(`uploads/${filename}`);
+      await generatePDFs([{ filename, order_id: value.order_uuid }]);
+    } catch (err) {
+      console.log(err);
+    }
   }
+  if (response.length) {
+    res.json({ success: true, result: response });
+  } else res.json({ success: false, message: "Order Not updated" });
+  // } catch (err) {
+  //   console.log(err);
+  //   res.status(500).json({ success: false, message: err?.message });
+  // }
 });
 
 router.post("/sendMsg", async (req, res) => {
@@ -1380,7 +1388,7 @@ router.put("/putCompleteOrder", async (req, res) => {
     );
     if (data.acknowledged) {
       if (value?.item_details?.length)
-        createAccountingVoucher(value, "SALE_ORDER", true);
+        updateAccountingVoucher(value, "SALE_ORDER");
       res.json({
         success: true,
         result: data,

@@ -376,12 +376,12 @@ router.post("/getLegerReport", async (req, res) => {
     let endDate = +value.endDate + 86400000;
     console.log(value);
     let ledgerData = await Ledger.findOne(
-      { ledger_uuid: value.ledger_uuid || value.counter_uuid },
+      { ledger_uuid: value.counter_uuid },
       { ledger_uuid: 1, opening_balance: 1 }
     );
     if (!ledgerData)
       ledgerData = await Counters.findOne(
-        { counter_uuid: value.counter_uuid || value.ledger_uuid },
+        { counter_uuid: value.counter_uuid },
         { ledger_uuid: 1, opening_balance: 1 }
       );
 
@@ -671,5 +671,99 @@ router.post("/updateLedgerClosingBalance", async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
+});
+
+//getAccountingBalanceDetails
+router.get("/getAccountingBalanceDetails", async (req, res) => {
+  // try {
+  let ledgerData = await Ledger.find(
+    {},
+    {
+      ledger_uuid: 1,
+      ledger_title: 1,
+      opening_balance: 1,
+      closing_balance: 1,
+    }
+  );
+  ledgerData = JSON.parse(JSON.stringify(ledgerData));
+  let counterData = await Counters.find(
+    {},
+    {
+      counter_uuid: 1,
+      counter_title: 1,
+      opening_balance: 1,
+      closing_balance: 1,
+    }
+  );
+  counterData = JSON.parse(JSON.stringify(counterData));
+  let default_opening_balance_date = await Details.findOne(
+    {},
+    { default_opening_balance_date: 1 }
+  );
+  default_opening_balance_date =
+    default_opening_balance_date.default_opening_balance_date;
+  let result = [];
+  let AccountingVoucherData = await AccountingVoucher.find(
+    {
+      "details.ledger_uuid": {
+        $in: [
+          ...ledgerData.map((a) => a.ledger_uuid),
+          ...counterData.map((a) => a.counter_uuid),
+        ],
+      },
+      voucher_date: { $gte: default_opening_balance_date },
+    },
+    { details: 1 }
+  );
+  for (let item of ledgerData) {
+    let opening_balance =
+      item.opening_balance.find((a) => a.date === default_opening_balance_date)
+        ?.amount || 0;
+    let closing_balance = item.closing_balance || 0;
+    let amount = 0;
+    for (let voucher of AccountingVoucherData) {
+      let detail = voucher.details.find(
+        (a) => a.ledger_uuid === item.ledger_uuid
+      );
+      if (detail) amount += detail.amount;
+    }
+    if (amount !== closing_balance) {
+      result.push({
+        ledger_uuid: item.ledger_uuid,
+        title: item.ledger_title,
+        opening_balance: opening_balance?.amount || 0,
+        closing_balance,
+        amount,
+      });
+    }
+  }
+  for (let item of counterData) {
+    let opening_balance =
+      item.opening_balance.find((a) => a.date === default_opening_balance_date)
+        ?.amount || 0;
+    let closing_balance = item.closing_balance || 0;
+    let amount = 0;
+    for (let voucher of AccountingVoucherData) {
+      let detail = voucher.details.find(
+        (a) => a.ledger_uuid === item.counter_uuid
+      );
+      if (detail) amount += detail.amount;
+    }
+    if (amount !== closing_balance) {
+      result.push({
+        counter_uuid: item.counter_uuid,
+        title: item.counter_title,
+        opening_balance: opening_balance?.amount || 0,
+        closing_balance,
+        amount,
+      });
+    }
+  }
+  if (result.length) {
+    res.json({ success: true, result });
+  } else res.json({ success: false, message: "Ledger Not Found" });
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 module.exports = router;
