@@ -29,7 +29,7 @@ const updateCounterClosingBalance = async (
   accounting_voucher_uuid,
   ledger_uuid
 ) => {
-  console.log("details", details);
+  // console.log("details", details);
   switch (type) {
     case "add":
       for (let counter of details) {
@@ -196,7 +196,6 @@ function removeCommas(input) {
 }
 
 const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
-  console.log("isEdit", isEdit);
   if (!warehouse_uuid || !items?.length) return;
   try {
     for (let item of items) {
@@ -221,7 +220,6 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
               qty: -qty,
             },
           ];
-      console.log("stockAdd", qty);
       await Item.updateOne({ item_uuid: item.item_uuid }, { stock });
     }
   } catch (error) {
@@ -232,7 +230,6 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
     if (!orderData)
       orderData = await Orders.findOne({ order_uuid }, { item_details: 1 });
     let old_items = orderData?.item_details || [];
-    console.log("old_items", old_items);
     for (let item of old_items) {
       let itemData = (
         await Item.findOne({ item_uuid: item.item_uuid })

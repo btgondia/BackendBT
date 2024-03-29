@@ -11,7 +11,8 @@ const AccountingVoucher = require("../Models/AccountingVoucher");
 const { updateCounterClosingBalance } = require("../utils/helperFunctions");
 
 const createAccountingVoucher = async (order, type, recept_number) => {
-  for (let a of order.modes || []) {
+  console.log(type, recept_number);
+  for (let [i, a] of (order.modes || []).entries()) {
     if (!a.amt) continue;
     const arr = [];
     const data = await PaymentModes.findOne(
@@ -49,7 +50,7 @@ const createAccountingVoucher = async (order, type, recept_number) => {
       counter_uuid: order.counter_uuid,
       order_uuid: order.order_uuid,
       invoice_number: order.invoice_number,
-      recept_number,
+      recept_number:recept_number+"/"+(i+1),
       amount: a.amt || 0,
       voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
       voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
@@ -60,15 +61,16 @@ const createAccountingVoucher = async (order, type, recept_number) => {
     updateCounterClosingBalance(arr, "add");
   }
 };
-const deleteAccountingVoucher = async (recept_number, type) => {
+const deleteAccountingVoucher = async (recept_number, type, order_uuid) => {
+  console.log(recept_number, type);
   let voucherData = await AccountingVoucher.find({
-    recept_number,
+    $or: [{ recept_number }, { order_uuid }],
     type,
   });
   console.log(type, voucherData.length);
   if (voucherData.length) {
     await AccountingVoucher.deleteMany({
-      recept_number,
+      $or: [{ recept_number }, { order_uuid }],
       type,
     });
     for (let voucher of voucherData)
@@ -76,7 +78,7 @@ const deleteAccountingVoucher = async (recept_number, type) => {
   }
 };
 const updateAccountingVoucher = async (order, type, recept_number) => {
-  await deleteAccountingVoucher(recept_number, type);
+  await deleteAccountingVoucher(recept_number, type, order.order_uuid);
   await createAccountingVoucher(order, type, recept_number);
 };
 router.get("/getPendingEntry", async (req, res) => {
@@ -283,7 +285,12 @@ router.put("/putReceipt", async (req, res) => {
     );
 
     if (response.acknowledged) {
-      updateAccountingVoucher(value, "RECEIPT_ORDER", value.receipt_number);
+      let receipt_number = await Receipts.findOne(
+        { order_uuid, counter_uuid },
+        { receipt_number: 1 }
+      );
+      receipt_number = receipt_number.receipt_number;
+      updateAccountingVoucher(value, "RECEIPT_ORDER", receipt_number);
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Receipts Not created" });
   } catch (err) {

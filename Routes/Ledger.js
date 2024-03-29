@@ -433,6 +433,7 @@ router.post("/getLegerReport", async (req, res) => {
       created_at: { $gte: value.startDate, $lte: endDate },
     });
     response = JSON.parse(JSON.stringify(response));
+   
     let result = [];
 
     for (let item of response) {
@@ -457,11 +458,12 @@ router.post("/getLegerReport", async (req, res) => {
       let amount = item.details.find(
         (i) => i.ledger_uuid === value.counter_uuid
       ).amount;
-      balance += amount;
+
       result.push({
         ...item,
         amount,
         invoice_number:
+          item.recept_number ||
           item.invoice_number ||
           orderData?.invoice_number ||
           orderData?.purchase_invoice_number ||
@@ -471,7 +473,7 @@ router.post("/getLegerReport", async (req, res) => {
       });
     }
     if (result.length) {
-      return res.json({ success: true, result });
+      return res.json({ success: true, result, opening_balance });
     } else return res.json({ success: false, message: "Ledger Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });

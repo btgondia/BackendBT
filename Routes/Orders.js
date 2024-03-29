@@ -116,7 +116,7 @@ const createAccountingVoucher = async (order, type) => {
       } else {
         for (let item of ledger?.ledger_uuid || []) {
           arr.push({
-            amount: value / 2,
+            amount: truncateDecimals(value / 2, 2),
             ledger_uuid: item,
           });
         }
@@ -173,7 +173,7 @@ const deleteAccountingVoucher = async (
     $or: [{ invoice_number }, { order_uuid }],
     ...(deletedOrder ? {} : { type }),
   });
-  console.log(type,voucherData.length);
+  console.log(type, voucherData.length);
   if (voucherData.length) {
     await AccountingVouchers.deleteMany({
       $or: [{ invoice_number }, { order_uuid }],
@@ -191,7 +191,11 @@ const updateAccountingVoucher = async (order, type) => {
     ],
   });
   if (voucherData.length) {
-    await deleteAccountingVoucher(order.order_uuid, order.invoice_number,"SALE_ORDER");
+    await deleteAccountingVoucher(
+      order.order_uuid,
+      order.invoice_number,
+      "SALE_ORDER"
+    );
     await createAccountingVoucher(order, type);
   }
 };
@@ -606,7 +610,12 @@ router.put("/putOrders", async (req, res) => {
         );
         await Orders.deleteOne({ order_uuid: value.order_uuid });
         await OrderCompleted.deleteOne({ order_uuid: value.order_uuid });
-        deleteAccountingVoucher(value.order_uuid, value.invoice_number, "SALE_ORDER", true);
+        deleteAccountingVoucher(
+          value.order_uuid,
+          value.invoice_number,
+          "SALE_ORDER",
+          true
+        );
 
         const filepath = `uploads/${getFileName(value)}`;
         if (fs.existsSync(filepath)) fs.unlinkSync(filepath);

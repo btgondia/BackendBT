@@ -19,6 +19,7 @@ const accountingVoucherSchema = new mongoose.Schema({
     {
       ledger_uuid: { type: String },
       amount: { type: Number },narration:{type:String},
+      narration:{type:String},
     },
   ],
 });
