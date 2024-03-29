@@ -122,6 +122,45 @@ const updateCounterClosingBalance = async (
           );
         }
       }
+      // remove old data
+      let otherData = VoucherData.details.filter(
+        (item) => !details.find((a) => a.ledger_uuid === item.ledger_uuid)
+      );
+      for (let counter of otherData) {
+        let counter_data = await Counters.findOne(
+          { counter_uuid: counter.ledger_uuid },
+          { closing_balance: 1 }
+        );
+        if (counter_data) {
+          await Counters.updateOne(
+            { counter_uuid: counter.ledger_uuid },
+            {
+              closing_balance: truncateDecimals(
+                +(counter_data.closing_balance || 0) - +(counter.amount || 0),
+                2
+              ),
+            }
+          );
+        } else if (!counter_data) {
+          counter_data = await Ledger.findOne(
+            {
+              ledger_uuid: counter.ledger_uuid,
+            },
+            { closing_balance: 1 }
+          );
+        }
+        if (counter_data) {
+          await Ledger.updateOne(
+            { ledger_uuid: counter.ledger_uuid },
+            {
+              closing_balance: truncateDecimals(
+                +(counter_data.closing_balance || 0) - +(counter.amount || 0),
+                2
+              ),
+            }
+          );
+        }
+      }
       break;
     case "delete":
       let voucherData = await AccountingVoucher.findOne(

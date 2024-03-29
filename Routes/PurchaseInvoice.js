@@ -6,7 +6,10 @@ const { v4: uuid } = require("uuid");
 const Item = require("../Models/Item");
 const AccountingVouchers = require("../Models/AccountingVoucher");
 const Ledger = require("../Models/Ledger");
-const { updateCounterClosingBalance, truncateDecimals } = require("../utils/helperFunctions");
+const {
+  updateCounterClosingBalance,
+  truncateDecimals,
+} = require("../utils/helperFunctions");
 
 let ledger_list = [
   {
@@ -50,7 +53,22 @@ let ledger_list = [
     central_purchase_ledger: "62e7a642-8738-4d0e-93fa-d2b8f8cafb6a",
   },
 ];
-const createAccountingVoucher = async (order, type, isEdit) => {
+//delete accounting voucher
+const deleteAccountingVoucher = async (order, type) => {
+  let voucher = await AccountingVouchers.findOne({
+    order_uuid: order.purchase_order_uuid,
+    type,
+  });
+  if (voucher) {
+    await AccountingVouchers.deleteOne({
+      order_uuid: order.purchase_order_uuid,
+      type,
+    });
+    await updateCounterClosingBalance(voucher.details, "delete");
+  }
+};
+
+const createAccountingVoucher = async (order, type) => {
   let counterData = await Ledger.findOne(
     { ledger_uuid: order.ledger_uuid },
     { gst: 1 }
@@ -91,7 +109,7 @@ const createAccountingVoucher = async (order, type, isEdit) => {
       } else
         for (let item of ledger?.ledger_uuid || []) {
           arr.push({
-            amount: -truncateDecimals(value / 2,2),
+            amount: -truncateDecimals(value / 2, 2),
             ledger_uuid: item,
           });
         }
@@ -114,41 +132,47 @@ const createAccountingVoucher = async (order, type, isEdit) => {
       amount: -item.amount,
     });
   }
-  let voucher_round_off = (arr.reduce((a, b) => a + +(b.amount||0), 0)||0).toFixed(3);
+  let voucher_round_off = (
+    arr.reduce((a, b) => a + +(b.amount || 0), 0) || 0
+  ).toFixed(3);
   if (voucher_round_off) {
     arr.push({
       ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
       amount: -voucher_round_off,
     });
   }
-  if (isEdit) {
-    await AccountingVouchers.updateOne(
-      { order_uuid: order.purchase_order_uuid },
-      {
-        details: arr,
-        voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
-        voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
-        amount: order.order_grandtotal,
-      }
-    );
-    await updateCounterClosingBalance(arr, "edit", order.purchase_order_uuid);
-  } else {
-    const voucher = {
-      accounting_voucher_uuid: uuid(),
-      type: type,
-      voucher_date: new Date().getTime(),
-      user_uuid: order.user_uuid,
-      counter_uuid: order.counter_uuid,
+
+  const voucher = {
+    accounting_voucher_uuid: uuid(),
+    type: type,
+    voucher_date: new Date().getTime(),
+    user_uuid: order.user_uuid,
+    counter_uuid: order.counter_uuid,
+    order_uuid: order.purchase_order_uuid,
+    invoice_number: order.purchase_invoice_number,
+    amount: order.order_grandtotal,
+    voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
+    voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
+    details: arr,
+    created_at: new Date().getTime(),
+  };
+  await AccountingVouchers.create(voucher);
+  await updateCounterClosingBalance(voucher.details, "add");
+};
+
+//update accounting voucher
+const updateAccountingVoucher = async (order, type) => {
+  let voucher = await AccountingVouchers.findOne({
+    order_uuid: order.purchase_order_uuid,
+    type,
+  });
+  if (voucher) {
+    await AccountingVouchers.deleteOne({
       order_uuid: order.purchase_order_uuid,
-      invoice_number: order.purchase_invoice_number,
-      amount: order.order_grandtotal,
-      voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
-      voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
-      details: arr,
-      created_at: new Date().getTime(),
-    };
-    await AccountingVouchers.create(voucher);
-    await updateCounterClosingBalance(voucher.details, "add");
+      type,
+    });
+    await updateCounterClosingBalance(voucher.details, "delete");
+    createAccountingVoucher(order, type);
   }
 };
 
@@ -189,7 +213,7 @@ router.put("/putPurchaseInvoice", async (req, res) => {
       res.json({ success: false, message: "Invalid Data" });
     //delete _id
     delete value._id;
-    createAccountingVoucher(value, "PURCHASE_INVOICE", true);
+    updateAccountingVoucher(value, "PURCHASE_INVOICE");
     let response = await PurchaseINvoice.findOneAndUpdate(
       { purchase_order_uuid: value.purchase_order_uuid },
       req.body
@@ -209,6 +233,23 @@ router.get("/getPurchaseInvoice/:id", async (req, res) => {
     });
     if (response) res.json({ success: true, result: response });
     else res.json({ success: false, message: "AccountVoucher Not Found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+
+//delete purchase invoice by id
+router.delete("/deletePurchaseInvoice", async (req, res) => {
+  try {
+    let {  order_uuid } = req.body;
+    let response = await PurchaseINvoice.findOneAndDelete({
+      purchase_order_uuid: order_uuid,
+    });
+    await AccountingVouchers.deleteOne({ order_uuid, type: "PURCHASE_INVOICE"});
+    if (response) {
+      deleteAccountingVoucher(response, "PURCHASE_INVOICE");
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "AccountVoucher Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }

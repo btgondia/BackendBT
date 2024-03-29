@@ -13,7 +13,7 @@ const { updateCounterClosingBalance } = require("../utils/helperFunctions");
 const createAccountingVoucher = async (order, type, recept_number) => {
   console.log(type, recept_number);
   for (let [i, a] of (order.modes || []).entries()) {
-    if (!a.amt) continue;
+    if (!+a.amt) continue;
     const arr = [];
     const data = await PaymentModes.findOne(
       { mode_uuid: a.mode_uuid },

@@ -8,6 +8,7 @@ const AccountingVoucher = require("../Models/AccountingVoucher");
 
 const Vochers = require("../Models/Vochers");
 const { updateCounterClosingBalance } = require("../utils/helperFunctions");
+const PurchaseInvoice = require("../Models/PurchaseInvoice");
 
 router.post("/postAccountVoucher", async (req, res) => {
   try {
@@ -74,11 +75,17 @@ router.post("/postAccountVouchers", async (req, res) => {
 //delete accounting voucher by accounting_voucher_uuid
 router.delete("/deleteAccountVoucher", async (req, res) => {
   try {
-    let { accounting_voucher_uuid } = req.body;
+    let { accounting_voucher_uuid, order_uuid } = req.body;
     await updateCounterClosingBalance([], "delete", accounting_voucher_uuid);
+
     let response = await AccountingVoucher.deleteMany({
       accounting_voucher_uuid,
     });
+    if (order_uuid) {
+      await PurchaseInvoice.deleteOne({
+        purchase_order_uuid: order_uuid,
+      });
+    }
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "AccountVoucher Not created" });
@@ -92,7 +99,10 @@ router.get("/getAccountVoucher/:accounting_voucher_uuid", async (req, res) => {
     let { accounting_voucher_uuid } = req.params;
     console.log({ accounting_voucher_uuid });
     let data = await AccountingVoucher.findOne({
-      $or: [{ accounting_voucher_uuid},{order_uuid: accounting_voucher_uuid }],
+      $or: [
+        { accounting_voucher_uuid },
+        { order_uuid: accounting_voucher_uuid },
+      ],
     });
     if (data) res.json({ success: true, result: data });
     else res.json({ success: false, message: "AccountVoucher Not found" });
