@@ -171,7 +171,7 @@ const updateAccountingVoucher = async (order, type) => {
       order_uuid: order.purchase_order_uuid,
       type,
     });
-    await updateCounterClosingBalance(voucher.details, "delete");
+    await updateCounterClosingBalance(voucher.details, "delete",order.purchase_order_uuid);
     createAccountingVoucher(order, type);
   }
 };
