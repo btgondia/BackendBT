@@ -175,12 +175,13 @@ const deleteAccountingVoucher = async (
   });
   console.log(type, voucherData.length);
   if (voucherData.length) {
+    for (let voucher of voucherData)
+    await updateCounterClosingBalance(voucher.details, "delete");
     await AccountingVouchers.deleteMany({
       $or: [{ invoice_number }, { order_uuid }],
       ...(deletedOrder ? {} : { type }),
     });
-    for (let voucher of voucherData)
-      await updateCounterClosingBalance(voucher.details, "delete");
+   
   }
 };
 const updateAccountingVoucher = async (order, type) => {

@@ -54,17 +54,20 @@ let ledger_list = [
   },
 ];
 //delete accounting voucher
-const deleteAccountingVoucher = async (order, type) => {
+const deleteAccountingVoucher = async (order_uuid) => {
+
   let voucher = await AccountingVouchers.findOne({
-    order_uuid: order.purchase_order_uuid,
-    type,
+    order_uuid
   });
+  console.log({ voucher });
   if (voucher) {
+    await updateCounterClosingBalance(
+      voucher.details,
+      "delete",
+    );
     await AccountingVouchers.deleteOne({
-      order_uuid: order.purchase_order_uuid,
-      type,
+      order_uuid,
     });
-    await updateCounterClosingBalance(voucher.details, "delete",order.purchase_order_uuid);
   }
 };
 
@@ -156,6 +159,7 @@ const createAccountingVoucher = async (order, type) => {
     details: arr,
     created_at: new Date().getTime(),
   };
+  console.log({ voucher });
   await AccountingVouchers.create(voucher);
   await updateCounterClosingBalance(voucher.details, "add");
 };
@@ -167,11 +171,16 @@ const updateAccountingVoucher = async (order, type) => {
     type,
   });
   if (voucher) {
+    await updateCounterClosingBalance(
+      voucher.details,
+      "delete",
+      order.purchase_order_uuid
+    );
     await AccountingVouchers.deleteOne({
       order_uuid: order.purchase_order_uuid,
       type,
     });
-    await updateCounterClosingBalance(voucher.details, "delete",order.purchase_order_uuid);
+    
     createAccountingVoucher(order, type);
   }
 };
@@ -241,13 +250,13 @@ router.get("/getPurchaseInvoice/:id", async (req, res) => {
 //delete purchase invoice by id
 router.delete("/deletePurchaseInvoice", async (req, res) => {
   try {
-    let {  order_uuid } = req.body;
-    let response = await PurchaseINvoice.findOneAndDelete({
+    let { order_uuid } = req.body;
+    let response = await PurchaseINvoice.deleteOne({
       purchase_order_uuid: order_uuid,
     });
-    await AccountingVouchers.deleteOne({ order_uuid, type: "PURCHASE_INVOICE"});
+
     if (response) {
-      deleteAccountingVoucher(response, "PURCHASE_INVOICE");
+      await deleteAccountingVoucher(order_uuid);
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "AccountVoucher Not Found" });
   } catch (err) {

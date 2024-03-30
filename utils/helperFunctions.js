@@ -85,9 +85,10 @@ const updateCounterClosingBalance = async (
           { counter_uuid: counter.ledger_uuid },
           { closing_balance: 1 }
         );
-        let old_amount = VoucherData.details.find(
-          (item) => item.ledger_uuid === counter.ledger_uuid
-        )?.amount||0;
+        let old_amount =
+          VoucherData.details.find(
+            (item) => item.ledger_uuid === counter.ledger_uuid
+          )?.amount || 0;
         if (counter_data) {
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
@@ -163,19 +164,7 @@ const updateCounterClosingBalance = async (
       }
       break;
     case "delete":
-      let voucherData = await AccountingVoucher.findOne(
-        {
-          $or: [
-            { accounting_voucher_uuid: accounting_voucher_uuid },
-            { voucher_no: accounting_voucher_uuid },
-            { order_uuid: accounting_voucher_uuid },
-            { recept_number: accounting_voucher_uuid },
-          ],
-        },
-        { details: 1 }
-      );
-
-      for (let counter of voucherData?.details || []) {
+      for (let counter of details || []) {
         let counter_data = await Counters.findOne(
           { counter_uuid: counter.ledger_uuid },
           { closing_balance: 1 }

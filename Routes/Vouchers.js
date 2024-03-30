@@ -76,7 +76,13 @@ router.post("/postAccountVouchers", async (req, res) => {
 router.delete("/deleteAccountVoucher", async (req, res) => {
   try {
     let { accounting_voucher_uuid, order_uuid } = req.body;
-    await updateCounterClosingBalance([], "delete", accounting_voucher_uuid);
+    let voucherData = await AccountingVoucher.findOne(
+      {
+        accounting_voucher_uuid,
+      },
+      { details: 1 }
+    );
+    await updateCounterClosingBalance(voucherData.details, "delete");
 
     let response = await AccountingVoucher.deleteMany({
       accounting_voucher_uuid,

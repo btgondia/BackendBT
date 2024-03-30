@@ -69,12 +69,13 @@ const deleteAccountingVoucher = async (recept_number, type, order_uuid) => {
   });
   console.log(type, voucherData.length);
   if (voucherData.length) {
+    for (let voucher of voucherData)
+    await updateCounterClosingBalance(voucher.details, "delete");
     await AccountingVoucher.deleteMany({
       $or: [{ recept_number }, { order_uuid }],
       type,
     });
-    for (let voucher of voucherData)
-      await updateCounterClosingBalance(voucher.details, "delete");
+
   }
 };
 const updateAccountingVoucher = async (order, type, recept_number) => {
