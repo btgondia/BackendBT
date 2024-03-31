@@ -34,8 +34,8 @@ const createAccountingVoucher = async (order, type, recept_number) => {
     });
     let voucher_round_off = (
       arr.reduce((a, b) => a + +(b.amount || 0), 0) || 0
-    ).toFixed(3);
-    if (voucher_round_off) {
+    ).toFixed(2);
+    if (+voucher_round_off) {
       arr.push({
         ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
         amount: -voucher_round_off,
@@ -228,7 +228,7 @@ router.post("/postReceipt", async (req, res) => {
         "RECEIPT_ORDER",
         next_receipt_number
       );
-      next_receipt_number = incrementSerialNumber(next_receipt_number);
+      next_receipt_number = increaseNumericString(next_receipt_number);
       await Details.updateMany({}, { next_receipt_number });
       if (response) {
         res.json({ success: true, result: response });

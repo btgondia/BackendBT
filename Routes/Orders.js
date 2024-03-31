@@ -139,8 +139,8 @@ const createAccountingVoucher = async (order, type) => {
   });
   let voucher_round_off = (
     arr.reduce((a, b) => a + +(b.amount || 0), 0) || 0
-  ).toFixed(3);
-  if (voucher_round_off) {
+  ).toFixed(2);
+  if (+voucher_round_off) {
     arr.push({
       ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
       amount: -voucher_round_off,
@@ -246,7 +246,7 @@ router.get("/paymentPending/:counter_uuid", async (req, res) => {
 });
 
 router.post("/postOrder", async (req, res) => {
-  // try {
+  try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
@@ -505,13 +505,13 @@ router.post("/postOrder", async (req, res) => {
       }
       res.json({ success: true, result: response, incentives });
     } else res.json({ success: false, message: "Order Not created" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 
 router.put("/putOrders", async (req, res) => {
-  // try {
+  try {
   let response = [];
   for (let value of req.body) {
     if (!value) return res.json({ success: false, message: "Invalid Data" });
@@ -955,10 +955,10 @@ router.put("/putOrders", async (req, res) => {
   if (response.length) {
     res.json({ success: true, result: response });
   } else res.json({ success: false, message: "Order Not updated" });
-  // } catch (err) {
-  //   console.log(err);
-  //   res.status(500).json({ success: false, message: err?.message });
-  // }
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: err?.message });
+  }
 });
 
 router.post("/sendMsg", async (req, res) => {
@@ -2233,7 +2233,7 @@ router.get("/deductions-report", async (req, res) => {
 
 //getOrderListByChequeNumber
 router.post("/getOrderListByChequeNumber", async (req, res) => {
-  // try {
+  try {
   const { cheque_number } = req.body;
   const data = await Receipts.find({
     "modes.remarks": cheque_number,
@@ -2276,8 +2276,8 @@ router.post("/getOrderListByChequeNumber", async (req, res) => {
     success: true,
     result,
   });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err?.message });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err?.message });
+  }
 });
 module.exports = router;

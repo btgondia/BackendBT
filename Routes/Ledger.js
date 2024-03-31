@@ -139,7 +139,7 @@ function getAlphabetIndex(alphabet) {
   return sequence.indexOf(alphabet.toLowerCase());
 }
 router.post("/getExcelDetailsData", async (req, res) => {
-  // try {
+  try {
   let { array } = req.body;
 
   let bankStatementItem = await Details.findOne({}, { bank_statement_item: 1 });
@@ -336,9 +336,9 @@ router.post("/getExcelDetailsData", async (req, res) => {
   if (result) {
     res.json({ success: true, result });
   } else res.json({ success: false, message: "Ledger Not Found" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 
 //put ledger
@@ -497,7 +497,7 @@ router.post("/getLegerReport", async (req, res) => {
 });
 
 router.post("/getOpeningBalanceReport", async (req, res) => {
-  // try {
+  try {
   let { date } = req.body;
   let ledgersData = await Ledger.find(
     {},
@@ -540,14 +540,14 @@ router.post("/getOpeningBalanceReport", async (req, res) => {
  
     res.json({ success: true, result });
   
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 
 //update opening balance of ledger or counter
 router.put("/updateOpeningBalance", async (req, res) => {
-  // try {
+  try {
   let value = req.body;
   if (!value) res.json({ success: false, message: "Invalid Data" });
   let { date, opening_balance } = value;
@@ -618,9 +618,9 @@ router.put("/updateOpeningBalance", async (req, res) => {
   if (response) {
     res.json({ success: true, result: response });
   } else res.json({ success: false, message: "Opening Balance Not Updated" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 //updateTransactionTags
 router.post("/updateTransactionTags", async (req, res) => {
@@ -712,7 +712,7 @@ router.post("/updateLedgerClosingBalance", async (req, res) => {
 
 //getAccountingBalanceDetails
 router.get("/getAccountingBalanceDetails", async (req, res) => {
-  // try {
+  try {
   let ledgerData = await Ledger.find(
     {},
     {
@@ -799,8 +799,8 @@ router.get("/getAccountingBalanceDetails", async (req, res) => {
   if (result.length) {
     res.json({ success: true, result });
   } else res.json({ success: false, message: "Ledger Not Found" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 module.exports = router;

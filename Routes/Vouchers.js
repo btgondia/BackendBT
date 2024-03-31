@@ -49,67 +49,67 @@ router.post("/postAccountVoucher", async (req, res) => {
   }
 });
 router.post("/postAccountVouchers", async (req, res) => {
-  // try {
-  let value = req.body;
-  let success = 0;
-  let failed = 0;
-  for (let item of value) {
-    if (
-      (item.order_uuid || item.invoice_number) &&
-      item.mode_uuid &&
-      item.mark_entry
-    ) {
-      let response = await Receipts.findOne({
-        $or: [
-          { invoice_number: { $in: item.invoice_number } },
-          { order_uuid: item.order_uuid },
-        ],
-      });
-      response = JSON.parse(JSON.stringify(response));
-      response = response.modes.map((a) =>
-        a.mode_uuid === item.mode_uuid ? { ...a, status: 1 } : a
-      );
-      let pending = response.find((b) => b.status === 0 && b.amt) ? 0 : 1;
-      console.log({ pending, modes: response });
-      await Receipts.updateMany(
-        {
+  try {
+    let value = req.body;
+    let success = 0;
+    let failed = 0;
+    for (let item of value) {
+      if (
+        (item.order_uuid || item.invoice_number) &&
+        item.mode_uuid &&
+        item.mark_entry
+      ) {
+        let response = await Receipts.findOne({
           $or: [
             { invoice_number: { $in: item.invoice_number } },
             { order_uuid: item.order_uuid },
           ],
-        },
-        { modes: response, pending }
-      );
+        });
+        response = JSON.parse(JSON.stringify(response));
+        response = response.modes.map((a) =>
+          a.mode_uuid === item.mode_uuid ? { ...a, status: 1 } : a
+        );
+        let pending = response.find((b) => b.status === 0 && b.amt) ? 0 : 1;
+        console.log({ pending, modes: response });
+        await Receipts.updateMany(
+          {
+            $or: [
+              { invoice_number: { $in: item.invoice_number } },
+              { order_uuid: item.order_uuid },
+            ],
+          },
+          { modes: response, pending }
+        );
+      }
+      let next_accounting_voucher_number = await Details.find({});
+
+      next_accounting_voucher_number =
+        next_accounting_voucher_number[0].next_accounting_voucher_number;
+
+      item = {
+        ...item,
+        accounting_voucher_uuid: item.accounting_voucher_uuid || uuid(),
+        accounting_voucher_number: next_accounting_voucher_number,
+      };
+
+      await updateCounterClosingBalance(item.details, "add");
+      let response = await AccountingVoucher.create(item);
+      if (response) {
+        await Details.updateMany(
+          {},
+          {
+            next_accounting_voucher_number: increaseNumericString(
+              next_accounting_voucher_number
+            ),
+          }
+        );
+        success++;
+      } else failed++;
     }
-    let next_accounting_voucher_number = await Details.find({});
-
-    next_accounting_voucher_number =
-      next_accounting_voucher_number[0].next_accounting_voucher_number;
-
-    item = {
-      ...item,
-      accounting_voucher_uuid: item.accounting_voucher_uuid || uuid(),
-      accounting_voucher_number: next_accounting_voucher_number,
-    };
-
-    await updateCounterClosingBalance(item.details, "add");
-    let response = await AccountingVoucher.create(item);
-    if (response) {
-      await Details.updateMany(
-        {},
-        {
-          next_accounting_voucher_number: increaseNumericString(
-            next_accounting_voucher_number
-          ),
-        }
-      );
-      success++;
-    } else failed++;
+    res.json({ success: true, result: { success, failed } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
   }
-  res.json({ success: true, result: { success, failed } });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
 });
 //delete accounting voucher by accounting_voucher_uuid
 router.delete("/deleteAccountVoucher", async (req, res) => {

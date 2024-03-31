@@ -137,8 +137,8 @@ const createAccountingVoucher = async (order, type) => {
   }
   let voucher_round_off = (
     arr.reduce((a, b) => a + +(b.amount || 0), 0) || 0
-  ).toFixed(3);
-  if (voucher_round_off) {
+  ).toFixed(2);
+  if (+voucher_round_off) {
     arr.push({
       ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
       amount: -voucher_round_off,
