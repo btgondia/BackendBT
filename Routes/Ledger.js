@@ -550,7 +550,7 @@ router.post("/getOpeningBalanceReport", async (req, res) => {
 
 //update opening balance of ledger or counter
 router.put("/updateOpeningBalance", async (req, res) => {
-  try {
+  // try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     let { date, opening_balance } = value;
@@ -561,7 +561,7 @@ router.put("/updateOpeningBalance", async (req, res) => {
         { opening_balance: 1 }
       );
       opening_balance =
-        +date === 0 ? opening_balance : ledgerData.opening_balance;
+        +date === 0 ? opening_balance : (ledgerData?.opening_balance||[]);
       if (+date !== 0) {
         if (opening_balance.length) {
           let index = opening_balance.findIndex((a) => a.date === value.date);
@@ -592,7 +592,7 @@ router.put("/updateOpeningBalance", async (req, res) => {
         { opening_balance: 1 }
       );
       opening_balance =
-        +date === 0 ? opening_balance : ledgerData.opening_balance;
+        +date === 0 ? opening_balance : (counterData?.opening_balance||[]);
       if (+date !== 0) {
         if (opening_balance.length) {
           let index = opening_balance.findIndex((a) => a.date === date);
@@ -621,9 +621,9 @@ router.put("/updateOpeningBalance", async (req, res) => {
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Opening Balance Not Updated" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 //updateTransactionTags
 router.post("/updateTransactionTags", async (req, res) => {
