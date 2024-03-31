@@ -8,7 +8,7 @@ const cash_register_transections = require("../Models/cash_register_transections
 const { getReceipts } = require("../modules/index");
 const PaymentModes = require("../Models/PaymentModes");
 const AccountingVoucher = require("../Models/AccountingVoucher");
-const { updateCounterClosingBalance } = require("../utils/helperFunctions");
+const { updateCounterClosingBalance,increaseNumericString } = require("../utils/helperFunctions");
 
 const createAccountingVoucher = async (order, type, recept_number) => {
   console.log(type, recept_number);
@@ -228,7 +228,7 @@ router.post("/postReceipt", async (req, res) => {
         "RECEIPT_ORDER",
         next_receipt_number
       );
-      next_receipt_number = "R" + (+next_receipt_number.match(/\d+/)[0] + 1);
+      next_receipt_number = incrementSerialNumber(next_receipt_number);
       await Details.updateMany({}, { next_receipt_number });
       if (response) {
         res.json({ success: true, result: response });

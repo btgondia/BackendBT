@@ -8,6 +8,7 @@ const Counters = require("../Models/Counters");
 const Details = require("../Models/Details");
 const OutStanding = require("../Models/OutStanding");
 const Receipts = require("../Models/Receipts");
+const { increaseNumericString } = require("../utils/helperFunctions");
 
 router.post("/postTag", async (req, res) => {
   try {
@@ -29,7 +30,7 @@ router.post("/postTag", async (req, res) => {
         {},
         {
           next_collection_tag_number:
-            +invoice_number?.next_collection_tag_number + 1,
+            increaseNumericString(invoice_number?.next_collection_tag_number),
         }
       );
       res.json({ success: true, result: response });

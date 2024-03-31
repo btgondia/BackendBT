@@ -7,7 +7,10 @@ const Item = require("../Models/Item");
 const AccountingVoucher = require("../Models/AccountingVoucher");
 
 const Vochers = require("../Models/Vochers");
-const { updateCounterClosingBalance } = require("../utils/helperFunctions");
+const {
+  updateCounterClosingBalance,
+  increaseNumericString,
+} = require("../utils/helperFunctions");
 const PurchaseInvoice = require("../Models/PurchaseInvoice");
 const Counters = require("../Models/Counters");
 const Ledger = require("../Models/Ledger");
@@ -25,7 +28,7 @@ router.post("/postAccountVoucher", async (req, res) => {
     value = {
       ...value,
       accounting_voucher_uuid: value.accounting_voucher_uuid || uuid(),
-      accounting_voucher_number: "V" + next_accounting_voucher_number,
+      accounting_voucher_number: next_accounting_voucher_number,
     };
     console.log(value);
     await updateCounterClosingBalance(value.details, "add");
@@ -33,7 +36,11 @@ router.post("/postAccountVoucher", async (req, res) => {
     if (response) {
       await Details.updateMany(
         {},
-        { next_accounting_voucher_number: +next_accounting_voucher_number + 1 }
+        {
+          next_accounting_voucher_number: increaseNumericString(
+            next_accounting_voucher_number
+          ),
+        }
       );
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "AccountVoucher Not created" });
@@ -82,7 +89,7 @@ router.post("/postAccountVouchers", async (req, res) => {
     item = {
       ...item,
       accounting_voucher_uuid: item.accounting_voucher_uuid || uuid(),
-      accounting_voucher_number: "V" + next_accounting_voucher_number,
+      accounting_voucher_number: next_accounting_voucher_number,
     };
 
     await updateCounterClosingBalance(item.details, "add");
@@ -91,7 +98,9 @@ router.post("/postAccountVouchers", async (req, res) => {
       await Details.updateMany(
         {},
         {
-          next_accounting_voucher_number: +next_accounting_voucher_number + 1,
+          next_accounting_voucher_number: increaseNumericString(
+            next_accounting_voucher_number
+          ),
         }
       );
       success++;
@@ -187,7 +196,11 @@ router.post("/postVoucher", async (req, res) => {
     if (response) {
       await Details.updateMany(
         {},
-        { next_vocher_number: +vocher_number.next_vocher_number + 1 }
+        {
+          next_vocher_number: increaseNumericString(
+            vocher_number.next_vocher_number
+          ),
+        }
       );
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Item Not created" });

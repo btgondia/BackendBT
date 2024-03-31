@@ -30,6 +30,7 @@ const {
   updateCounterClosingBalance,
   updateItemStock,
   truncateDecimals,
+  increaseNumericString,
 } = require("../utils/helperFunctions");
 const AccountingVouchers = require("../Models/AccountingVoucher");
 
@@ -286,8 +287,8 @@ router.post("/postOrder", async (req, res) => {
     const details = await Details.findOne({});
     const _invoice_number =
       value?.order_type === "E"
-        ? +details?.next_estimate_number
-        : +details?.next_invoice_number;
+        ? details?.next_estimate_number
+        : details?.next_invoice_number;
 
     let orderStage = getOrderStage(status);
 
@@ -401,7 +402,7 @@ router.post("/postOrder", async (req, res) => {
         receipt_number: next_receipt_number,
         invoice_number: _invoice_number || 0,
       });
-      next_receipt_number = "R" + (+next_receipt_number.match(/\d+/)[0] + 1);
+      next_receipt_number = increaseNumericString(next_receipt_number);
       await Details.updateMany({}, { next_receipt_number });
 
       if (value.OutStanding) {
@@ -440,8 +441,8 @@ router.post("/postOrder", async (req, res) => {
     if (response) {
       const update = {};
       if (value?.order_type?.toUpperCase() === "E")
-        update.next_estimate_number = _invoice_number + 1;
-      else update.next_invoice_number = _invoice_number + 1;
+        update.next_estimate_number = increaseNumericString(_invoice_number);
+      else update.next_invoice_number = increaseNumericString(_invoice_number);
 
       console.log({ update });
       await Details.findByIdAndUpdate(details?._id, update);

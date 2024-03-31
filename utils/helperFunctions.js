@@ -286,10 +286,31 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
     }
   }
 };
+function increaseNumericString(inputString) {
+  // Find the numeric part at the end of the string
+  const matches = inputString.match(/(\d+)$/);
+  
+  if (!matches) {
+      // If there's no numeric part found, return the input string
+      return inputString;
+  }
+  
+  // Extract the numeric part
+  const numericPart = matches[0];
+  
+  // Increase the numeric part by 1
+  const incrementedNumeric = String(Number(numericPart) + 1);
+  
+  // Replace the original numeric part with the incremented one
+  const result = inputString.replace(numericPart, incrementedNumeric);
+  
+  return result;
+}
 module.exports = {
   getOrderStage,
   updateCounterClosingBalance,
   truncateDecimals,
   removeCommas,
   updateItemStock,
+  increaseNumericString,
 };
