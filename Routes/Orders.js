@@ -176,12 +176,11 @@ const deleteAccountingVoucher = async (
   console.log(type, voucherData.length);
   if (voucherData.length) {
     for (let voucher of voucherData)
-    await updateCounterClosingBalance(voucher.details, "delete");
+      await updateCounterClosingBalance(voucher.details, "delete");
     await AccountingVouchers.deleteMany({
       $or: [{ invoice_number }, { order_uuid }],
       ...(deletedOrder ? {} : { type }),
     });
-   
   }
 };
 const updateAccountingVoucher = async (order, type) => {
@@ -2231,4 +2230,53 @@ router.get("/deductions-report", async (req, res) => {
   }
 });
 
+//getOrderListByChequeNumber
+router.post("/getOrderListByChequeNumber", async (req, res) => {
+  // try {
+  const { cheque_number } = req.body;
+  const data = await Receipts.find({
+    "modes.remarks": cheque_number,
+  });
+  if (!data.length) {
+    res.json({ success: false, message: "No Data Found" });
+  }
+  let result = [];
+  for (let item of data) {
+    let orderData = await Orders.findOne({
+      order_uuid: item.order_uuid,
+    });
+    if (!orderData)
+      orderData = await OrderCompleted.findOne({
+        order_uuid: item.order_uuid,
+      });
+    if (!orderData)
+      orderData = await CancelOrders.findOne({
+        order_uuid: item.order_uuid,
+      });
+    let counterData = await Counters.findOne({
+      counter_uuid: orderData.counter_uuid,
+    });
+    let userData;
+    if (orderData.user_uuid) {
+      userData = await Users.findOne({
+        user_uuid: orderData.user_uuid,
+      });
+    }
+    orderData = JSON.parse(JSON.stringify(orderData));
+    result.push({
+      ...orderData,
+      invoice_number: orderData.invoice_number,
+      amt: orderData.order_grandtotal || 0,
+      counter_title: counterData.counter_title,
+      user_title: userData?.user_title,
+    });
+  }
+  res.json({
+    success: true,
+    result,
+  });
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err?.message });
+  // }
+});
 module.exports = router;
