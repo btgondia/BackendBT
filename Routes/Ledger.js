@@ -537,9 +537,9 @@ router.post("/getOpeningBalanceReport", async (req, res) => {
         title: item.counter_title,
       });
   }
-  if (result.length) {
+ 
     res.json({ success: true, result });
-  } else res.json({ success: false, message: "Ledger Not Found" });
+  
   // } catch (err) {
   //   res.status(500).json({ success: false, message: err });
   // }

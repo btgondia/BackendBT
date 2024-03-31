@@ -70,7 +70,7 @@ const OrdersSchema = new mongoose.Schema({
 		unique: true
 	},
 	invoice_number: {
-		type: Number
+		type: String
 	},
 	order_status: {
 		type: String

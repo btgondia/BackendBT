@@ -20,7 +20,7 @@ const RoutesSchema = new mongoose.Schema({
     type: Number,
   },
   invoice_number: {
-    type: Number,
+    type: String,
   },
 });
 

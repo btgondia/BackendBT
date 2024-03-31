@@ -6,7 +6,7 @@ const OrdersSchema = new mongoose.Schema({
   message: [{ text: { type: String } }],
 
   invoice_number: {
-    type: Number,
+    type: String,
   },
 
   created_at: {
