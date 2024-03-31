@@ -556,73 +556,73 @@ router.post("/getOpeningBalanceReport", async (req, res) => {
 //update opening balance of ledger or counter
 router.put("/updateOpeningBalance", async (req, res) => {
   try {
-  let value = req.body;
-  if (!value) res.json({ success: false, message: "Invalid Data" });
-  let { date, opening_balance:amount } = value;
-  date = date === 0 ? 0 : getMidnightTimestamp(+date);
-  let response;
-  if (value.ledger_uuid) {
-    let ledgerData = await Ledger.findOne(
-      { ledger_uuid: value.ledger_uuid },
-      { opening_balance: 1 }
-    );
-    opening_balance =
-      +date === 0 ? amount : ledgerData?.opening_balance || [];
-    if (+date !== 0) {
-      if (opening_balance.length) {
-        let index = opening_balance.findIndex((a) => +a.date === +date);
-        if (index > -1) {
-          opening_balance[index].amount = amount;
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let { date, opening_balance: amount } = value;
+    date = date === 0 ? 0 : getMidnightTimestamp(+date);
+    let response;
+    if (value.ledger_uuid) {
+      let ledgerData = await Ledger.findOne(
+        { ledger_uuid: value.ledger_uuid },
+        { opening_balance: 1 }
+      );
+      opening_balance =
+        +date === 0 ? amount : ledgerData?.opening_balance || [];
+      if (+date !== 0) {
+        if (opening_balance.length) {
+          let index = opening_balance.findIndex((a) => +a.date === +date);
+          if (index > -1) {
+            opening_balance[index].amount = amount;
+          } else {
+            opening_balance.push({
+              amount: amount,
+              date,
+            });
+          }
         } else {
-          opening_balance.push({
-            amount: amount,
-            date,
-          });
+          opening_balance = [{ amount: amount, date }];
         }
-      } else {
-        opening_balance = [{ amount: amount, date }];
       }
-    }
 
-    response = await Ledger.updateOne(
-      { ledger_uuid: value.ledger_uuid },
-      {
-        opening_balance
-      }
-    );
-  } else {
-    let counterData = await Counters.findOne(
-      { counter_uuid: value.counter_uuid },
-      { opening_balance: 1 }
-    );
-    opening_balance =
-      +date === 0 ? amount : counterData?.opening_balance || [];
-    if (+date !== 0) {
-      if (opening_balance.length) {
-        let index = opening_balance.findIndex((a) => +a.date === +date);
-        if (index > -1) {
-          opening_balance[index].amount = amount;
-        } else {
-          opening_balance.push({
-            amount: amount,
-            date,
-          });
+      response = await Ledger.updateOne(
+        { ledger_uuid: value.ledger_uuid },
+        {
+          opening_balance,
         }
-      } else {
-        opening_balance = [{ amount: amount, date }];
+      );
+    } else {
+      let counterData = await Counters.findOne(
+        { counter_uuid: value.counter_uuid },
+        { opening_balance: 1 }
+      );
+      opening_balance =
+        +date === 0 ? amount : counterData?.opening_balance || [];
+      if (+date !== 0) {
+        if (opening_balance.length) {
+          let index = opening_balance.findIndex((a) => +a.date === +date);
+          if (index > -1) {
+            opening_balance[index].amount = amount;
+          } else {
+            opening_balance.push({
+              amount: amount,
+              date,
+            });
+          }
+        } else {
+          opening_balance = [{ amount: amount, date }];
+        }
       }
+      console.log({ opening_balance });
+      response = await Counters.updateOne(
+        { counter_uuid: value.counter_uuid },
+        {
+          opening_balance,
+        }
+      );
     }
-    console.log({ opening_balance });
-    response = await Counters.updateOne(
-      { counter_uuid: value.counter_uuid },
-      {
-        opening_balance
-      }
-    );
-  }
-  if (response) {
-    res.json({ success: true, result: response });
-  } else res.json({ success: false, message: "Opening Balance Not Updated" });
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Opening Balance Not Updated" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
@@ -770,13 +770,16 @@ router.get("/getAccountingBalanceDetails", async (req, res) => {
         );
         if (detail) amount += detail.amount;
       }
+      amount = truncateDecimals(amount, 2);
+      closing_balance = truncateDecimals(closing_balance, 2);
+      opening_balance = truncateDecimals(opening_balance?.amount || 0, 2);
       if (amount !== closing_balance) {
         result.push({
           ledger_uuid: item.ledger_uuid,
           title: item.ledger_title,
-          opening_balance: truncateDecimals(opening_balance?.amount || 0, 2),
-          closing_balance: truncateDecimals(closing_balance, 2),
-          amount: truncateDecimals(amount, 2),
+          opening_balance,
+          closing_balance,
+          amount,
         });
       }
     }
@@ -793,13 +796,16 @@ router.get("/getAccountingBalanceDetails", async (req, res) => {
         );
         if (detail) amount += detail.amount;
       }
+      amount = truncateDecimals(amount, 2);
+      closing_balance = truncateDecimals(closing_balance, 2);
+      opening_balance = truncateDecimals(opening_balance?.amount || 0, 2);
       if (amount !== closing_balance) {
         result.push({
           counter_uuid: item.counter_uuid,
           title: item.counter_title,
-          opening_balance: truncateDecimals(opening_balance?.amount || 0, 2),
-          closing_balance: truncateDecimals(closing_balance, 2),
-          amount: truncateDecimals(amount, 2),
+          opening_balance,
+          closing_balance,
+          amount,
         });
       }
     }
