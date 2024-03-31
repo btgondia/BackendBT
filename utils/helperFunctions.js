@@ -306,6 +306,12 @@ function increaseNumericString(inputString) {
   
   return result;
 }
+ function getMidnightTimestamp(now) {
+  // Current date and time
+ const midnight = new Date(now); // Copy current date
+ midnight.setHours(0, 0, 0, 0); // Set time to 00:00:00.000 (midnight)
+ return midnight.getTime(); // Return Unix timestamp in milliseconds
+}
 module.exports = {
   getOrderStage,
   updateCounterClosingBalance,
@@ -313,4 +319,5 @@ module.exports = {
   removeCommas,
   updateItemStock,
   increaseNumericString,
+  getMidnightTimestamp
 };

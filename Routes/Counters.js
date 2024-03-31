@@ -16,6 +16,8 @@ const { messageEnque } = require("../queues/messageQueue");
 const Counters = require("../Models/Counters");
 const { default: mongoose } = require("mongoose");
 const Details = require("../Models/Details");
+const { getMidnightTimestamp } = require("../utils/helperFunctions");
+const { get } = require("./Vouchers");
 var msg91 = require("msg91-templateid")(
   "312759AUCbnlpoZeD61714959P1",
   "foodDo",
@@ -217,17 +219,23 @@ router.post("/GetCounterList", async (req, res) => {
       {},
       { default_opening_balance_date: 1 }
     );
-    data = data.map((a) => ({
-      ...a,
-      route_title:
-        RoutesData.find((b) => b.route_uuid === a.route_uuid)?.route_title ||
-        "",
-      opening_balance_amount:
-        a.opening_balance.find(
-          (b) =>
-            b.date === default_opening_balance_date.default_opening_balance_date
-        )?.amount || 0,
-    }));
+    data = data.map((a) => {
+      let opening_balance_amount=
+      a.opening_balance.find(
+        (b) =>
+          getMidnightTimestamp(+b.date) ===
+          getMidnightTimestamp(
+            +default_opening_balance_date.default_opening_balance_date
+          )
+      )?.amount || 0;
+      return {
+        ...a,
+        route_title:
+          RoutesData.find((b) => b.route_uuid === a.route_uuid)?.route_title ||
+          "",
+        opening_balance_amount,
+      };
+    });
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
