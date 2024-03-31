@@ -16,7 +16,7 @@ const UserSchema = new mongoose.Schema({
         type: String,
     },
     collection_tag_number: {
-        type: Number,
+        type: String,
     },
     
     status: {

@@ -3,7 +3,7 @@ const mongoose = require("mongoose")
 const itemSchema = new mongoose.Schema({
 	type: { type: String },
 	voucher_uuid: { type: String },
-	vocher_number: { type: Number },
+	vocher_number: { type: String },
 	created_at: { type: Number },
 	created_by: { type: String },
 	from_warehouse: { type: String },
