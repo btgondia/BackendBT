@@ -10,6 +10,7 @@ const Vochers = require("../Models/Vochers");
 const {
   updateCounterClosingBalance,
   increaseNumericString,
+  truncateDecimals,
 } = require("../utils/helperFunctions");
 const PurchaseInvoice = require("../Models/PurchaseInvoice");
 const Counters = require("../Models/Counters");
@@ -90,6 +91,10 @@ router.post("/postAccountVouchers", async (req, res) => {
         ...item,
         accounting_voucher_uuid: item.accounting_voucher_uuid || uuid(),
         accounting_voucher_number: next_accounting_voucher_number,
+        details: item.details.map((a) => ({
+          ...a,
+          amount: truncateDecimals(a.amount || 0, 2),
+        })),
       };
 
       await updateCounterClosingBalance(item.details, "add");
@@ -160,6 +165,13 @@ router.put("/putAccountVoucher", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
+    value = {
+      ...value,
+      details: value.details.map((a) => ({
+        ...a,
+        amount: truncateDecimals(a.amount || 0, 2),
+      })),
+    };
     await updateCounterClosingBalance(
       value.details,
       "update",
