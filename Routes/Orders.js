@@ -137,16 +137,17 @@ const createAccountingVoucher = async (order, type) => {
     ledger_uuid: order.counter_uuid,
     amount: -order.order_grandtotal || 0,
   });
-  let voucher_round_off = (
-    arr.reduce((a, b) => a + +(b.amount || 0), 0) || 0
-  ).toFixed(2);
+  let voucher_round_off = arr.reduce((a, b) => a + +(b.amount || 0), 0) || 0;
   if (+voucher_round_off) {
     arr.push({
       ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
       amount: -voucher_round_off,
     });
   }
-
+  let details = arr.map((a) => ({
+    ...a,
+    amount: truncateDecimals(a.amount || 0, 2),
+  }));
   const voucher = {
     accounting_voucher_uuid: uuid(),
     type: type,
@@ -156,13 +157,13 @@ const createAccountingVoucher = async (order, type) => {
     order_uuid: order.order_uuid,
     invoice_number: order.invoice_number,
     amount: order.order_grandtotal,
-    voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
-    voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
-    details: arr.map((a) => ({...a,amount:truncateDecimals(a.amount || 0,2)})),
+    voucher_verification: details.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
+    voucher_difference: details.reduce((a, b) => a + +b.amount, 0) || 0,
+    details,
     created_at: new Date().getTime(),
   };
   await AccountingVouchers.create(voucher);
-  await updateCounterClosingBalance(voucher.details, "add");
+  await updateCounterClosingBalance(details, "add");
 };
 const deleteAccountingVoucher = async (
   order_uuid,

@@ -8,7 +8,11 @@ const cash_register_transections = require("../Models/cash_register_transections
 const { getReceipts } = require("../modules/index");
 const PaymentModes = require("../Models/PaymentModes");
 const AccountingVoucher = require("../Models/AccountingVoucher");
-const { updateCounterClosingBalance,increaseNumericString, truncateDecimals } = require("../utils/helperFunctions");
+const {
+  updateCounterClosingBalance,
+  increaseNumericString,
+  truncateDecimals,
+} = require("../utils/helperFunctions");
 
 const createAccountingVoucher = async (order, type, recept_number) => {
   console.log(type, recept_number);
@@ -32,16 +36,17 @@ const createAccountingVoucher = async (order, type, recept_number) => {
       ledger_uuid: order.counter_uuid,
       amount: a.amt || 0,
     });
-    let voucher_round_off = (
-      arr.reduce((a, b) => a + +(b.amount || 0), 0) || 0
-    ).toFixed(2);
+    let voucher_round_off = arr.reduce((a, b) => a + +(b.amount || 0), 0) || 0;
     if (+voucher_round_off) {
       arr.push({
         ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
         amount: -voucher_round_off,
       });
     }
-
+    let details= arr.map((a) => ({
+      ...a,
+      amount: truncateDecimals(a.amount || 0, 2),
+    }))
     const voucher = {
       accounting_voucher_uuid: uuid(),
       type: type,
@@ -50,15 +55,15 @@ const createAccountingVoucher = async (order, type, recept_number) => {
       counter_uuid: order.counter_uuid,
       order_uuid: order.order_uuid,
       invoice_number: order.invoice_number,
-      recept_number:recept_number+"/"+(i+1),
+      recept_number: recept_number + "/" + (i + 1),
       amount: a.amt || 0,
-      voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
-      voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
-      details: arr.map((a) => ({...a,amount:truncateDecimals(a.amount || 0,2)})),
+      voucher_verification: details.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
+      voucher_difference: details.reduce((a, b) => a + +b.amount, 0) || 0,
+      details,
       created_at: new Date().getTime(),
     };
     await AccountingVoucher.create(voucher);
-    updateCounterClosingBalance(arr, "add");
+    updateCounterClosingBalance(details, "add");
   }
 };
 const deleteAccountingVoucher = async (recept_number, type, order_uuid) => {
@@ -70,12 +75,11 @@ const deleteAccountingVoucher = async (recept_number, type, order_uuid) => {
   console.log(type, voucherData.length);
   if (voucherData.length) {
     for (let voucher of voucherData)
-    await updateCounterClosingBalance(voucher.details, "delete");
+      await updateCounterClosingBalance(voucher.details, "delete");
     await AccountingVoucher.deleteMany({
       $or: [{ recept_number }, { order_uuid }],
       type,
     });
-
   }
 };
 const updateAccountingVoucher = async (order, type, recept_number) => {
