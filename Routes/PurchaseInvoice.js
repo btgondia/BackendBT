@@ -156,7 +156,7 @@ const createAccountingVoucher = async (order, type) => {
     amount: order.order_grandtotal,
     voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
     voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
-    details: arr,
+    details: arr.map((a) => ({...a,amount:truncateDecimals(a.amount || 0,2)})),
     created_at: new Date().getTime(),
   };
   console.log({ voucher });

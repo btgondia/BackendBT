@@ -8,7 +8,7 @@ const cash_register_transections = require("../Models/cash_register_transections
 const { getReceipts } = require("../modules/index");
 const PaymentModes = require("../Models/PaymentModes");
 const AccountingVoucher = require("../Models/AccountingVoucher");
-const { updateCounterClosingBalance,increaseNumericString } = require("../utils/helperFunctions");
+const { updateCounterClosingBalance,increaseNumericString, truncateDecimals } = require("../utils/helperFunctions");
 
 const createAccountingVoucher = async (order, type, recept_number) => {
   console.log(type, recept_number);
@@ -54,7 +54,7 @@ const createAccountingVoucher = async (order, type, recept_number) => {
       amount: a.amt || 0,
       voucher_verification: arr.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
       voucher_difference: arr.reduce((a, b) => a + +b.amount, 0) || 0,
-      details: arr,
+      details: arr.map((a) => ({...a,amount:truncateDecimals(a.amount || 0,2)})),
       created_at: new Date().getTime(),
     };
     await AccountingVoucher.create(voucher);
