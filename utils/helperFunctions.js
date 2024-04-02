@@ -40,7 +40,7 @@ const updateCounterClosingBalance = async (
         if (counter_data) {
           let closing_balance = removeCommas(
             +(counter_data.closing_balance || 0) + +(counter.amount || 0)
-          );
+          ).toFixed(2);
           console.log(
             "closing_balance",
             closing_balance,
@@ -64,7 +64,7 @@ const updateCounterClosingBalance = async (
         if (counter_data) {
           let closing_balance = removeCommas(
             +(counter_data.closing_balance || 0) + +(counter.amount || 0)
-          );
+          ).toFixed(2);
           console.log(
             "closing_balance",
             closing_balance,
@@ -110,7 +110,7 @@ const updateCounterClosingBalance = async (
                 +(counter_data.closing_balance || 0) +
                   +(counter.amount || 0) -
                   +(old_amount || 0)
-              ),
+              ).toFixed(2),
             }
           );
         } else if (!counter_data) {
@@ -129,7 +129,7 @@ const updateCounterClosingBalance = async (
                 +(counter_data.closing_balance || 0) +
                   +(counter.amount || 0) -
                   +(old_amount || 0)
-              ),
+              ).toFixed(2),
             }
           );
         }
@@ -149,7 +149,7 @@ const updateCounterClosingBalance = async (
             {
               closing_balance: removeCommas(
                 +(counter_data.closing_balance || 0) - +(counter.amount || 0)
-              ),
+              ).toFixed(2),
             }
           );
         } else if (!counter_data) {
@@ -166,7 +166,7 @@ const updateCounterClosingBalance = async (
             {
               closing_balance: removeCommas(
                 +(counter_data.closing_balance || 0) - +(counter.amount || 0)
-              ),
+              ).toFixed(2),
             }
           );
         }
@@ -186,7 +186,7 @@ const updateCounterClosingBalance = async (
             {
               closing_balance: removeCommas(
                 +(counter_data.closing_balance || 0) + -(counter.amount || 0)
-              ),
+              ).toFixed(2),
             }
           );
         } else if (!counter_data) {
@@ -203,7 +203,7 @@ const updateCounterClosingBalance = async (
             {
               closing_balance: removeCommas(
                 +(counter_data.closing_balance || 0) + -(counter.amount || 0)
-              ),
+              ).toFixed(2),
             }
           );
         }
