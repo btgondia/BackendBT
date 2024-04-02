@@ -163,7 +163,7 @@ const createAccountingVoucher = async (order, type) => {
   };
   console.log({ voucher });
   await AccountingVouchers.create(voucher);
-  await updateCounterClosingBalance(details, "add");
+  await updateCounterClosingBalance(arr, "add");
 };
 
 //update accounting voucher
