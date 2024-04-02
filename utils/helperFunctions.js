@@ -11,7 +11,7 @@ function getOrderStage(status = []) {
   let max = Math.max(...numbers);
   return max;
 }
-function truncateDecimals(number, digits=2) {
+function truncateDecimals(number, digits) {
   const stringNumber = number.toString();
   const decimalIndex = stringNumber.indexOf(".");
 
@@ -38,13 +38,19 @@ const updateCounterClosingBalance = async (
           { closing_balance: 1 }
         );
         if (counter_data) {
+          let closing_balance = removeCommas(
+            +(counter_data.closing_balance || 0) + +(counter.amount || 0)
+          );
+          console.log(
+            "closing_balance",
+            closing_balance,
+            counter.amount,
+            counter_data.closing_balance
+          );
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
             {
-              closing_balance: truncateDecimals(
-                +(counter_data.closing_balance || 0) + +(counter.amount || 0),
-                2
-              ),
+              closing_balance,
             }
           );
         } else if (!counter_data) {
@@ -56,13 +62,20 @@ const updateCounterClosingBalance = async (
           );
         }
         if (counter_data) {
+          let closing_balance = removeCommas(
+            +(counter_data.closing_balance || 0) + +(counter.amount || 0)
+          );
+          console.log(
+            "closing_balance",
+            closing_balance,
+            counter.amount,
+            counter_data.closing_balance,
+            counter.ledger_uuid
+          );
           await Ledger.updateOne(
             { ledger_uuid: counter.ledger_uuid },
             {
-              closing_balance: truncateDecimals(
-                +(counter_data.closing_balance || 0) + +(counter.amount || 0),
-                2
-              ),
+              closing_balance,
             }
           );
         }
@@ -93,11 +106,10 @@ const updateCounterClosingBalance = async (
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
             {
-              closing_balance: truncateDecimals(
+              closing_balance: removeCommas(
                 +(counter_data.closing_balance || 0) +
                   +(counter.amount || 0) -
-                  +(old_amount || 0),
-                2
+                  +(old_amount || 0)
               ),
             }
           );
@@ -113,11 +125,10 @@ const updateCounterClosingBalance = async (
           await Ledger.updateOne(
             { ledger_uuid: counter.ledger_uuid },
             {
-              closing_balance: truncateDecimals(
+              closing_balance: removeCommas(
                 +(counter_data.closing_balance || 0) +
                   +(counter.amount || 0) -
-                  +(old_amount || 0),
-                2
+                  +(old_amount || 0)
               ),
             }
           );
@@ -136,9 +147,8 @@ const updateCounterClosingBalance = async (
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
             {
-              closing_balance: truncateDecimals(
-                +(counter_data.closing_balance || 0) - +(counter.amount || 0),
-                2
+              closing_balance: removeCommas(
+                +(counter_data.closing_balance || 0) - +(counter.amount || 0)
               ),
             }
           );
@@ -154,9 +164,8 @@ const updateCounterClosingBalance = async (
           await Ledger.updateOne(
             { ledger_uuid: counter.ledger_uuid },
             {
-              closing_balance: truncateDecimals(
-                +(counter_data.closing_balance || 0) - +(counter.amount || 0),
-                2
+              closing_balance: removeCommas(
+                +(counter_data.closing_balance || 0) - +(counter.amount || 0)
               ),
             }
           );
@@ -175,9 +184,8 @@ const updateCounterClosingBalance = async (
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
             {
-              closing_balance: truncateDecimals(
-                +(counter_data.closing_balance || 0) + -(counter.amount || 0),
-                2
+              closing_balance: removeCommas(
+                +(counter_data.closing_balance || 0) + -(counter.amount || 0)
               ),
             }
           );
@@ -193,9 +201,8 @@ const updateCounterClosingBalance = async (
           await Ledger.updateOne(
             { ledger_uuid: counter.ledger_uuid },
             {
-              closing_balance: truncateDecimals(
-                +(counter_data.closing_balance || 0) + -(counter.amount || 0),
-                2
+              closing_balance: removeCommas(
+                +(counter_data.closing_balance || 0) + -(counter.amount || 0)
               ),
             }
           );
@@ -280,6 +287,7 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
               qty: qty,
             },
           ];
+      console.log("stockUpdate", qty);
 
       await Item.updateOne({ item_uuid: item.item_uuid }, { stock });
     }
@@ -288,28 +296,28 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
 function increaseNumericString(inputString) {
   // Find the numeric part at the end of the string
   const matches = inputString.match(/(\d+)$/);
-  
+
   if (!matches) {
-      // If there's no numeric part found, return the input string
-      return inputString;
+    // If there's no numeric part found, return the input string
+    return inputString;
   }
-  
+
   // Extract the numeric part
   const numericPart = matches[0];
-  
+
   // Increase the numeric part by 1
   const incrementedNumeric = String(Number(numericPart) + 1);
-  
+
   // Replace the original numeric part with the incremented one
   const result = inputString.replace(numericPart, incrementedNumeric);
-  
+
   return result;
 }
- function getMidnightTimestamp(now) {
+function getMidnightTimestamp(now) {
   // Current date and time
- const midnight = new Date(now); // Copy current date
- midnight.setHours(0, 0, 0, 0); // Set time to 00:00:00.000 (midnight)
- return midnight.getTime(); // Return Unix timestamp in milliseconds
+  const midnight = new Date(now); // Copy current date
+  midnight.setHours(0, 0, 0, 0); // Set time to 00:00:00.000 (midnight)
+  return midnight.getTime(); // Return Unix timestamp in milliseconds
 }
 module.exports = {
   getOrderStage,
@@ -318,5 +326,5 @@ module.exports = {
   removeCommas,
   updateItemStock,
   increaseNumericString,
-  getMidnightTimestamp
+  getMidnightTimestamp,
 };

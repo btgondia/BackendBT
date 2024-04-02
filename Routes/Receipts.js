@@ -38,7 +38,8 @@ const createAccountingVoucher = async (order, type, recept_number) => {
     });
     let voucher_round_off = 0;
     for (let item of arr) {
-      voucher_round_off += +item.amount;
+      voucher_round_off = +item.amount + +voucher_round_off;
+      voucher_round_off = voucher_round_off.toFixed(2);
     }
     if (+voucher_round_off) {
       arr.push({
@@ -48,7 +49,8 @@ const createAccountingVoucher = async (order, type, recept_number) => {
     }
     let voucher_difference = 0;
     for (let item of arr) {
-      voucher_difference += +item.amount;
+      voucher_difference = +item.amount + +voucher_difference;
+      voucher_difference = voucher_difference.toFixed(2);
     }
     const voucher = {
       accounting_voucher_uuid: uuid(),
@@ -70,12 +72,11 @@ const createAccountingVoucher = async (order, type, recept_number) => {
   }
 };
 const deleteAccountingVoucher = async (recept_number, type, order_uuid) => {
-  console.log(recept_number, type);
   let voucherData = await AccountingVoucher.find({
     $or: [{ recept_number }, { order_uuid }],
     type,
   });
-  console.log(type, voucherData.length);
+  console.log("Delete recipt",type, voucherData.length);
   if (voucherData.length) {
     for (let voucher of voucherData)
       await updateCounterClosingBalance(voucher.details, "delete");

@@ -85,7 +85,8 @@ const createAccountingVoucher = async (order, type) => {
     const data = order.item_details.filter((b) => +b.gst_percentage === a);
     const amt =0
     for (let item of data) {
-      amt += +item.amount;
+      amt = +item.amount + amt;
+      amt = amt.toFixed(2);
     }
 
     const value = (+amt - (+amt * 100) / (100 + a)).toFixed(2);
@@ -131,7 +132,8 @@ const createAccountingVoucher = async (order, type) => {
   }
   let voucher_round_off = 0;
   for (let item of arr) {
-    voucher_round_off += +item.amount;
+    voucher_round_off = +item.amount + voucher_round_off;
+    voucher_round_off = voucher_round_off.toFixed(2);
   }
   if (+voucher_round_off) {
     arr.push({
@@ -141,8 +143,10 @@ const createAccountingVoucher = async (order, type) => {
   }
   let voucher_difference = 0;
   for (let item of arr) {
-    voucher_difference += +item.amount;
+    voucher_difference = +item.amount + voucher_difference;
+    voucher_difference = voucher_difference.toFixed(2);
   }
+  
   const voucher = {
     accounting_voucher_uuid: uuid(),
     type: type,

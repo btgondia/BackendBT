@@ -31,6 +31,7 @@ const {
   updateItemStock,
   truncateDecimals,
   increaseNumericString,
+  removeCommas,
 } = require("../utils/helperFunctions");
 const AccountingVouchers = require("../Models/AccountingVoucher");
 
@@ -94,15 +95,16 @@ const createAccountingVoucher = async (order, type) => {
     const data = order.item_details.filter((b) => +b.gst_percentage === a);
     let amt = 0;
     for (let item of data) {
-      amt += +item.item_total;
+      amt = +item.item_total + +amt;
+      amt = amt.toFixed(2);
     }
-    const value = (+amt - (+amt * 100) / (100 + a)).toFixed(3);
+    const value = (+amt - (+amt * 100) / (100 + a)).toFixed(2);
     console.log({ value, amt });
 
     if (amt && value) {
       let ledger = ledger_list.find((b) => b.value === a) || {};
       arr.push({
-        amount: (amt - value).toFixed(2),
+        amount: (amt - value).toFixed(3),
         ledger_uuid: isGst
           ? ledger?.central_sale_ledger
           : ledger?.local_sale_ledger,
@@ -124,7 +126,9 @@ const createAccountingVoucher = async (order, type) => {
   }
   let total = 0;
   for (let item of order.item_details) {
-    total += +item.item_total;
+    total = +item.item_total + +total;
+    total = total.toFixed(2)
+
   }
   arr.push({
     amount: (order.order_grandtotal - total).toFixed(2),
@@ -136,24 +140,28 @@ const createAccountingVoucher = async (order, type) => {
   });
   arr = arr.map((a) => ({
     ...a,
-    amount: (+a.amount||0).toFixed(2),
+    amount: removeCommas(a.amount) ,
   }));
   let voucher_round_off = 0;
   for (let item of arr) {
-    voucher_round_off += +item.amount;
+    voucher_round_off = +item.amount + +voucher_round_off;
+    voucher_round_off = +voucher_round_off.toFixed(3);
+    
   }
   if (+voucher_round_off) {
     arr.push({
       ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
-      amount: -(voucher_round_off || 0).toFixed(2),
+      amount: -(voucher_round_off || 0).toFixed(3),
     });
   }
 
   let voucher_difference = 0;
   for (let item of arr) {
-    voucher_difference += +item.amount;
+    voucher_difference = +voucher_difference + +item.amount;
+    voucher_difference = +voucher_difference.toFixed(2);
+    console.log({voucher_difference,amount:item.amount,ledger_uuid:item.ledger_uuid});
   }
-  console.log({ arr, voucher_difference });
+  // console.log({ arr, voucher_difference });
   const voucher = {
     accounting_voucher_uuid: uuid(),
     type: type,
@@ -165,7 +173,7 @@ const createAccountingVoucher = async (order, type) => {
     amount: order.order_grandtotal,
     voucher_verification: voucher_difference ? 1 : 0,
     voucher_difference,
-    details:arr,
+    details: arr,
     created_at: new Date().getTime(),
   };
   await AccountingVouchers.create(voucher);
