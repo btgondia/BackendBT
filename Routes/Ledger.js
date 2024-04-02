@@ -768,7 +768,10 @@ router.get("/getAccountingBalanceDetails", async (req, res) => {
         let detail = voucher.details.find(
           (a) => a.ledger_uuid === item.ledger_uuid
         );
-        if (detail) amount += detail.amount;
+        if (detail) {
+          amount = +detail.amount + +amount;
+          amount = amount.toFixed(2);
+        }
       }
       amount = truncateDecimals(amount, 2);
       closing_balance = truncateDecimals(closing_balance, 2);
