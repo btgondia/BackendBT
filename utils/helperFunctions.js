@@ -280,7 +280,6 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
               qty: qty,
             },
           ];
-      console.log("stockUpdate", qty);
 
       await Item.updateOne({ item_uuid: item.item_uuid }, { stock });
     }

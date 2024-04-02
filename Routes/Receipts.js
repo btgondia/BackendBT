@@ -36,21 +36,20 @@ const createAccountingVoucher = async (order, type, recept_number) => {
       ledger_uuid: order.counter_uuid,
       amount: a.amt || 0,
     });
-    let voucher_round_off = arr.reduce((a, b) => a + +(b.amount || 0), 0) || 0;
+    let voucher_round_off = 0;
+    for (let item of arr) {
+      voucher_round_off += +item.amount;
+    }
     if (+voucher_round_off) {
       arr.push({
         ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
         amount: -voucher_round_off,
       });
     }
-    let details= arr.map((a) => ({
-      ...a,
-      amount: truncateDecimals(a.amount || 0, 2),
-    }))
-    let voucher_difference = truncateDecimals(
-      details.reduce((a, b) => a + +b.amount, 0),
-      2
-    );
+    let voucher_difference = 0;
+    for (let item of details) {
+      voucher_difference += +item.amount;
+    }
     const voucher = {
       accounting_voucher_uuid: uuid(),
       type: type,
@@ -63,11 +62,11 @@ const createAccountingVoucher = async (order, type, recept_number) => {
       amount: a.amt || 0,
       voucher_verification: voucher_difference ? 1 : 0,
       voucher_difference,
-      details,
+      details:arr,
       created_at: new Date().getTime(),
     };
     await AccountingVoucher.create(voucher);
-    updateCounterClosingBalance(details, "add");
+    updateCounterClosingBalance(arr, "add");
   }
 };
 const deleteAccountingVoucher = async (recept_number, type, order_uuid) => {

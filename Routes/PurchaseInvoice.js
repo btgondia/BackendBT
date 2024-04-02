@@ -83,12 +83,10 @@ const createAccountingVoucher = async (order, type) => {
 
   for (let a of gst_value) {
     const data = order.item_details.filter((b) => +b.gst_percentage === a);
-    const amt =
-      data.length > 1
-        ? data.map((b) => +b?.item_total).reduce((a, b) => a + b, 0)
-        : data.length
-        ? +data[0].item_total
-        : 0;
+    const amt =0
+    for (let item of data) {
+      amt += +item.amount;
+    }
 
     const value = (+amt - (+amt * 100) / (100 + a)).toFixed(2);
     console.log({ value, amt });
@@ -131,21 +129,20 @@ const createAccountingVoucher = async (order, type) => {
       amount: -item.amount,
     });
   }
-  let voucher_round_off = arr.reduce((a, b) => a + +(b.amount || 0), 0) || 0;
+  let voucher_round_off = 0;
+  for (let item of arr) {
+    voucher_round_off += +item.amount;
+  }
   if (+voucher_round_off) {
     arr.push({
       ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
       amount: -voucher_round_off,
     });
   }
-let details= arr.map((a) => ({
-  ...a,
-  amount: truncateDecimals(a.amount || 0, 2),
-}))
-let voucher_difference = truncateDecimals(
-  details.reduce((a, b) => a + +b.amount, 0),
-  2
-);
+  let voucher_difference = 0;
+  for (let item of details) {
+    voucher_difference += +item.amount;
+  }
   const voucher = {
     accounting_voucher_uuid: uuid(),
     type: type,
@@ -157,7 +154,7 @@ let voucher_difference = truncateDecimals(
     amount: order.order_grandtotal,
     voucher_verification: voucher_difference ? 1 : 0,
     voucher_difference,
-    details,
+    details:arr,
     created_at: new Date().getTime(),
   };
   console.log({ voucher });
