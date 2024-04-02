@@ -140,7 +140,7 @@ const createAccountingVoucher = async (order, type) => {
     });
   }
   let voucher_difference = 0;
-  for (let item of details) {
+  for (let item of arr) {
     voucher_difference += +item.amount;
   }
   const voucher = {
