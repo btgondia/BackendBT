@@ -98,13 +98,13 @@ const createAccountingVoucher = async (order, type) => {
         : data.length
         ? +data[0].item_total
         : 0;
-    const value = truncateDecimals(+amt - (+amt * 100) / (100 + a),2);
-
+    const value = (+amt - (+amt * 100) / (100 + a)).toFixed(3);
+    console.log({ value, amt });
 
     if (amt && value) {
       let ledger = ledger_list.find((b) => b.value === a) || {};
       arr.push({
-        amount: truncateDecimals(amt - value,2),
+        amount: (amt - value).toFixed(2),
         ledger_uuid: isGst
           ? ledger?.central_sale_ledger
           : ledger?.local_sale_ledger,
@@ -127,10 +127,10 @@ const createAccountingVoucher = async (order, type) => {
   arr.push({
     amount: (
       order.order_grandtotal -
-      truncateDecimals(order.item_details
+      (order.item_details
         ?.map((a) => +a?.item_total)
         ?.reduce((a, b) => a + b, 0) || 0)
-    ,2),
+    ).toFixed(2),
     ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
   });
   arr.push({
@@ -148,6 +148,12 @@ const createAccountingVoucher = async (order, type) => {
     ...a,
     amount: truncateDecimals(a.amount || 0, 2),
   }));
+
+  let voucher_difference = truncateDecimals(
+    details.reduce((a, b) => a + +b.amount, 0),
+    2
+  );
+console.log({ details, voucher_difference });
   const voucher = {
     accounting_voucher_uuid: uuid(),
     type: type,
@@ -157,8 +163,8 @@ const createAccountingVoucher = async (order, type) => {
     order_uuid: order.order_uuid,
     invoice_number: order.invoice_number,
     amount: order.order_grandtotal,
-    voucher_verification: truncateDecimals(details.reduce((a, b) => a + +b.amount, 0),2) ? 1 : 0,
-    voucher_difference: truncateDecimals(details.reduce((a, b) => a + +b.amount, 0),2) || 0,
+    voucher_verification: voucher_difference ? 1 : 0,
+    voucher_difference,
     details,
     created_at: new Date().getTime(),
   };

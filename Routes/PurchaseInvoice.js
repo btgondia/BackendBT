@@ -142,6 +142,10 @@ let details= arr.map((a) => ({
   ...a,
   amount: truncateDecimals(a.amount || 0, 2),
 }))
+let voucher_difference = truncateDecimals(
+  details.reduce((a, b) => a + +b.amount, 0),
+  2
+);
   const voucher = {
     accounting_voucher_uuid: uuid(),
     type: type,
@@ -151,8 +155,8 @@ let details= arr.map((a) => ({
     order_uuid: order.purchase_order_uuid,
     invoice_number: order.purchase_invoice_number,
     amount: order.order_grandtotal,
-    voucher_verification: details.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
-    voucher_difference: details.reduce((a, b) => a + +b.amount, 0) || 0,
+    voucher_verification: voucher_difference ? 1 : 0,
+    voucher_difference,
     details,
     created_at: new Date().getTime(),
   };

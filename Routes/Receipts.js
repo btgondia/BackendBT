@@ -47,6 +47,10 @@ const createAccountingVoucher = async (order, type, recept_number) => {
       ...a,
       amount: truncateDecimals(a.amount || 0, 2),
     }))
+    let voucher_difference = truncateDecimals(
+      details.reduce((a, b) => a + +b.amount, 0),
+      2
+    );
     const voucher = {
       accounting_voucher_uuid: uuid(),
       type: type,
@@ -57,8 +61,8 @@ const createAccountingVoucher = async (order, type, recept_number) => {
       invoice_number: order.invoice_number,
       recept_number: recept_number + "/" + (i + 1),
       amount: a.amt || 0,
-      voucher_verification: details.reduce((a, b) => a + +b.amount, 0) ? 1 : 0,
-      voucher_difference: details.reduce((a, b) => a + +b.amount, 0) || 0,
+      voucher_verification: voucher_difference ? 1 : 0,
+      voucher_difference,
       details,
       created_at: new Date().getTime(),
     };

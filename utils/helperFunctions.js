@@ -11,7 +11,7 @@ function getOrderStage(status = []) {
   let max = Math.max(...numbers);
   return max;
 }
-function truncateDecimals(number, digits) {
+function truncateDecimals(number, digits=2) {
   const stringNumber = number.toString();
   const decimalIndex = stringNumber.indexOf(".");
 
