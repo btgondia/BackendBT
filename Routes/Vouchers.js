@@ -97,8 +97,9 @@ router.post("/postAccountVouchers", async (req, res) => {
         })),
       };
 
-      await updateCounterClosingBalance(item.details, "add");
+    
       let response = await AccountingVoucher.create(item);
+      await updateCounterClosingBalance(item.details, "add");
       if (response) {
         await Details.updateMany(
           {},
