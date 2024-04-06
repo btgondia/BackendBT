@@ -55,7 +55,10 @@ const createAccountingVoucher = async (order, type, recept_number) => {
     const voucher = {
       accounting_voucher_uuid: uuid(),
       type: type,
-      voucher_date: new Date().getTime(),
+      voucher_date:
+        a.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002"
+          ? new Date().getTime()
+          : "",
       user_uuid: order.user_uuid,
       counter_uuid: order.counter_uuid,
       order_uuid: order.order_uuid,
@@ -64,7 +67,7 @@ const createAccountingVoucher = async (order, type, recept_number) => {
       amount: a.amt || 0,
       voucher_verification: voucher_difference ? 1 : 0,
       voucher_difference,
-      details:arr,
+      details: arr,
       created_at: new Date().getTime(),
     };
     await AccountingVoucher.create(voucher);
@@ -76,7 +79,7 @@ const deleteAccountingVoucher = async (recept_number, type, order_uuid) => {
     $or: [{ recept_number }, { order_uuid }],
     type,
   });
-  console.log("Delete recipt",type, voucherData.length);
+  console.log("Delete recipt", type, voucherData.length);
   if (voucherData.length) {
     for (let voucher of voucherData)
       await updateCounterClosingBalance(voucher.details, "delete");
@@ -107,107 +110,77 @@ router.get("/getPendingEntry", async (req, res) => {
 });
 router.post("/postReceipt", async (req, res) => {
   // try {
-    let value = req.body;
-    if (!value) res.json({ success: false, message: "Invalid Data" });
-    let cashAmount =
-      value.modes.find(
-        (b) => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002" && b.amt
-      )?.amt || 0;
-    let cash_register = await CashRegister.findOne({
+  let value = req.body;
+  if (!value) res.json({ success: false, message: "Invalid Data" });
+  let cashAmount =
+    value.modes.find(
+      (b) => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002" && b.amt
+    )?.amt || 0;
+  let cash_register = await CashRegister.findOne({
+    created_by: value.user_uuid,
+    status: 1,
+  });
+  if (
+    cash_register &&
+    cash_register.created_at <
+      new Date(new Date().setHours(0, 0, 0, 0)).getTime()
+  ) {
+    await CashRegister.updateMany(
+      {
+        created_by: value.user_uuid,
+        status: 1,
+      },
+      { status: 0 }
+    );
+    cash_register = await CashRegister.create({
+      balance: 0,
       created_by: value.user_uuid,
+      register_uuid: uuid(),
+      created_at: new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
       status: 1,
     });
-    if (
-      cash_register &&
-      cash_register.created_at <
-        new Date(new Date().setHours(0, 0, 0, 0)).getTime()
-    ) {
+  } else if (!cash_register) {
+    cash_register = await CashRegister.create({
+      balance: 0,
+      created_by: value.user_uuid,
+      register_uuid: uuid(),
+      created_at: new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
+      status: 1,
+    });
+  }
+
+  let resciptJson = await Receipts.findOne({
+    $or: [
+      { invoice_number: value.invoice_number },
+      { order_uuid: value.order_uuid },
+    ],
+  });
+  if (resciptJson) {
+    let { order_uuid, counter_uuid, modes } = value;
+    let cashAmountTwo =
+      resciptJson.modes.find(
+        (b) => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002" && b.amt
+      )?.amt || 0;
+    console.log(cashAmountTwo);
+    if (cashAmount && cash_register) {
       await CashRegister.updateMany(
         {
           created_by: value.user_uuid,
           status: 1,
         },
-        { status: 0 }
+        { $inc: { balance: cashAmount - cashAmountTwo } }
       );
-      cash_register = await CashRegister.create({
-        balance: 0,
-        created_by: value.user_uuid,
-        register_uuid: uuid(),
-        created_at: new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
-        status: 1,
+      let cashTransectionExits = await cash_register_transections.findOne({
+        order_uuid: value.order_uuid,
       });
-    } else if (!cash_register) {
-      cash_register = await CashRegister.create({
-        balance: 0,
-        created_by: value.user_uuid,
-        register_uuid: uuid(),
-        created_at: new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
-        status: 1,
-      });
-    }
-
-    let resciptJson = await Receipts.findOne({
-      $or: [
-        { invoice_number: value.invoice_number },
-        { order_uuid: value.order_uuid },
-      ],
-    });
-    if (resciptJson) {
-      let { order_uuid, counter_uuid, modes } = value;
-      let cashAmountTwo =
-        resciptJson.modes.find(
-          (b) => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002" && b.amt
-        )?.amt || 0;
-      console.log(cashAmountTwo);
-      if (cashAmount && cash_register) {
-        await CashRegister.updateMany(
+      if (cashTransectionExits) {
+        await cash_register_transections.updateMany(
           {
-            created_by: value.user_uuid,
-            status: 1,
-          },
-          { $inc: { balance: cashAmount - cashAmountTwo } }
-        );
-        let cashTransectionExits = await cash_register_transections.findOne({
-          order_uuid: value.order_uuid,
-        });
-        if (cashTransectionExits) {
-          await cash_register_transections.updateMany(
-            {
-              order_uuid: value.order_uuid,
-            },
-            { $inc: { amount: cashAmountTwo - cashTransectionExits.amount } }
-          );
-        } else {
-          await cash_register_transections.create({
             order_uuid: value.order_uuid,
-            amount: cashAmount,
-            created_at: new Date().getTime(),
-            type: "in",
-            register_uuid: cash_register.register_uuid,
-            transaction_uuid: uuid(),
-          });
-        }
-      }
-      let pending = modes.filter((b) => +b.status === 0 && b.amt)?.length
-        ? 0
-        : 1;
-      let response = await Receipts.updateOne(
-        { order_uuid, counter_uuid },
-        { modes, pending }
-      );
-
-      if (response.acknowledged) {
-        res.json({ success: true, result: response });
-      } else res.json({ success: false, message: "Receipts Not created" });
-    } else {
-      if (cashAmount && cash_register) {
-        await CashRegister.updateMany(
-          {
-            created_by: value.user_uuid,
-            status: 1,
           },
-          { $inc: { balance: cashAmount } }
+          { $inc: { amount: cashAmountTwo - cashTransectionExits.amount } }
         );
+      } else {
         await cash_register_transections.create({
           order_uuid: value.order_uuid,
           amount: cashAmount,
@@ -217,31 +190,55 @@ router.post("/postReceipt", async (req, res) => {
           transaction_uuid: uuid(),
         });
       }
-      let next_receipt_number = await Details.find({});
-
-      next_receipt_number = next_receipt_number[0].next_receipt_number;
-
-      let pending = value.modes.filter((b) => +b.status === 0 && b.amt)?.length
-        ? 0
-        : 1;
-      let response = await Receipts.create({
-        ...value,
-        receipt_number: next_receipt_number,
-        time: new Date().getTime(),
-        pending,
-        invoice_number: value.invoice_number,
-      });
-      await createAccountingVoucher(
-        value,
-        "RECEIPT_ORDER",
-        next_receipt_number
-      );
-      next_receipt_number = increaseNumericString(next_receipt_number);
-      await Details.updateMany({}, { next_receipt_number });
-      if (response) {
-        res.json({ success: true, result: response });
-      } else res.json({ success: false, message: "Receipts Not created" });
     }
+    let pending = modes.filter((b) => +b.status === 0 && b.amt)?.length ? 0 : 1;
+    let response = await Receipts.updateOne(
+      { order_uuid, counter_uuid },
+      { modes, pending }
+    );
+
+    if (response.acknowledged) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
+  } else {
+    if (cashAmount && cash_register) {
+      await CashRegister.updateMany(
+        {
+          created_by: value.user_uuid,
+          status: 1,
+        },
+        { $inc: { balance: cashAmount } }
+      );
+      await cash_register_transections.create({
+        order_uuid: value.order_uuid,
+        amount: cashAmount,
+        created_at: new Date().getTime(),
+        type: "in",
+        register_uuid: cash_register.register_uuid,
+        transaction_uuid: uuid(),
+      });
+    }
+    let next_receipt_number = await Details.find({});
+
+    next_receipt_number = next_receipt_number[0].next_receipt_number;
+
+    let pending = value.modes.filter((b) => +b.status === 0 && b.amt)?.length
+      ? 0
+      : 1;
+    let response = await Receipts.create({
+      ...value,
+      receipt_number: next_receipt_number,
+      time: new Date().getTime(),
+      pending,
+      invoice_number: value.invoice_number,
+    });
+    await createAccountingVoucher(value, "RECEIPT_ORDER", next_receipt_number);
+    next_receipt_number = increaseNumericString(next_receipt_number);
+    await Details.updateMany({}, { next_receipt_number });
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
+  }
   // } catch (err) {
   //   res.status(500).json({ success: false, message: err });
   // }

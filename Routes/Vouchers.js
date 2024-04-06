@@ -17,6 +17,23 @@ const Counters = require("../Models/Counters");
 const Ledger = require("../Models/Ledger");
 const Receipts = require("../Models/Receipts");
 
+//change accounting voucher date in bulk
+router.put("/updateAccountVoucherDate", async (req, res) => {
+  try {
+    let { accounting_voucher_uuid, voucher_date } = req.body;
+    console.log({ accounting_voucher_uuid, voucher_date });
+    let response = await AccountingVoucher.updateMany(
+      { accounting_voucher_uuid: { $in: accounting_voucher_uuid } },
+      { voucher_date }
+    );
+    if (response.acknowledged) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "AccountVoucher Not Updated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+
 router.post("/postAccountVoucher", async (req, res) => {
   try {
     let value = req.body;
@@ -96,8 +113,12 @@ router.post("/postAccountVouchers", async (req, res) => {
           amount: truncateDecimals(a.amount || 0, 2),
         })),
       };
+      if (item.voucher_date)
+        await AccountingVoucher.updateMany(
+          { invoice_number: { $in: item.invoice_number }, voucher_date: "" },
+          { voucher_date: item.voucher_date }
+        );
 
-    
       let response = await AccountingVoucher.create(item);
       await updateCounterClosingBalance(item.details, "add");
       if (response) {

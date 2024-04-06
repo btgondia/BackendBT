@@ -300,13 +300,15 @@ router.post("/getExcelDetailsData", async (req, res) => {
             pending: 0,
           });
 
-          otherReciptsData =
-            otherReciptsData?.map((a) => ({
+          otherReciptsData = [
+            ...(otherReciptsData?.map((a) => ({
               invoice_number: a.invoice_number,
               amount: a.modes.find(
                 (b) => b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002"
               ).amt,
-            })) || [];
+            })) || []),
+            { invoice_number: "Unknown", amount: paid_amount },
+          ];
           data.push({
             sr: +bankStatementItem.start_from_line + index,
             reference_no: "",
@@ -454,7 +456,12 @@ router.post("/getLegerReport", async (req, res) => {
     // ledger_uuid is in details
     let response = await AccountingVoucher.find({
       "details.ledger_uuid": value.counter_uuid,
-      created_at: { $gte: value.startDate, $lte: endDate },
+      $or: [
+        { voucher_date: { $gte: value.startDate, $lte: endDate } },
+        {
+          voucher_date: "",
+        },
+      ],
     });
     response = JSON.parse(JSON.stringify(response));
 

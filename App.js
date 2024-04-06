@@ -56,6 +56,7 @@ const client = require("./config/mqtt");
 const Ledger = require("./Routes/Ledger");
 const LedgerGroup = require("./Routes/LedgerGroups");
 const PurchaseINvoice = require("./Routes/PurchaseInvoice");
+const CreditNotes = require("./Routes/CreditNote");
 
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
@@ -130,6 +131,7 @@ app.use("/soundApp", SoundApp);
 app.use("/ledger", Ledger);
 app.use("/ledgerGroup", LedgerGroup);
 app.use("/purchaseInvoice", PurchaseINvoice);
+app.use("/creditNote",CreditNotes)
 app.get("/MinLevelUpdate", async (req, res, next) => {
   const response = await MinLevelUpdateAutomation();
   res.json({ success: true, message: "Updated", result: response });

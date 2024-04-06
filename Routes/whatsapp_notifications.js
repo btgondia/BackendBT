@@ -131,7 +131,7 @@ router.post("/send_payment_reminders", async (req, res) => {
 	try {
 		const { notification_uuid, counter_ids } = req.body
 		const getRow = i =>
-			`\n${getDate(+i?.time_1)}       ${(i?.order_type === "I" ? "N" : i?.order_type) + i?.invoice_number}       Rs.${
+			`\n${getDate(+i?.time_1)}       ${(i?.order_type === "I" ? "" : i?.order_type) + i?.invoice_number}       Rs.${
 				i?.order_grandtotal
 			}`
 
