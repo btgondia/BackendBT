@@ -274,15 +274,22 @@ router.post("/getExcelDetailsData", async (req, res) => {
         });
       }
       let date = item[getAlphabetIndex(bankStatementItem.data_column)];
-      date = new Date((date - (25567 + 1)) * 86400 * 1000);
-      console.log(bankStatementItem.date_column);
+      if (typeof date === "number") {
+        date = new Date((date - (25567 + 1)) * 86400 * 1000);
 
-      date = bankStatementItem.date_column
-        .replace("mm", ("00" + (date?.getMonth() + 1)?.toString()).slice(-2))
-        .replace("yyyy", ("0000" + date?.getFullYear()?.toString()).slice(-4))
-        .replace("yy", ("0000" + date?.getFullYear()?.toString()).slice(-2))
-        .replace("dd", ("00" + date?.getDate()?.toString()).slice(-2));
+        console.log(bankStatementItem.date_column, typeof date);
 
+        date = bankStatementItem.date_column
+          .replace("mm", ("00" + (date?.getMonth() + 1)?.toString()).slice(-2))
+          .replace("yyyy", ("0000" + date?.getFullYear()?.toString()).slice(-4))
+          .replace("yy", ("0000" + date?.getFullYear()?.toString()).slice(-2))
+          .replace("dd", ("00" + date?.getDate()?.toString()).slice(-2));
+        
+      }else{
+        //replace all - with /
+        date = date.replace(/-/g, "/");
+      }
+      console.log({ date });
       if (reciptsData)
         data.push({
           sr: +bankStatementItem.start_from_line + index,
