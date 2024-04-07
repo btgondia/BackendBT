@@ -274,7 +274,15 @@ router.post("/getExcelDetailsData", async (req, res) => {
         });
       }
       let date = item[getAlphabetIndex(bankStatementItem.data_column)];
-      console.log({ date, reciptsData, multipleNarration });
+      date = new Date((date - (25567 + 1)) * 86400 * 1000);
+      console.log(bankStatementItem.date_column);
+
+      date = bankStatementItem.date_column
+        .replace("mm", ("00" + (date?.getMonth() + 1)?.toString()).slice(-2))
+        .replace("yyyy", ("0000" + date?.getFullYear()?.toString()).slice(-4))
+        .replace("yy", ("0000" + date?.getFullYear()?.toString()).slice(-2))
+        .replace("dd", ("00" + date?.getDate()?.toString()).slice(-2));
+
       if (reciptsData)
         data.push({
           sr: +bankStatementItem.start_from_line + index,
@@ -300,15 +308,13 @@ router.post("/getExcelDetailsData", async (req, res) => {
             pending: 0,
           });
 
-          otherReciptsData = [
-            ...(otherReciptsData?.map((a) => ({
+          otherReciptsData =
+            otherReciptsData?.map((a) => ({
               invoice_number: a.invoice_number,
               amount: a.modes.find(
                 (b) => b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002"
               ).amt,
-            })) || []),
-            { invoice_number: "Unknown", amount: paid_amount },
-          ];
+            })) || [];
           data.push({
             sr: +bankStatementItem.start_from_line + index,
             reference_no: "",
