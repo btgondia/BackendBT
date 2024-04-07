@@ -144,221 +144,225 @@ function getAlphabetIndex(alphabet) {
 }
 router.post("/getExcelDetailsData", async (req, res) => {
   try {
-    let { array } = req.body;
+  let { array } = req.body;
 
-    let bankStatementItem = await Details.findOne(
-      {},
-      { bank_statement_item: 1 }
+  let bankStatementItem = await Details.findOne({}, { bank_statement_item: 1 });
+  bankStatementItem = bankStatementItem.bank_statement_item;
+  let arrayData = array.slice(
+    bankStatementItem.start_from_line - 1,
+    array.length
+  );
+  console.log(arrayData[0]);
+  let data = [];
+  let total_received_amount = 0;
+  let total_paid_amount = 0;
+  for (let [index, item] of arrayData.entries()) {
+    let narration = item[getAlphabetIndex(bankStatementItem.narration_column)];
+    let received_amount = removeCommas(
+      item[getAlphabetIndex(bankStatementItem.received_amount_column)]
     );
-    bankStatementItem = bankStatementItem.bank_statement_item;
-    let arrayData = array.slice(
-      bankStatementItem.start_from_line - 1,
-      array.length
+    let paid_amount = removeCommas(
+      item[getAlphabetIndex(bankStatementItem.paid_amount_column)]
     );
-    console.log(arrayData[0]);
-    let data = [];
-    let total_received_amount = 0;
-    let total_paid_amount = 0;
-    for (let [index, item] of arrayData.entries()) {
-      let narration =
-        item[getAlphabetIndex(bankStatementItem.narration_column)];
-      let received_amount = removeCommas(
-        item[getAlphabetIndex(bankStatementItem.received_amount_column)]
-      );
-      let paid_amount = removeCommas(
-        item[getAlphabetIndex(bankStatementItem.paid_amount_column)]
-      );
 
-      if (received_amount) total_received_amount += +received_amount;
-      if (paid_amount) total_paid_amount += +paid_amount;
-      if (!narration) continue;
-      let separators = bankStatementItem.separator;
-      console.log({ separators });
+    if (received_amount) total_received_amount += +received_amount;
+    if (paid_amount) total_paid_amount += +paid_amount;
+    if (!narration) continue;
+    let separators = bankStatementItem.separator;
+    console.log({ separators });
 
-      let narrationArray = [];
-      for (let separator of separators) {
-        let narrationArrayTemp = narration.split(separator);
-        for (let narrationTemp of narrationArrayTemp) {
-          let narrationTempArray = narrationTemp.split(" ");
-          narrationArray = [
-            ...narrationArray,
-            narrationTemp,
-            ...narrationTempArray,
-          ];
-        }
+    let narrationArray = [];
+    for (let separator of separators) {
+      let narrationArrayTemp = narration.split(separator);
+      for (let narrationTemp of narrationArrayTemp) {
+        let narrationTempArray = narrationTemp.split(" ");
+        narrationArray = [
+          ...narrationArray,
+          narrationTemp,
+          ...narrationTempArray,
+        ];
       }
-      //remove empty string from array
-      narrationArray = narrationArray.filter((i) => i);
+    }
+    //remove empty string from array
+    narrationArray = narrationArray.filter((i) => i);
 
-      //check anny neration starts with one or more 0 digit
-      let zeroStartedArray = narrationArray.filter((i) => i.match(/^0+/));
-      if (zeroStartedArray.length) {
-        //remove all stating zero from narration array
-        zeroStartedArray = zeroStartedArray.map((i) => i.replace(/^0+/, ""));
+    //check anny neration starts with one or more 0 digit
+    let zeroStartedArray = narrationArray.filter((i) => i.match(/^0+/));
+    if (zeroStartedArray.length) {
+      //remove all stating zero from narration array
+      zeroStartedArray = zeroStartedArray.map((i) => i.replace(/^0+/, ""));
+    }
+    narrationArray = [...narrationArray, ...zeroStartedArray];
+    //remove dulicates from narration array
+    narrationArray = Array.from(new Set(narrationArray));
+
+    // find counter or ledger includs transaction_tags matches with narration
+    let countersData = await Counters.find(
+      { transaction_tags: { $in: narrationArray } },
+      {
+        counter_uuid: 1,
+        counter_title: 1,
+        transaction_tags: 1,
+        route_uuid: 1,
       }
-      narrationArray = [...narrationArray, ...zeroStartedArray];
-      //remove dulicates from narration array
-      narrationArray = Array.from(new Set(narrationArray));
-
-      // find counter or ledger includs transaction_tags matches with narration
-      let countersData = await Counters.find(
-        { transaction_tags: { $in: narrationArray } },
-        {
-          counter_uuid: 1,
-          counter_title: 1,
-          transaction_tags: 1,
-          route_uuid: 1,
-        }
-      );
-      let ledgerData = await Ledger.find(
-        { transaction_tags: { $in: narrationArray } },
-        {
-          ledger_uuid: 1,
-          ledger_title: 1,
-          transaction_tags: 1,
-          ledger_group_uuid: 1,
-        }
-      );
-
-      countersData = JSON.parse(JSON.stringify(countersData));
-      ledgerData = JSON.parse(JSON.stringify(ledgerData));
-      countersData = [...countersData, ...ledgerData];
-      let multipleNarration = countersData.length > 1 ? countersData : false;
-      if (countersData.length) {
-        //check counter with matches more narrations
-        let narrationCountersData = [];
-        for (let counter of countersData) {
-          let counterNarration = counter.transaction_tags.filter((i) =>
-            narrationArray.includes(i)
-          ).length;
-          narrationCountersData.push({
-            ...counter,
-            narration: counterNarration,
-          });
-        }
-        //get counter with max narration
-        countersData = narrationCountersData.sort(
-          (a, b) => b.narration - a.narration
-        );
-        countersData = countersData[0];
+    );
+    let ledgerData = await Ledger.find(
+      { transaction_tags: { $in: narrationArray } },
+      {
+        ledger_uuid: 1,
+        ledger_title: 1,
+        transaction_tags: 1,
+        ledger_group_uuid: 1,
       }
+    );
 
-      let reciptsData = await Receipts.find({
-        ...(countersData.counter_uuid
-          ? { counter_uuid: countersData.counter_uuid }
-          : {
-              "modes.remarks": { $in: narrationArray },
-            }),
-        pending: 0,
-        "modes.mode_uuid": countersData.counter_uuid
-          ? "c67b5988-d2b6-11ec-9d64-0242ac120002"
-          : "c67b5794-d2b6-11ec-9d64-0242ac120002",
-        "modes.amt": received_amount,
+    countersData = JSON.parse(JSON.stringify(countersData));
+    ledgerData = JSON.parse(JSON.stringify(ledgerData));
+    countersData = [...countersData, ...ledgerData];
+    let multipleNarration = countersData.length > 1 ? countersData : false;
+    if (countersData.length) {
+      //check counter with matches more narrations
+      let narrationCountersData = [];
+      for (let counter of countersData) {
+        let counterNarration = counter.transaction_tags.filter((i) =>
+          narrationArray.includes(i)
+        ).length;
+        narrationCountersData.push({
+          ...counter,
+          narration: counterNarration,
+        });
+      }
+      //get counter with max narration
+      countersData = narrationCountersData.sort(
+        (a, b) => b.narration - a.narration
+      );
+      countersData = countersData[0];
+    }
+
+    let reciptsData = await Receipts.find({
+      ...(countersData.counter_uuid
+        ? { counter_uuid: countersData.counter_uuid }
+        : {
+            "modes.remarks": { $in: narrationArray },
+          }),
+      pending: 0,
+      "modes.mode_uuid": countersData.counter_uuid
+        ? "c67b5988-d2b6-11ec-9d64-0242ac120002"
+        : "c67b5794-d2b6-11ec-9d64-0242ac120002",
+      "modes.amt": received_amount,
+    });
+    reciptsData = JSON.parse(JSON.stringify(reciptsData));
+    reciptsData = reciptsData?.find((a) =>
+      a.modes.find((b) => {
+        return +b.amt === +received_amount;
+      })
+    );
+    if (!countersData?.route_uuid && reciptsData?.counter_uuid) {
+      countersData = await Counters.findOne(
+        { counter_uuid: reciptsData.counter_uuid },
+        { counter_uuid: 1, counter_title: 1, route_uuid: 1 }
+      );
+    }
+    let routeData;
+    if (countersData.route_uuid) {
+      routeData = await Routes.findOne({
+        route_uuid: countersData.route_uuid,
       });
-      reciptsData = JSON.parse(JSON.stringify(reciptsData));
-      reciptsData = reciptsData?.find((a) =>
-        a.modes.find((b) => {
-          return +b.amt === +received_amount;
-        })
-      );
-      if (!countersData?.route_uuid && reciptsData?.counter_uuid) {
-        countersData = await Counters.findOne(
-          { counter_uuid: reciptsData.counter_uuid },
-          { counter_uuid: 1, counter_title: 1, route_uuid: 1 }
-        );
-      }
-      let routeData;
-      if (countersData.route_uuid) {
-        routeData = await Routes.findOne({
-          route_uuid: countersData.route_uuid,
+    }
+    let date = item[getAlphabetIndex(bankStatementItem.data_column)];
+    if (typeof date === "number") {
+      date = new Date((date - (25567 + 1)) * 86400 * 1000);
+    } else {
+      // Date string in the format "31-05-2024"
+
+      let dateString = date;
+      // Split the date string into day, month, and year components
+      var parts = dateString.split("-");
+      // Rearrange the parts into the "yyyy-mm-dd" format
+      var rearrangedDateString = parts[2] + "-" + parts[1] + "-" + parts[0];
+
+      // Convert the rearranged date string to a timestamp
+      var timestamp = Date.parse(rearrangedDateString);
+      date = new Date(timestamp);
+    }
+    console.log(bankStatementItem.date_column, date, date?.getMonth());
+
+    date = bankStatementItem.date_column
+      .replace("mm", ("00" + (date?.getMonth() + 1)?.toString()).slice(-2))
+      .replace("yyyy", ("0000" + date?.getFullYear()?.toString()).slice(-4))
+      .replace("yy", ("0000" + date?.getFullYear()?.toString()).slice(-2))
+      .replace("dd", ("00" + date?.getDate()?.toString()).slice(-2));
+
+    console.log({ date });
+    if (reciptsData)
+      data.push({
+        sr: +bankStatementItem.start_from_line + index,
+        reference_no: [reciptsData.invoice_number],
+        order_uuid: reciptsData.order_uuid,
+        counter_title: countersData.counter_title || "",
+        route_title: routeData?.route_title || "",
+        counter_uuid: countersData.counter_uuid,
+        mode_uuid: reciptsData.modes.find((a) => +a.amt === paid_amount)
+          .mode_uuid,
+        date,
+        received_amount,
+        paid_amount,
+        unMatch: multipleNarration ? true : false,
+        ledger_group_uuid: countersData.ledger_group_uuid || "",
+        transaction_tags: narrationArray,
+        multipleNarration,
+      });
+    else if (countersData.counter_uuid || countersData.ledger_uuid) {
+      {
+        let otherReciptsData = await Receipts.find({
+          counter_uuid: countersData.counter_uuid || countersData.ledger_uuid,
+          pending: 0,
         });
-      }
-      let date = item[getAlphabetIndex(bankStatementItem.data_column)];
-      if (typeof date === "number") {
-        date = new Date((date - (25567 + 1)) * 86400 * 1000);
 
-        console.log(bankStatementItem.date_column, typeof date);
-
-        date = bankStatementItem.date_column
-          .replace("mm", ("00" + (date?.getMonth() + 1)?.toString()).slice(-2))
-          .replace("yyyy", ("0000" + date?.getFullYear()?.toString()).slice(-4))
-          .replace("yy", ("0000" + date?.getFullYear()?.toString()).slice(-2))
-          .replace("dd", ("00" + date?.getDate()?.toString()).slice(-2));
-        
-      }else{
-        //replace all - with /
-        date = date.replace(/-/g, "/");
-      }
-      console.log({ date });
-      if (reciptsData)
-        data.push({
-          sr: +bankStatementItem.start_from_line + index,
-          reference_no: [reciptsData.invoice_number],
-          order_uuid: reciptsData.order_uuid,
-          counter_title: countersData.counter_title || "",
-          route_title: routeData?.route_title || "",
-          counter_uuid: countersData.counter_uuid,
-          mode_uuid: reciptsData.modes.find((a) => +a.amt === paid_amount)
-            .mode_uuid,
-          date,
-          received_amount,
-          paid_amount,
-          unMatch: multipleNarration ? true : false,
-          ledger_group_uuid: countersData.ledger_group_uuid || "",
-          transaction_tags: narrationArray,
-          multipleNarration,
-        });
-      else if (countersData.counter_uuid || countersData.ledger_uuid) {
-        {
-          let otherReciptsData = await Receipts.find({
-            counter_uuid: countersData.counter_uuid || countersData.ledger_uuid,
-            pending: 0,
-          });
-
-          otherReciptsData =
-            otherReciptsData?.map((a) => ({
-              invoice_number: a.invoice_number,
-              amount: a.modes.find(
-                (b) => b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002"
-              ).amt,
-            })) || [];
-          data.push({
-            sr: +bankStatementItem.start_from_line + index,
-            reference_no: "",
-            counter_title:
-              countersData.counter_title || countersData.ledger_title || "",
-            route_title: routeData?.route_title || "",
-            counter_uuid: countersData.counter_uuid || countersData.ledger_uuid,
-            date,
-            received_amount,
-            paid_amount,
-            unMatch: true,
-            transaction_tags: narrationArray,
-            multipleNarration,
-            otherReciptsData,
-            mode_uuid: "c67b5988-d2b6-11ec-9d64-0242ac120002",
-          });
-        }
-      } else {
+        otherReciptsData =
+          otherReciptsData?.map((a) => ({
+            invoice_number: a.invoice_number,
+            amount: a.modes.find(
+              (b) => b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002"
+            ).amt,
+          })) || [];
         data.push({
           sr: +bankStatementItem.start_from_line + index,
           reference_no: "",
-          counter_title: "",
-          route_title: "",
+          counter_title:
+            countersData.counter_title || countersData.ledger_title || "",
+          route_title: routeData?.route_title || "",
+          counter_uuid: countersData.counter_uuid || countersData.ledger_uuid,
+          date,
           received_amount,
           paid_amount,
           unMatch: true,
           transaction_tags: narrationArray,
-          narration,
-          date,
+          multipleNarration,
+          otherReciptsData,
+          mode_uuid: "c67b5988-d2b6-11ec-9d64-0242ac120002",
         });
       }
+    } else {
+      data.push({
+        sr: +bankStatementItem.start_from_line + index,
+        reference_no: "",
+        counter_title: "",
+        route_title: "",
+        received_amount,
+        paid_amount,
+        unMatch: true,
+        transaction_tags: narrationArray,
+        narration,
+        date,
+      });
     }
-    let result = data;
+  }
+  let result = data;
 
-    if (result) {
-      res.json({ success: true, result });
-    } else res.json({ success: false, message: "Ledger Not Found" });
+  if (result) {
+    res.json({ success: true, result });
+  } else res.json({ success: false, message: "Ledger Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
