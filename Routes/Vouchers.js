@@ -17,6 +17,48 @@ const Counters = require("../Models/Counters");
 const Ledger = require("../Models/Ledger");
 const Receipts = require("../Models/Receipts");
 
+//get all accounting vouchers voucher_date = ""
+router.get("/getUnknownVouchers", async (req, res) => {
+  // try {
+  let data = await AccountingVoucher.find({ voucher_date: "" });
+  let result = [];
+  data = JSON.parse(JSON.stringify(data));
+  for (let item of data) {
+    let ledgerData = await Ledger.find(
+      {
+        ledger_uuid: { $in: item.details.map((a) => a.ledger_uuid) },
+      },
+      { ledger_title: 1, ledger_uuid: 1 }
+    );
+
+    let counterData = await Counters.find(
+      {
+        counter_uuid: { $in: item.details.map((a) => a.ledger_uuid) },
+      },
+      { counter_title: 1, counter_uuid: 1 }
+    );
+    ledgerData = JSON.parse(JSON.stringify(ledgerData));
+    counterData = JSON.parse(JSON.stringify(counterData));
+    let ledger_title = [
+      ...(counterData?.map((a) => a.counter_title) || []),
+      ...(ledgerData?.map((a) => a.ledger_title) || []),
+    ].join(",");
+    result.push({
+      ...item,
+      ledger_title,
+      reference_no: item.invoice_number.length
+        ? item.invoice_number.join(",")
+        : item.recept_number || "",
+    });
+  }
+
+  if (result.length) res.json({ success: true, result });
+  else res.json({ success: false, message: "AccountVoucher Not found" });
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
+});
+
 //change accounting voucher date in bulk
 router.put("/updateAccountVoucherDate", async (req, res) => {
   try {

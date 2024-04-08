@@ -17,7 +17,7 @@ const {
 const createAccountingVoucher = async (order, type, recept_number) => {
   console.log(type, recept_number);
   for (let [i, a] of (order.modes || []).entries()) {
-    if (!+a.amt) continue;
+    if (!a.amt) continue;
     const arr = [];
     const data = await PaymentModes.findOne(
       { mode_uuid: a.mode_uuid },
@@ -25,12 +25,10 @@ const createAccountingVoucher = async (order, type, recept_number) => {
     );
     if (!data) continue;
 
-    if (a.amt) {
-      arr.push({
-        amount: -(a.amt || 0),
-        ledger_uuid: data.ledger_uuid,
-      });
-    }
+    arr.push({
+      amount: -(+a.amt || 0),
+      ledger_uuid: data.ledger_uuid,
+    });
 
     arr.push({
       ledger_uuid: order.counter_uuid,
@@ -39,7 +37,7 @@ const createAccountingVoucher = async (order, type, recept_number) => {
     let voucher_round_off = 0;
     for (let item of arr) {
       voucher_round_off = +item.amount + +voucher_round_off;
-      voucher_round_off = voucher_round_off.toFixed(2);
+      voucher_round_off = (voucher_round_off || 0).toFixed(2);
     }
     if (+voucher_round_off) {
       arr.push({
@@ -52,6 +50,7 @@ const createAccountingVoucher = async (order, type, recept_number) => {
       voucher_difference = +item.amount + +voucher_difference;
       voucher_difference = voucher_difference.toFixed(2);
     }
+    console.log(a.amt);
     const voucher = {
       accounting_voucher_uuid: uuid(),
       type: type,
@@ -76,10 +75,20 @@ const createAccountingVoucher = async (order, type, recept_number) => {
 };
 const deleteAccountingVoucher = async (recept_number, type, order_uuid) => {
   let voucherData = await AccountingVoucher.find({
-    $or: [{ recept_number }, { order_uuid }],
+    $or: [
+      {
+        recept_number: {
+          $in: [
+            recept_number + "/1",
+            recept_number + "/2",
+            recept_number + "/3",
+          ],
+        },
+      },
+      { order_uuid },
+    ],
     type,
   });
-  console.log("Delete recipt", type, voucherData.length);
   if (voucherData.length) {
     for (let voucher of voucherData)
       await updateCounterClosingBalance(voucher.details, "delete");
