@@ -122,7 +122,7 @@ router.get("/GetCounterList", async (req, res) => {
       opening_balance_amount:
         a.opening_balance.find(
           (b) =>
-            b.date === default_opening_balance_date.default_opening_balance_date
+            (b.date) === default_opening_balance_date.default_opening_balance_date
         )?.amount || 0,
     }));
     if (data.length) res.json({ success: true, result: data });

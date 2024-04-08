@@ -319,6 +319,24 @@ function getMidnightTimestamp(now) {
   midnight.setHours(0, 0, 0, 0); // Set time to 00:00:00.000 (midnight)
   return midnight.getTime(); // Return Unix timestamp in milliseconds
 }
+function parseDate(dateString,dateFormat) {
+  let regex = dateFormat
+    .replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")
+    .replace("dd", "(\\d{2})")
+    .replace("mm", "(\\d{2})")
+    .replace("yyyy", "(\\d{4})");
+
+  let match = dateString.match(new RegExp(regex));
+
+  if (match) {
+    let day = parseInt(match[1], 10);
+    let month = parseInt(match[2], 10) - 1;
+    let year = parseInt(match[3], 10);
+    return new Date(year, month, day);
+  }
+
+  return null; // If no format matches
+}
 module.exports = {
   getOrderStage,
   updateCounterClosingBalance,
@@ -327,4 +345,5 @@ module.exports = {
   updateItemStock,
   increaseNumericString,
   getMidnightTimestamp,
+  parseDate
 };
