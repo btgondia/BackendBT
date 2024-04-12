@@ -194,7 +194,7 @@ router.post("/postAccountVouchers", async (req, res) => {
         } else failed++;
       }
       }
-      if(item.invoice_number.length===0){
+      if(!item.invoice_number.length){
         let next_accounting_voucher_number = await Details.find({});
 
         next_accounting_voucher_number =
@@ -208,13 +208,10 @@ router.post("/postAccountVouchers", async (req, res) => {
             ...a,
             amount: truncateDecimals(a.amount || 0, 2),
           })),
+          voucher_date:""
         };
-        if (item.voucher_date)
-          await AccountingVoucher.updateMany(
-            { invoice_number: { $in: item.invoice_number }, voucher_date: "" },
-            { voucher_date: item.voucher_date }
-          );
-
+      
+console.log({amount:item.details})
         let response = await AccountingVoucher.create(item);
         await updateCounterClosingBalance(item.details, "add");
 
