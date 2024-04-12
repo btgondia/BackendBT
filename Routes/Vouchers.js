@@ -208,7 +208,6 @@ router.post("/postAccountVouchers", async (req, res) => {
             ...a,
             amount: truncateDecimals(a.amount || 0, 2),
           })),
-          voucher_date:""
         };
       
 console.log({amount:item.details})
