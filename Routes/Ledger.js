@@ -335,6 +335,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
           ledger_group_uuid: countersData.ledger_group_uuid || "",
           transaction_tags: narrationArray,
           multipleNarration,
+          matched_entry:true
         });
       else if (countersData.counter_uuid || countersData.ledger_uuid) {
         {
