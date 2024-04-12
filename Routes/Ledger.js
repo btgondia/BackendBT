@@ -310,7 +310,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
         date = new Date(timestamp);
       }
       console.log(bankStatementItem.date_column, date, date?.getMonth());
-
+let date_time_stamp=getMidnightTimestamp(date);
       date = bankStatementItem.date_column
         .replace("mm", ("00" + (date?.getMonth() + 1)?.toString()).slice(-2))
         .replace("yyyy", ("0000" + date?.getFullYear()?.toString()).slice(-4))
@@ -335,7 +335,8 @@ router.post("/getExcelDetailsData", async (req, res) => {
           ledger_group_uuid: countersData.ledger_group_uuid || "",
           transaction_tags: narrationArray,
           multipleNarration,
-          matched_entry:true
+          matched_entry:true,
+          date_time_stamp
         });
       else if (countersData.counter_uuid || countersData.ledger_uuid) {
         {
@@ -366,6 +367,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
             multipleNarration,
             otherReciptsData,
             mode_uuid: "c67b5988-d2b6-11ec-9d64-0242ac120002",
+            date_time_stamp
           });
         }
       } else {
@@ -380,6 +382,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
           transaction_tags: narrationArray,
           narration,
           date,
+          date_time_stamp
         });
       }
     }
