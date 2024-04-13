@@ -309,16 +309,26 @@ setInterval(function () {
 app.use(express.static("uploads"));
 app.use("/soundApp/getFile", express.static(path.join(__dirname, "files")));
 
-if (process.env.NODE_ENV != "development") {
-  client.on("connect", () => {
-    console.log("Connected");
-  });
+// if (process.env.NODE_ENV != "development") {
+  // const topic = 'soundApp'
+
+  // client.on('connect', () => {
+  //   console.log('Connected')
+  //   client.subscribe([topic], () => {
+  //     console.log(`Subscribe to topic '${topic}'`)
+  //   })
+  // })
+  // client.on('message', (topic, payload) => {
+  //   console.log('Received Message:', topic, payload.toString())
+  // })
+
+
   //   client.on("reconnect", () => {
   //     console.log("Reconnect");
   //   });
-  client.on("error", (error) => {
-    console.log("Error", error);
-  });
-}
+  // client.on("error", (error) => {
+  //   console.log("Error", error);
+  // });
+// }
 
 module.exports = app;
