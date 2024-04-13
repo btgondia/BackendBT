@@ -16,6 +16,7 @@ const PurchaseInvoice = require("../Models/PurchaseInvoice");
 const Counters = require("../Models/Counters");
 const Ledger = require("../Models/Ledger");
 const Receipts = require("../Models/Receipts");
+const OrderCompleted = require("../Models/OrderCompleted");
 
 //get all accounting vouchers voucher_date = ""
 router.get("/getUnknownVouchers", async (req, res) => {
@@ -113,35 +114,48 @@ router.post("/postAccountVouchers", async (req, res) => {
     let value = req.body;
     let success = 0;
     let failed = 0;
-    let count=0
+    let count = 0;
     for (let item of value) {
-      count++
-      console.log(count)
+      count++;
+      console.log(count);
       if (
-        (item.order_uuid || item.invoice_number) &&
+        (item.order_uuid || item.invoice_number.length) &&
         item.mode_uuid &&
         item.mark_entry
       ) {
-        let response = await Receipts.findOne({
+        let response = await Receipts.find({
           $or: [
             { invoice_number: { $in: item.invoice_number } },
             { order_uuid: item.order_uuid },
           ],
         });
-        response = JSON.parse(JSON.stringify(response));
-        response = response.modes.map((a) =>
-          a.mode_uuid === item.mode_uuid ? { ...a, status: 1 } : a
-        );
-        let pending = response.find((b) => b.status === 0 && b.amt) ? 0 : 1;
-        await Receipts.updateMany(
-          {
-            $or: [
-              { invoice_number: { $in: item.invoice_number } },
-              { order_uuid: item.order_uuid },
-            ],
-          },
-          { modes: response, pending }
-        );
+        for (let i of response) {
+          console.log({ i });
+          i = JSON.parse(JSON.stringify(i));
+          i = i.modes.map((a) =>
+            a.mode_uuid === item.mode_uuid ? { ...a, status: 1 } : a
+          );
+          let pending = i.find((b) => b.status === 0 && +b.amt) ? 0 : 1;
+          await OrderCompleted.updateMany(
+            {
+              $or: [
+                { invoice_number: { $in: item.invoice_number } },
+                { order_uuid: item.order_uuid },
+              ],
+            },
+            { entry: pending }
+          );
+
+          await Receipts.updateMany(
+            {
+              $or: [
+                { invoice_number: { $in: item.invoice_number } },
+                { order_uuid: item.order_uuid },
+              ],
+            },
+            { modes: i, pending }
+          );
+        }
       }
       for (let detail of item.invoice_number) {
         let voucherData = await AccountingVoucher.findOne({
@@ -149,15 +163,53 @@ router.post("/postAccountVouchers", async (req, res) => {
           type: "RECEIPT_ORDER",
           voucher_date: "",
         });
-        if (voucherData&& item.matched_entry) {
+        if (voucherData && item.matched_entry) {
           await AccountingVoucher.updateMany(
             { invoice_number: detail, type: "RECEIPT_ORDER", voucher_date: "" },
             { voucher_date: item.voucher_date }
           );
           success++;
-         
-        }else{
+        } else {
+          let next_accounting_voucher_number = await Details.find({});
 
+          next_accounting_voucher_number =
+            next_accounting_voucher_number[0].next_accounting_voucher_number;
+
+          item = {
+            ...item,
+            accounting_voucher_uuid: item.accounting_voucher_uuid || uuid(),
+            accounting_voucher_number: next_accounting_voucher_number,
+            details: item.details.map((a) => ({
+              ...a,
+              amount: truncateDecimals(a.amount || 0, 2),
+            })),
+          };
+          if (item.voucher_date)
+            await AccountingVoucher.updateMany(
+              {
+                invoice_number: { $in: item.invoice_number },
+                voucher_date: "",
+              },
+              { voucher_date: item.voucher_date }
+            );
+
+          let response = await AccountingVoucher.create(item);
+          await updateCounterClosingBalance(item.details, "add");
+
+          if (response) {
+            await Details.updateMany(
+              {},
+              {
+                next_accounting_voucher_number: increaseNumericString(
+                  next_accounting_voucher_number
+                ),
+              }
+            );
+            success++;
+          } else failed++;
+        }
+      }
+      if (!item.invoice_number.length) {
         let next_accounting_voucher_number = await Details.find({});
 
         next_accounting_voucher_number =
@@ -172,12 +224,8 @@ router.post("/postAccountVouchers", async (req, res) => {
             amount: truncateDecimals(a.amount || 0, 2),
           })),
         };
-        if (item.voucher_date)
-          await AccountingVoucher.updateMany(
-            { invoice_number: { $in: item.invoice_number }, voucher_date: "" },
-            { voucher_date: item.voucher_date }
-          );
 
+        console.log({ amount: item.details });
         let response = await AccountingVoucher.create(item);
         await updateCounterClosingBalance(item.details, "add");
 
@@ -192,40 +240,6 @@ router.post("/postAccountVouchers", async (req, res) => {
           );
           success++;
         } else failed++;
-      }
-      }
-      if(!item.invoice_number.length){
-        let next_accounting_voucher_number = await Details.find({});
-
-        next_accounting_voucher_number =
-          next_accounting_voucher_number[0].next_accounting_voucher_number;
-
-        item = {
-          ...item,
-          accounting_voucher_uuid: item.accounting_voucher_uuid || uuid(),
-          accounting_voucher_number: next_accounting_voucher_number,
-          details: item.details.map((a) => ({
-            ...a,
-            amount: truncateDecimals(a.amount || 0, 2),
-          })),
-        };
-      
-console.log({amount:item.details})
-        let response = await AccountingVoucher.create(item);
-        await updateCounterClosingBalance(item.details, "add");
-
-        if (response) {
-          await Details.updateMany(
-            {},
-            {
-              next_accounting_voucher_number: increaseNumericString(
-                next_accounting_voucher_number
-              ),
-            }
-          );
-          success++;
-        } else failed++;
-      
       }
     }
     res.json({ success: true, result: { success, failed } });

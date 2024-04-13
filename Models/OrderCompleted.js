@@ -72,6 +72,7 @@ const OrdersSchema = new mongoose.Schema({
 	invoice_number: {
 		type: String
 	},
+	counter_charges: [{ type: String }],
 	order_status: {
 		type: String
 	},

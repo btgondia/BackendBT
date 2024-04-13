@@ -70,7 +70,7 @@ const OrdersSchema = new mongoose.Schema({
 			p: { type: Number }
 		}
 	],
-
+	counter_charges: [{ type: String }],
 	order_uuid: {
 		type: String
 	},
