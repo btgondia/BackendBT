@@ -143,7 +143,7 @@ router.get("/getLedgerCounterTagsList", async (req, res) => {
       { ledger_group_title: 1, ledger_group_uuid: 1 }
     );
     for (let item of ledgerData) {
-      if (!item.ledger_uuid||!item.transaction_tags?.length) continue;
+      if (!item.ledger_uuid || !item.transaction_tags?.length) continue;
       let ledger_group_title =
         ledgerGroupData.find(
           (a) => a.ledger_group_uuid === item.ledger_group_uuid
@@ -166,7 +166,7 @@ router.get("/getLedgerCounterTagsList", async (req, res) => {
       { route_title: 1, route_uuid: 1 }
     );
     for (let item of counterData) {
-      if (!item.counter_uuid||!item.transaction_tags?.length) continue;
+      if (!item.counter_uuid || !item.transaction_tags?.length) continue;
       let route_title =
         routeData.find((a) => a.route_uuid === item.route_uuid)?.route_title ||
         "";
@@ -257,7 +257,7 @@ function getAlphabetIndex(alphabet) {
 }
 router.post("/getExcelDetailsData", async (req, res) => {
   // try {
-  let { array } = req.body;
+  let { array, ledger_uuid } = req.body;
 
   let bankStatementItem = await Details.findOne({}, { bank_statement_item: 1 });
   bankStatementItem = bankStatementItem.bank_statement_item;
@@ -359,9 +359,10 @@ router.post("/getExcelDetailsData", async (req, res) => {
             "modes.remarks": { $in: narrationArray },
           }),
       pending: 0,
-      "modes.mode_uuid": countersData.counter_uuid
-        ? "c67b5988-d2b6-11ec-9d64-0242ac120002"
-        : "c67b5794-d2b6-11ec-9d64-0242ac120002",
+      "modes.mode_uuid":
+        ledger_uuid === "6fb56620-fb72-4e35-bd66-b439c78a4d2e"
+          ? "c67b5794-d2b6-11ec-9d64-0242ac120002"
+          : "c67b5988-d2b6-11ec-9d64-0242ac120002",
       "modes.amt": received_amount,
     });
     reciptsData = JSON.parse(JSON.stringify(reciptsData));
@@ -370,6 +371,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
         return +b.amt === +received_amount;
       })
     );
+    console.log({ reciptsData });
     if (!countersData?.route_uuid && reciptsData?.counter_uuid) {
       countersData = await Counters.findOne(
         { counter_uuid: reciptsData.counter_uuid },
@@ -422,8 +424,10 @@ router.post("/getExcelDetailsData", async (req, res) => {
         counter_title: countersData.counter_title || "",
         route_title: routeData?.route_title || "",
         counter_uuid: countersData.counter_uuid,
-        mode_uuid: reciptsData.modes.find((a) => +a.amt === paid_amount)
-          .mode_uuid,
+        mode_uuid:
+          ledger_uuid === "6fb56620-fb72-4e35-bd66-b439c78a4d2e"
+            ? "c67b5794-d2b6-11ec-9d64-0242ac120002"
+            : "c67b5988-d2b6-11ec-9d64-0242ac120002",
         date,
         received_amount,
         paid_amount,
@@ -455,6 +459,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
             countersData.counter_title || countersData.ledger_title || "",
           route_title: routeData?.route_title || "",
           counter_uuid: countersData.counter_uuid || countersData.ledger_uuid,
+          ledger_group_uuid: countersData.ledger_group_uuid || "",
           date,
           received_amount,
           paid_amount,
@@ -476,6 +481,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
         paid_amount,
         unMatch: true,
         transaction_tags: narrationArray,
+        ledger_group_uuid: countersData.ledger_group_uuid || "",
         narration,
         date,
         date_time_stamp,

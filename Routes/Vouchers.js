@@ -110,7 +110,7 @@ router.post("/postAccountVoucher", async (req, res) => {
   }
 });
 router.post("/postAccountVouchers", async (req, res) => {
-  try {
+  // try {
     let value = req.body;
     let success = 0;
     let failed = 0;
@@ -118,46 +118,33 @@ router.post("/postAccountVouchers", async (req, res) => {
     for (let item of value) {
       count++;
       console.log(count);
-      if (
-        (item.order_uuid || item.invoice_number.length) &&
-        item.mode_uuid &&
-        item.mark_entry
-      ) {
-        let response = await Receipts.find({
-          $or: [
-            { invoice_number: { $in: item.invoice_number } },
-            { order_uuid: item.order_uuid },
-          ],
-        });
-        for (let i of response) {
-          console.log({ i });
-          i = JSON.parse(JSON.stringify(i));
-          i = i.modes.map((a) =>
+
+      for (let detail of item.invoice_number) {
+        if (detail && item.mode_uuid && item.mark_entry) {
+          let response = await Receipts.findOne({
+            invoice_number: detail,
+          });
+
+          console.log({ response });
+          response = JSON.parse(JSON.stringify(response));
+          response = response.modes.map((a) =>
             a.mode_uuid === item.mode_uuid ? { ...a, status: 1 } : a
           );
-          let pending = i.find((b) => b.status === 0 && +b.amt) ? 0 : 1;
+          let pending = response.find((b) => !b.status && +b.amt) ? 0 : 1;
           await OrderCompleted.updateMany(
             {
-              $or: [
-                { invoice_number: { $in: item.invoice_number } },
-                { order_uuid: item.order_uuid },
-              ],
+              invoice_number: detail,
             },
             { entry: pending }
           );
 
           await Receipts.updateMany(
             {
-              $or: [
-                { invoice_number: { $in: item.invoice_number } },
-                { order_uuid: item.order_uuid },
-              ],
+              invoice_number: detail,
             },
-            { modes: i, pending }
+            { modes: response, pending }
           );
         }
-      }
-      for (let detail of item.invoice_number) {
         let voucherData = await AccountingVoucher.findOne({
           invoice_number: detail,
           type: "RECEIPT_ORDER",
@@ -243,9 +230,9 @@ router.post("/postAccountVouchers", async (req, res) => {
       }
     }
     res.json({ success: true, result: { success, failed } });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 //delete accounting voucher by accounting_voucher_uuid
 router.delete("/deleteAccountVoucher", async (req, res) => {
