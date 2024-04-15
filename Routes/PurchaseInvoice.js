@@ -9,6 +9,7 @@ const Ledger = require("../Models/Ledger");
 const {
   updateCounterClosingBalance,
   truncateDecimals,
+  removeCommas,
 } = require("../utils/helperFunctions");
 
 let ledger_list = [
@@ -76,16 +77,16 @@ const createAccountingVoucher = async (order, type) => {
   //check is gst starts with 27
   let isGst = gst?.startsWith("27") || !gst ? false : true;
 
-  const arr = [];
+  let arr = [];
   const gst_value = Array.from(
     new Set(order.item_details.map((a) => +a.gst_percentage))
   );
 
   for (let a of gst_value) {
     const data = order.item_details.filter((b) => +b.gst_percentage === a);
-    const amt =0
+    let amt = 0;
     for (let item of data) {
-      amt = +item.amount + amt;
+      amt = +item.item_total + +amt;
       amt = amt.toFixed(2);
     }
 
@@ -130,21 +131,30 @@ const createAccountingVoucher = async (order, type) => {
       amount: -item.amount,
     });
   }
+  arr = arr.map((a) => ({
+    ...a,
+    amount: removeCommas(a.amount),
+  }));
   let voucher_round_off = 0;
   for (let item of arr) {
-    voucher_round_off = +item.amount + voucher_round_off;
-    voucher_round_off = voucher_round_off.toFixed(2);
+    voucher_round_off = +item.amount + +voucher_round_off;
+    voucher_round_off = +voucher_round_off.toFixed(3);
   }
   if (+voucher_round_off) {
     arr.push({
       ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
-      amount: -voucher_round_off,
+      amount: -(voucher_round_off || 0).toFixed(3),
     });
   }
   let voucher_difference = 0;
   for (let item of arr) {
-    voucher_difference = +item.amount + voucher_difference;
-    voucher_difference = voucher_difference.toFixed(2);
+    voucher_difference = +voucher_difference + +item.amount;
+    voucher_difference = +voucher_difference.toFixed(2);
+    console.log({
+      voucher_difference,
+      amount: item.amount,
+      ledger_uuid: item.ledger_uuid,
+    });
   }
   
   const voucher = {

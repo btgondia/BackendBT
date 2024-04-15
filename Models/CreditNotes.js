@@ -47,7 +47,7 @@ const OrdersSchema = new mongoose.Schema({
     type: String,
   },
 
-  credit_notes_order_uuid: {
+  credit_note_order_uuid: {
     type: String,
   },
   credit_notes_invoice_number: {

@@ -17,6 +17,7 @@ const Counters = require("../Models/Counters");
 const Ledger = require("../Models/Ledger");
 const Receipts = require("../Models/Receipts");
 const OrderCompleted = require("../Models/OrderCompleted");
+const CreditNotes = require("../Models/CreditNotes");
 
 //get all accounting vouchers voucher_date = ""
 router.get("/getUnknownVouchers", async (req, res) => {
@@ -252,6 +253,9 @@ router.delete("/deleteAccountVoucher", async (req, res) => {
     if (order_uuid) {
       await PurchaseInvoice.deleteOne({
         purchase_order_uuid: order_uuid,
+      });
+      await CreditNotes.deleteOne({
+        credit_note_order_uuid: order_uuid,
       });
     }
     if (response) {
