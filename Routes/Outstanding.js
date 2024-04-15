@@ -51,7 +51,7 @@ router.get("/getTagOutstanding/:collection_tag_uuid", async (req, res) => {
   try {
     let response = await Outstanding.find({
       collection_tag_uuid: req.params.collection_tag_uuid,
-      status:1
+      status: 1,
     });
     response = JSON.parse(JSON.stringify(response));
 
@@ -64,7 +64,7 @@ router.get("/getTagOutstanding/:collection_tag_uuid", async (req, res) => {
 });
 router.get("/getOutstanding", async (req, res) => {
   try {
-    let response = await Outstanding.find({   status:1});
+    let response = await Outstanding.find({ status: 1 });
     response = JSON.parse(JSON.stringify(response));
 
     if (response.length) {
@@ -79,7 +79,7 @@ router.post("/getOutstanding", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     let { order_uuid, counter_uuid } = value;
-    let response = await Outstanding.findOne({ order_uuid, counter_uuid, });
+    let response = await Outstanding.findOne({ order_uuid, counter_uuid });
 
     if (response) {
       res.json({ success: true, result: response });
@@ -95,6 +95,16 @@ router.put("/putOutstanding", async (req, res) => {
     let { order_uuid, counter_uuid, amount, outstanding_uuid } = value;
     let data = await Outstanding.findOne({ order_uuid, counter_uuid });
     console.log(data);
+    if (!amount) {
+      await SignedBills.deleteMany({
+        order_uuid,
+      });
+      await Outstanding.deleteOne({
+        outstanding_uuid,
+      });
+      return res.json({ success: true, message: "Outstanding Deleted" });
+
+    }
     let response;
     if (data) {
       await SignedBills.updateMany(
@@ -191,6 +201,5 @@ router.put("/putOutstandingTag", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-
 
 module.exports = router;
