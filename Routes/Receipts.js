@@ -299,6 +299,12 @@ router.put("/putReceipt", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     let { order_uuid, counter_uuid, modes, entry = 1 } = value;
+    let modesTotal = modes.reduce((a, b) => a + +b.amt, 0);
+    if (!modesTotal) {
+      await Receipts.deleteMany({ order_uuid, counter_uuid });
+      await deleteAccountingVoucher(value.receipt_number, "RECEIPT_ORDER");
+      return res.json({ success: true, message: "Receipts Deleted" });
+    }
     let response = await Receipts.updateOne(
       { order_uuid, counter_uuid },
       { modes, entry }
