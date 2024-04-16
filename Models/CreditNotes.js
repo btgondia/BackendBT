@@ -75,6 +75,11 @@ const OrdersSchema = new mongoose.Schema({
       type: String,
     },
   ],
+  narrations: [
+    {
+      type: String,
+    },
+  ],
 });
 
 module.exports = mongoose.model("credit_notes", OrdersSchema);

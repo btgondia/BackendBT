@@ -16,42 +16,42 @@ let ledger_list = [
   {
     value: 5,
     ledger_uuid: [
-      "e8a3be31-34df-4888-8050-904bf9392158",
-      "57338803-8a12-465e-9333-66f1ddda0b14",
+      "036d4761-e375-4cae-b826-f2c154b3403b",
+      "e13f277a-d700-4137-9395-c62598f26513",
     ],
-    local_purchase_ledger: "6462c110-b11d-4753-825c-cac610c5fbcb",
-    purchase_igst_ledger: "19e35845-fb93-46ee-8160-20cecc4d52b3",
-    central_purchase_ledger: "96a0b1ca-ebd6-43c9-8b15-105c4a1d42a1",
+    local_sale_ledger: "1caf98e1-63c0-417c-81c8-fe85657f82e5",
+    central_sale_ledger: "8a0cac47-9eb6-40df-918f-ea744e1a142f",
+    sale_igst_ledger: "f732ba11-c4fc-40c3-9b57-0f0e83e90c75",
   },
   {
     value: 12,
     ledger_uuid: [
-      "e4731567-d4bd-4919-b6e4-19f28450466f",
-      "0e447719-f4a1-48c9-8026-75cc7c70f782",
+      "b997b4f4-8baf-443c-85b9-0cfcccb013fd",
+      "93456bbd-ffbe-4ce6-a2a7-d483c7917f92",
     ],
-    local_purchase_ledger: "5475d37c-46b4-437b-88b0-c1fa7e9e9a95",
-    purchase_igst_ledger: "d509223b-20e4-4cc2-941e-906ade1668dc",
-    central_purchase_ledger: "ea921522-97b9-4ac8-bdff-b8193187264f",
+    local_sale_ledger: "a48035a8-f9c3-4232-8f5b-d168850c016d",
+    central_sale_ledger: "6ba8115e-cc94-49f6-bd5b-386f000f8c1d",
+    sale_igst_ledger: "61ba70f5-9de6-4a2e-8ace-bd0856358c42",
   },
   {
     value: 18,
     ledger_uuid: [
-      "afb23db7-3add-472d-93d8-2c18df60d94e",
-      "98681c0b-900b-4caa-b397-30a58c1afc05",
+      "ed787d1b-9b89-44e5-b828-c69352d1e336",
+      "28b8428f-f8f3-404f-a696-c5777fbf4096",
     ],
-    local_purchase_ledger: "60009e51-2509-4748-8ed7-98dd63092dbe",
-    purchase_igst_ledger: "36ef8023-e769-4132-ad18-a368ba516782",
-    central_purchase_ledger: "35aa01b0-b0cc-4bcd-8eec-a3219dc7cc5f",
+    local_sale_ledger: "81df442d-4106-49de-8a45-649c1ceb00ef",
+    central_sale_ledger: "3732892f-d5fa-415b-b72c-3e2d338e0e3f",
+    sale_igst_ledger: "2d4f7d50-8c2e-457e-817a-a811bce3ac8d",
   },
   {
     value: 28,
     ledger_uuid: [
-      "6203a8d1-2a5a-4693-9313-c307aba1a36a",
-      "53b3e087-f1de-4200-96ce-402bfcdafc8d",
+      "17612833-5f48-4cf8-8544-c5a1debed3ae",
+      "60b6ccb7-37e4-40b2-a7d9-d84123c810e7",
     ],
-    local_purchase_ledger: "2a9e683e-e23b-48ff-960b-1f45b1706d6e",
-    purchase_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
-    central_purchase_ledger: "62e7a642-8738-4d0e-93fa-d2b8f8cafb6a",
+    local_sale_ledger: "b00a56db-344d-4c08-9d9a-933ab9ee378d",
+    central_sale_ledger: "aeae84fa-e4ce-4480-8448-250134d12004",
+    sale_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
   },
 ];
 //delete accounting voucher
@@ -98,12 +98,12 @@ const createAccountingVoucher = async (order, type) => {
         amount: -(amt - value).toFixed(3),
         ledger_uuid: isGst
           ? ledger?.central_purchase_ledger
-          : ledger?.local_purchase_ledger,
+          : ledger?.local_sale_ledger,
       });
       if (isGst) {
         arr.push({
           amount: -value,
-          ledger_uuid: ledger?.purchase_igst_ledger,
+          ledger_uuid: ledger?.sale_igst_ledger,
         });
       } else
         for (let item of ledger?.ledger_uuid || []) {
@@ -228,8 +228,9 @@ router.put("/putCreditNote", async (req, res) => {
       res.json({ success: false, message: "Invalid Data" });
     //delete _id
     delete value._id;
+    if(value.details)
     updateAccountingVoucher(value, "PURCHASE_INVOICE");
-    let response = await PurchaseINvoice.findOneAndUpdate(
+    let response = await CreditNotes.findOneAndUpdate(
       { credit_note_order_uuid: value.credit_note_order_uuid },
       req.body
     );

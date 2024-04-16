@@ -156,7 +156,7 @@ const createAccountingVoucher = async (order, type) => {
       ledger_uuid: item.ledger_uuid,
     });
   }
-  
+
   const voucher = {
     accounting_voucher_uuid: uuid(),
     type: type,
@@ -168,7 +168,7 @@ const createAccountingVoucher = async (order, type) => {
     amount: order.order_grandtotal,
     voucher_verification: voucher_difference ? 1 : 0,
     voucher_difference,
-    details:arr,
+    details: arr,
     created_at: new Date().getTime(),
   };
   console.log({ voucher });
@@ -234,7 +234,7 @@ router.put("/putPurchaseInvoice", async (req, res) => {
       res.json({ success: false, message: "Invalid Data" });
     //delete _id
     delete value._id;
-    updateAccountingVoucher(value, "PURCHASE_INVOICE");
+    if (value.details.length) updateAccountingVoucher(value, "PURCHASE_INVOICE");
     let response = await PurchaseINvoice.findOneAndUpdate(
       { purchase_order_uuid: value.purchase_order_uuid },
       req.body
