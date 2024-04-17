@@ -109,6 +109,7 @@ const createAccountingVoucher = async ({
     if (amt && value) {
       let ledger = ledger_list.find((b) => b.value === a) || {};
       arr.push({
+        narration: `Sales Invoice {${order.invoice_number}}`,
         amount: (amt - value).toFixed(3),
         ledger_uuid: isGst
           ? ledger?.central_sale_ledger
@@ -116,15 +117,17 @@ const createAccountingVoucher = async ({
       });
       if (isGst) {
         arr.push({
+          narration: `Sales Invoice {${order.invoice_number}}`,
           amount: value,
           ledger_uuid: ledger?.sale_igst_ledger,
         });
       } else {
         for (let item of ledger?.ledger_uuid || []) {
-          arr.push({
-            amount: truncateDecimals(value / 2, 2),
-            ledger_uuid: item,
-          });
+          narration: `Sales Invoice {${order.invoice_number}}`,
+            arr.push({
+              amount: truncateDecimals(value / 2, 2),
+              ledger_uuid: item,
+            });
         }
       }
     }
@@ -136,15 +139,18 @@ const createAccountingVoucher = async ({
   }
   if (order?.chargesTotal || 0) {
     arr.push({
+      narration: `Sales Invoice {${order.invoice_number}}`,
       amount: -order.chargesTotal,
       ledger_uuid: "5350c03e-fea5-4366-a09e-53131552e075",
     });
   }
   arr.push({
+    narration: `Sales Invoice {${order.invoice_number}}`,
     amount: (order.order_grandtotal - total).toFixed(2),
     ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
   });
   arr.push({
+    narration: `Sales Invoice {${order.invoice_number}}`,
     ledger_uuid: order.counter_uuid,
     amount: -order.order_grandtotal || 0,
   });
@@ -159,6 +165,7 @@ const createAccountingVoucher = async ({
   }
   if (+voucher_round_off) {
     arr.push({
+      narration: `Sales Invoice {${order.invoice_number}}`,
       ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
       amount: -(voucher_round_off || 0).toFixed(3),
     });

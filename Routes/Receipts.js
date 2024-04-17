@@ -20,17 +20,26 @@ const createAccountingVoucher = async (order, type, recept_number) => {
     const arr = [];
     const data = await PaymentModes.findOne(
       { mode_uuid: a.mode_uuid },
-      { ledger_uuid: 1 }
+      { ledger_uuid: 1, mode_title: 1 }
     );
+    let narration = `Received ${data.mode_title} for Inv. No. {${
+      order.invoice_number ?? ""
+    }}${
+      a.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002"
+        ? " , Chq No. " + a.remarks
+        : ""
+    }`;
     if (+a.amt) {
       arr.push({
         amount: -(+a.amt || 0),
         ledger_uuid: data.ledger_uuid,
+        narration,
       });
 
       arr.push({
         ledger_uuid: order.counter_uuid,
         amount: a.amt || 0,
+        narration,
       });
       let voucher_round_off = 0;
       for (let item of arr) {
@@ -41,6 +50,7 @@ const createAccountingVoucher = async (order, type, recept_number) => {
         arr.push({
           ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
           amount: -voucher_round_off,
+          narration
         });
       }
       let voucher_difference = 0;
