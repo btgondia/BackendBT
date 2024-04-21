@@ -50,7 +50,7 @@ const createAccountingVoucher = async (order, type, recept_number) => {
         arr.push({
           ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
           amount: -voucher_round_off,
-          narration
+          narration,
         });
       }
       let voucher_difference = 0;

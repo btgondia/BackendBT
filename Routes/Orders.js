@@ -34,6 +34,164 @@ const {
   removeCommas,
 } = require("../utils/helperFunctions");
 const AccountingVouchers = require("../Models/AccountingVoucher");
+const CreditNotes = require("../Models/CreditNotes");
+const createAutoCreditNote = async (order, item_uuid) => {
+  let price =
+    +(order.replacement || 0) +
+    +(order.shortage || 0) +
+    +(order.adjustment || 0);
+  let narration =
+    (order.replacement ? "Replacement:" + order.replacement : "") +
+    (order.shortage ? "Shortage:" + order.shortage : "") +
+    (order.adjustment ? "Adjustment:" + order.adjustment : "");
+  let item = await Item.findOne({ item_uuid });
+  item = JSON.parse(JSON.stringify(item));
+  item = { ...item, item_total: 0 };
+
+  item = {
+    ...item,
+    qty: +item.conversion * 1,
+  };
+  item = {
+    ...item,
+    price: price*item.qty,
+  };
+
+  let order_grandtotal = Math.round(price);
+  let credit_note_order_uuid = uuid();
+
+  await CreditNotes.create({
+    ...order,
+    order_grandtotal,
+    old_grandtotal: order_grandtotal,
+    item_details: [item],
+    credit_note_order_uuid,
+  });
+  await createCreditNotAccountingVoucher(
+    {
+      ...order,
+      order_grandtotal,
+      item_details: [item],
+      credit_note_order_uuid,
+    },
+    "CREDIT_NOTE",
+    narration
+  );
+};
+const createCreditNotAccountingVoucher = async (order, type, narration) => {
+  let counterData = await Counters.findOne(
+    { counter_uuid: order.counter_uuid },
+    { gst: 1 }
+  );
+  let gst = counterData?.gst || "";
+  //check is gst starts with 27
+  let isGst = gst?.startsWith("27") || !gst ? false : true;
+
+  let arr = [];
+  const gst_value = Array.from(
+    new Set(order.item_details.map((a) => +a.gst_percentage))
+  );
+
+  for (let a of gst_value) {
+    const data = order.item_details.filter((b) => +b.gst_percentage === a);
+    let amt = 0;
+    for (let item of data) {
+      amt = +item.item_total + +amt;
+      amt = amt.toFixed(2);
+    }
+
+    const value = (+amt - (+amt * 100) / (100 + a)).toFixed(2);
+    console.log({ value, amt });
+    if (amt && value) {
+      let ledger = ledger_list.find((b) => b.value === a) || {};
+      arr.push({
+        amount: -(amt - value).toFixed(3),
+        ledger_uuid: isGst
+          ? ledger?.central_purchase_ledger
+          : ledger?.local_sale_ledger,
+        narration,
+      });
+      if (isGst) {
+        arr.push({
+          amount: -value,
+          ledger_uuid: ledger?.sale_igst_ledger,
+          narration,
+        });
+      } else
+        for (let item of ledger?.ledger_uuid || []) {
+          arr.push({
+            amount: -truncateDecimals(value / 2, 2),
+            ledger_uuid: item,
+            narration,
+          });
+        }
+    }
+  }
+  let round_off = order.round_off || 0;
+  if (round_off)
+    arr.push({
+      amount: -round_off,
+      ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
+      narration,
+    });
+  arr.push({
+    ledger_uuid: order.counter_uuid || order.ledger_uuid,
+    amount: order.order_grandtotal || 0,
+    narration,
+  });
+
+  for (let item of order.deductions || []) {
+    arr.push({
+      ledger_uuid: item.ledger_uuid,
+      amount: -item.amount,
+      narration,
+    });
+  }
+  arr = arr.map((a) => ({
+    ...a,
+    amount: removeCommas(a.amount),
+  }));
+  let voucher_round_off = 0;
+  for (let item of arr) {
+    voucher_round_off = +item.amount + +voucher_round_off;
+    voucher_round_off = +voucher_round_off.toFixed(3);
+  }
+  if (+voucher_round_off) {
+    arr.push({
+      ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
+      amount: -(voucher_round_off || 0).toFixed(3),
+      narration,
+    });
+  }
+  let voucher_difference = 0;
+  for (let item of arr) {
+    voucher_difference = +voucher_difference + +item.amount;
+    voucher_difference = +voucher_difference.toFixed(2);
+    console.log({
+      voucher_difference,
+      amount: item.amount,
+      ledger_uuid: item.ledger_uuid,
+    });
+  }
+
+  const voucher = {
+    accounting_voucher_uuid: uuid(),
+    type: type,
+    voucher_date: new Date().getTime(),
+    user_uuid: order.user_uuid,
+    counter_uuid: order.counter_uuid,
+    order_uuid: order.credit_note_order_uuid,
+    invoice_number: order.credit_notes_invoice_number,
+    amount: order.order_grandtotal,
+    voucher_verification: voucher_difference ? 1 : 0,
+    voucher_difference,
+    details: arr,
+    created_at: new Date().getTime(),
+  };
+  console.log({ voucher });
+  await AccountingVouchers.create(voucher);
+  await updateCounterClosingBalance(arr, "add");
+};
 
 let ledger_list = [
   {
@@ -132,6 +290,14 @@ const createAccountingVoucher = async ({
       }
     }
   }
+  if (order?.replacement || order?.shortage || order?.adjustment) {
+    createAutoCreditNote(
+      order,
+      isGst
+        ? "7605d5e9-8165-46aa-8899-5c2d40622d30"
+        : "d68051cc-573d-4721-b42e-bd226157268b"
+    );
+  }
   let total = 0;
   for (let item of order.item_details) {
     total = +item.item_total + +total;
@@ -144,15 +310,20 @@ const createAccountingVoucher = async ({
       ledger_uuid: "5350c03e-fea5-4366-a09e-53131552e075",
     });
   }
+  let order_total =
+    +(order.order_grandtotal || 0) +
+    +(order?.replacement || 0) +
+    +(order?.shortage || 0) +
+    +(order?.adjustment || 0);
   arr.push({
     narration: `Sales Invoice {${order.invoice_number}}`,
-    amount: (order.order_grandtotal - total).toFixed(2),
+    amount: (order_total - total).toFixed(2),
     ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
   });
   arr.push({
     narration: `Sales Invoice {${order.invoice_number}}`,
     ledger_uuid: order.counter_uuid,
-    amount: -order.order_grandtotal || 0,
+    amount: -order_total || 0,
   });
   arr = arr.map((a) => ({
     ...a,
@@ -2295,11 +2466,12 @@ router.get("/deductions-report", async (req, res) => {
 router.post("/getOrderListByChequeNumber", async (req, res) => {
   try {
     const { cheque_number } = req.body;
-    const data = await Receipts.find({
-      "modes.remarks": cheque_number,
+    //contain check no
+    let data = await Receipts.find({
+      "modes.remarks": { $regex: new RegExp(cheque_number) },
     });
     if (!data.length) {
-      res.json({ success: false, message: "No Data Found" });
+      return res.json({ success: false, message: "No Data Found" });
     }
     let result = [];
     for (let item of data) {

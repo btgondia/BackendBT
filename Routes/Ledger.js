@@ -587,19 +587,23 @@ router.post("/getLegerReport", async (req, res) => {
 
     let oldAccountingVouchers = await AccountingVoucher.find({
       "details.ledger_uuid": value.counter_uuid || value.ledger_uuid,
+      //has voucher_Date exist
+      voucher_date: { $ne: "" },
       created_at: {
         $gte: default_opening_balance_date.default_opening_balance_date,
         $lte: value.startDate,
       },
     });
-    let balance = opening_balance?.amount || 0;
 
+    let balance = opening_balance?.amount || 0;
+    console.log({ balance });
     for (let item of oldAccountingVouchers) {
       let amount = item.details.find(
         (i) => i.ledger_uuid === value.counter_uuid
       ).amount;
       balance += amount;
     }
+    console.log({ balance });
 
     // ledger_uuid is in details
     let response = await AccountingVoucher.find({
@@ -648,11 +652,15 @@ router.post("/getLegerReport", async (req, res) => {
           orderData?.purchase_invoice_number ||
           "",
         voucher_date: orderData?.party_invoice_date || item.voucher_date || "",
-        balance,
       });
     }
     if (result.length) {
-      return res.json({ success: true, result, opening_balance });
+      return res.json({
+        success: true,
+        result,
+        opening_balance:opening_balance?.amount||0,
+        oldBalance: balance,
+      });
     } else return res.json({ success: false, message: "Ledger Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
