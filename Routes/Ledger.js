@@ -589,18 +589,19 @@ router.post("/getLegerReport", async (req, res) => {
       "details.ledger_uuid": value.counter_uuid || value.ledger_uuid,
       //has voucher_Date exist
       voucher_date: { $ne: "" },
-      created_at: {
+      voucher_date: {
         $gte: default_opening_balance_date.default_opening_balance_date,
         $lte: value.startDate,
       },
     });
-
+    console.log({ oldAccountingVouchers: oldAccountingVouchers.map((a) => new Date(+a.voucher_date)) });
     let balance = opening_balance?.amount || 0;
     console.log({ balance });
     for (let item of oldAccountingVouchers) {
       let amount = item.details.find(
         (i) => i.ledger_uuid === value.counter_uuid
       ).amount;
+      console.log({ amount });
       balance += amount;
     }
     console.log({ balance });
@@ -658,7 +659,7 @@ router.post("/getLegerReport", async (req, res) => {
       return res.json({
         success: true,
         result,
-        opening_balance:opening_balance?.amount||0,
+        opening_balance: opening_balance?.amount || 0,
         oldBalance: balance,
       });
     } else return res.json({ success: false, message: "Ledger Not Found" });
