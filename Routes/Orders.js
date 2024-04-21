@@ -40,10 +40,12 @@ const createAutoCreditNote = async (order, item_uuid, voucher_Date) => {
     +(order.replacement || 0) +
     +(order.shortage || 0) +
     +(order.adjustment || 0);
+    console.log({price})
   let narration =
-    (order.replacement ? "Replacement:" + order.replacement : "") +
-    (order.shortage ? "Shortage:" + order.shortage : "") +
-    (order.adjustment ? "Adjustment:" + order.adjustment : "");
+    (order.replacement ? "Replacement: " + order.replacement : "") +
+    (order.shortage ? " Shortage: " + order.shortage : "") +
+    (order.adjustment ? " Adjustment: " + order.adjustment : "");
+    console.log({narration})
   let item = await Item.findOne({ item_uuid });
   item = JSON.parse(JSON.stringify(item));
   item = { ...item, item_total: 0 };
@@ -64,7 +66,7 @@ const createAutoCreditNote = async (order, item_uuid, voucher_Date) => {
     item_details: [item],
     credit_note_order_uuid,
     ledger_uuid: order.counter_uuid,
-    voucher_date,
+    credit_notes_invoice_date:voucher_Date,
   });
   await createCreditNotAccountingVoucher(
     {
@@ -73,7 +75,7 @@ const createAutoCreditNote = async (order, item_uuid, voucher_Date) => {
       item_details: [item],
       credit_note_order_uuid,
       ledger_uuid: order.counter_uuid,
-      voucher_date,
+      voucher_Date,
     },
     "CREDIT_NOTE",
     narration
@@ -294,7 +296,7 @@ const createAccountingVoucher = async ({
   if (order?.replacement || order?.shortage || order?.adjustment) {
     createAutoCreditNote(
       order,
-      isGst
+      gst
         ? "7605d5e9-8165-46aa-8899-5c2d40622d30"
         : "d68051cc-573d-4721-b42e-bd226157268b",
       voucher_date
