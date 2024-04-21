@@ -35,7 +35,7 @@ const {
 } = require("../utils/helperFunctions");
 const AccountingVouchers = require("../Models/AccountingVoucher");
 const CreditNotes = require("../Models/CreditNotes");
-const createAutoCreditNote = async (order, item_uuid) => {
+const createAutoCreditNote = async (order, item_uuid, voucher_Date) => {
   let price =
     +(order.replacement || 0) +
     +(order.shortage || 0) +
@@ -50,11 +50,8 @@ const createAutoCreditNote = async (order, item_uuid) => {
 
   item = {
     ...item,
-    qty: +item.conversion * 1,
-  };
-  item = {
-    ...item,
-    price: price*item.qty,
+    b: 1,
+    price: price / +(item.conversion || 1),
   };
 
   let order_grandtotal = Math.round(price);
@@ -66,6 +63,8 @@ const createAutoCreditNote = async (order, item_uuid) => {
     old_grandtotal: order_grandtotal,
     item_details: [item],
     credit_note_order_uuid,
+    ledger_uuid: order.counter_uuid,
+    voucher_date,
   });
   await createCreditNotAccountingVoucher(
     {
@@ -73,6 +72,8 @@ const createAutoCreditNote = async (order, item_uuid) => {
       order_grandtotal,
       item_details: [item],
       credit_note_order_uuid,
+      ledger_uuid: order.counter_uuid,
+      voucher_date,
     },
     "CREDIT_NOTE",
     narration
@@ -295,7 +296,8 @@ const createAccountingVoucher = async ({
       order,
       isGst
         ? "7605d5e9-8165-46aa-8899-5c2d40622d30"
-        : "d68051cc-573d-4721-b42e-bd226157268b"
+        : "d68051cc-573d-4721-b42e-bd226157268b",
+      voucher_date
     );
   }
   let total = 0;
