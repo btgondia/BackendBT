@@ -35,7 +35,7 @@ const {
 } = require("../utils/helperFunctions");
 const AccountingVouchers = require("../Models/AccountingVoucher");
 const CreditNotes = require("../Models/CreditNotes");
-const createAutoCreditNote = async (order, item_uuid, voucher_Date) => {
+const createAutoCreditNote = async (order, item_uuid, voucher_date=new Date().getTime()) => {
   let price =
     +(order.replacement || 0) +
     +(order.shortage || 0) +
@@ -66,7 +66,7 @@ const createAutoCreditNote = async (order, item_uuid, voucher_Date) => {
     item_details: [item],
     credit_note_order_uuid,
     ledger_uuid: order.counter_uuid,
-    credit_notes_invoice_date:voucher_Date,
+    credit_notes_invoice_date:voucher_date,
   });
   await createCreditNotAccountingVoucher(
     {
@@ -75,7 +75,7 @@ const createAutoCreditNote = async (order, item_uuid, voucher_Date) => {
       item_details: [item],
       credit_note_order_uuid,
       ledger_uuid: order.counter_uuid,
-      voucher_Date,
+      voucher_date,
     },
     "CREDIT_NOTE",
     narration
