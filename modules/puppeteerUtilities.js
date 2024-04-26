@@ -120,7 +120,7 @@ if (process.env?.NODE_ENV !== "development")
 						console.red("ERROR IN CLOSING BROWSER INSTANCE: " + error.message)
 						console.log(error)
 					}
-				}, 15000)
+				}, 20000)
 			} catch (error) {
 				console.log("ERROR IN PROCESSING:", {
 					message: error?.message,
