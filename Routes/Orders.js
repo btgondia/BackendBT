@@ -35,17 +35,21 @@ const {
 } = require("../utils/helperFunctions");
 const AccountingVouchers = require("../Models/AccountingVoucher");
 const CreditNotes = require("../Models/CreditNotes");
-const createAutoCreditNote = async (order, item_uuid, voucher_date=new Date().getTime()) => {
+const createAutoCreditNote = async (
+  order,
+  item_uuid,
+  voucher_date = new Date().getTime()
+) => {
   let price =
     +(order.replacement || 0) +
     +(order.shortage || 0) +
     +(order.adjustment || 0);
-    console.log({price})
+  console.log({ price });
   let narration =
     (order.replacement ? "Replacement: " + order.replacement : "") +
     (order.shortage ? " Shortage: " + order.shortage : "") +
     (order.adjustment ? " Adjustment: " + order.adjustment : "");
-    console.log({narration})
+  console.log({ narration });
   let item = await Item.findOne({ item_uuid });
   item = JSON.parse(JSON.stringify(item));
   item = { ...item, item_total: 0 };
@@ -66,7 +70,8 @@ const createAutoCreditNote = async (order, item_uuid, voucher_date=new Date().ge
     item_details: [item],
     credit_note_order_uuid,
     ledger_uuid: order.counter_uuid,
-    credit_notes_invoice_date:voucher_date,
+    credit_notes_invoice_date: voucher_date,
+    credit_note_invoice_number: `CN-${order.invoice_number}`,
   });
   await createCreditNotAccountingVoucher(
     {
@@ -270,7 +275,7 @@ const createAccountingVoucher = async ({
     if (amt && value) {
       let ledger = ledger_list.find((b) => b.value === a) || {};
       arr.push({
-        narration: `Sales Invoice {${order.invoice_number}}`,
+        narration: `Sales Invoice ${order.invoice_number}`,
         amount: (amt - value).toFixed(3),
         ledger_uuid: isGst
           ? ledger?.central_sale_ledger
@@ -278,13 +283,13 @@ const createAccountingVoucher = async ({
       });
       if (isGst) {
         arr.push({
-          narration: `Sales Invoice {${order.invoice_number}}`,
+          narration: `Sales Invoice ${order.invoice_number}`,
           amount: value,
           ledger_uuid: ledger?.sale_igst_ledger,
         });
       } else {
         for (let item of ledger?.ledger_uuid || []) {
-          narration: `Sales Invoice {${order.invoice_number}}`,
+          narration: `Sales Invoice ${order.invoice_number}`,
             arr.push({
               amount: truncateDecimals(value / 2, 2),
               ledger_uuid: item,
@@ -309,7 +314,7 @@ const createAccountingVoucher = async ({
   }
   if (order?.chargesTotal || 0) {
     arr.push({
-      narration: `Sales Invoice {${order.invoice_number}}`,
+      narration: `Sales Invoice ${order.invoice_number}`,
       amount: -order.chargesTotal,
       ledger_uuid: "5350c03e-fea5-4366-a09e-53131552e075",
     });
@@ -320,12 +325,12 @@ const createAccountingVoucher = async ({
     +(order?.shortage || 0) +
     +(order?.adjustment || 0);
   arr.push({
-    narration: `Sales Invoice {${order.invoice_number}}`,
+    narration: `Sales Invoice ${order.invoice_number}`,
     amount: (order_total - total).toFixed(2),
     ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
   });
   arr.push({
-    narration: `Sales Invoice {${order.invoice_number}}`,
+    narration: `Sales Invoice ${order.invoice_number}`,
     ledger_uuid: order.counter_uuid,
     amount: -order_total || 0,
   });
@@ -340,7 +345,7 @@ const createAccountingVoucher = async ({
   }
   if (+voucher_round_off) {
     arr.push({
-      narration: `Sales Invoice {${order.invoice_number}}`,
+      narration: `Sales Invoice ${order.invoice_number}`,
       ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
       amount: -(voucher_round_off || 0).toFixed(3),
     });

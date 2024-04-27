@@ -38,9 +38,11 @@ const updateCounterClosingBalance = async (
           { closing_balance: 1 }
         );
         if (counter_data) {
-          let closing_balance = (+removeCommas(
-            +(counter_data.closing_balance || 0) + +(counter.amount || 0)
-          )||0).toFixed(2);
+          let closing_balance = (
+            +removeCommas(
+              +(counter_data.closing_balance || 0) + +(counter.amount || 0)
+            ) || 0
+          ).toFixed(2);
           console.log(
             "closing_balance",
             closing_balance,
@@ -62,9 +64,11 @@ const updateCounterClosingBalance = async (
           );
         }
         if (counter_data) {
-          let closing_balance = (+removeCommas(
-            +(counter_data.closing_balance || 0) + +(counter.amount || 0)
-          )||0).toFixed(2);
+          let closing_balance = (
+            +removeCommas(
+              +(counter_data.closing_balance || 0) + +(counter.amount || 0)
+            ) || 0
+          ).toFixed(2);
           console.log(
             "closing_balance",
             closing_balance,
@@ -106,11 +110,13 @@ const updateCounterClosingBalance = async (
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
             {
-              closing_balance: (+removeCommas(
-                +(counter_data.closing_balance || 0) +
-                  +(counter.amount || 0) -
-                  +(old_amount || 0)
-              )||0).toFixed(2),
+              closing_balance: (
+                +removeCommas(
+                  +(counter_data.closing_balance || 0) +
+                    +(counter.amount || 0) -
+                    +(old_amount || 0)
+                ) || 0
+              ).toFixed(2),
             }
           );
         } else if (!counter_data) {
@@ -125,11 +131,13 @@ const updateCounterClosingBalance = async (
           await Ledger.updateOne(
             { ledger_uuid: counter.ledger_uuid },
             {
-              closing_balance: (+removeCommas(
-                +(counter_data.closing_balance || 0) +
-                  +(counter.amount || 0) -
-                  +(old_amount || 0)
-              )||0).toFixed(2),
+              closing_balance: (
+                +removeCommas(
+                  +(counter_data.closing_balance || 0) +
+                    +(counter.amount || 0) -
+                    +(old_amount || 0)
+                ) || 0
+              ).toFixed(2),
             }
           );
         }
@@ -147,9 +155,11 @@ const updateCounterClosingBalance = async (
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
             {
-              closing_balance: (+removeCommas(
-                +(counter_data.closing_balance || 0) - +(counter.amount || 0)
-              )||0).toFixed(2),
+              closing_balance: (
+                +removeCommas(
+                  +(counter_data.closing_balance || 0) - +(counter.amount || 0)
+                ) || 0
+              ).toFixed(2),
             }
           );
         } else if (!counter_data) {
@@ -164,9 +174,11 @@ const updateCounterClosingBalance = async (
           await Ledger.updateOne(
             { ledger_uuid: counter.ledger_uuid },
             {
-              closing_balance: (+removeCommas(
-                +(counter_data.closing_balance || 0) - +(counter.amount || 0)
-              )||0).toFixed(2),
+              closing_balance: (
+                +removeCommas(
+                  +(counter_data.closing_balance || 0) - +(counter.amount || 0)
+                ) || 0
+              ).toFixed(2),
             }
           );
         }
@@ -184,9 +196,11 @@ const updateCounterClosingBalance = async (
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
             {
-              closing_balance: (+removeCommas(
-                +(counter_data.closing_balance || 0) + -(counter.amount || 0)
-              )||0).toFixed(2),
+              closing_balance: (
+                +removeCommas(
+                  +(counter_data.closing_balance || 0) + -(counter.amount || 0)
+                ) || 0
+              ).toFixed(2),
             }
           );
         } else if (!counter_data) {
@@ -201,9 +215,11 @@ const updateCounterClosingBalance = async (
           await Ledger.updateOne(
             { ledger_uuid: counter.ledger_uuid },
             {
-              closing_balance: (+removeCommas(
-                +(counter_data.closing_balance || 0) + -(counter.amount || 0)
-              )||0).toFixed(2),
+              closing_balance: (
+                +removeCommas(
+                  +(counter_data.closing_balance || 0) + -(counter.amount || 0)
+                ) || 0
+              ).toFixed(2),
             }
           );
         }
@@ -315,11 +331,10 @@ function increaseNumericString(inputString) {
 }
 function getMidnightTimestamp(now) {
   // Current date and time
-  const midnight = new Date(now); // Copy current date
-  midnight.setHours(0, 0, 0, 0); // Set time to 00:00:00.000 (midnight)
-  return midnight.getTime(); // Return Unix timestamp in milliseconds
+  const midnight = new Date(now).toUTCString(); // Copy current date
+  return new Date(midnight).getTime(); // Return Unix timestamp in milliseconds
 }
-function parseDate(dateString,dateFormat) {
+function parseDate(dateString, dateFormat) {
   let regex = dateFormat
     .replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")
     .replace("dd", "(\\d{2})")
@@ -345,5 +360,5 @@ module.exports = {
   updateItemStock,
   increaseNumericString,
   getMidnightTimestamp,
-  parseDate
+  parseDate,
 };
