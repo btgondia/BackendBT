@@ -256,7 +256,7 @@ function getAlphabetIndex(alphabet) {
   return sequence.indexOf(alphabet.toLowerCase());
 }
 router.post("/getExcelDetailsData", async (req, res) => {
-  // try {
+  try {
   let { array, ledger_uuid } = req.body;
 
   let bankStatementItem = await Details.findOne({}, { bank_statement_item: 1 });
@@ -366,16 +366,22 @@ router.post("/getExcelDetailsData", async (req, res) => {
           ? "c67b5794-d2b6-11ec-9d64-0242ac120002"
           : "c67b5988-d2b6-11ec-9d64-0242ac120002",
       "modes.amt": received_amount,
+    },{
+      invoice_number: 1,
+      order_uuid: 1,
+      counter_uuid: 1,
+      modes: 1,
+    
     });
     reciptsData = JSON.parse(JSON.stringify(reciptsData));
-    if (ledger_uuid !== "6fb56620-fb72-4e35-bd66-b439c78a4d2e") {
+
       reciptsData = reciptsData?.find((a) =>
         a.modes.find((b) => {
           return +b.amt === +received_amount;
         })
       );
-    }
-    console.log({ reciptsData });
+    
+
     if (!countersData?.route_uuid && reciptsData?.counter_uuid) {
       countersData = await Counters.findOne(
         { counter_uuid: reciptsData.counter_uuid },
@@ -386,6 +392,8 @@ router.post("/getExcelDetailsData", async (req, res) => {
     if (countersData?.route_uuid) {
       routeData = await Routes.findOne({
         route_uuid: countersData.route_uuid,
+      },{
+        route_title: 1,
       });
     }
     let date = item[getAlphabetIndex(bankStatementItem.data_column)];
@@ -419,7 +427,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
       .replace("yy", ("0000" + date?.getFullYear()?.toString()).slice(-2))
       .replace("dd", ("00" + date?.getDate()?.toString()).slice(-2));
 
-    if (reciptsData.order_uuid)
+    if (reciptsData?.order_uuid)
       data.push({
         sr: +bankStatementItem.start_from_line + index,
         reference_no: [reciptsData.invoice_number],
@@ -491,6 +499,9 @@ router.post("/getExcelDetailsData", async (req, res) => {
         let otherReciptsData = await Receipts.find({
           counter_uuid: countersData.counter_uuid || countersData.ledger_uuid,
           pending: 0,
+        },{
+          invoice_number: 1,
+          modes: 1,
         });
 
         otherReciptsData =
@@ -541,9 +552,9 @@ router.post("/getExcelDetailsData", async (req, res) => {
   if (result) {
     res.json({ success: true, result });
   } else res.json({ success: false, message: "Ledger Not Found" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
 });
 
 //put ledger
