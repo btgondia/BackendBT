@@ -298,8 +298,6 @@ router.post("/getExcelDetailsData", async (req, res) => {
     }
     //remove empty string from array
     narrationArray = narrationArray.filter((i) => i);
-    console.log({ narrationArray });
-
     //check anny neration starts with one or more 0 digit
     let zeroStartedArray = narrationArray.filter((i) => i.match(/^0+/));
     if (zeroStartedArray.length) {
@@ -469,6 +467,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
           ...allCounterData.find(
             (a) => a.counter_uuid === receipt.counter_uuid
           ),
+          narration:item[getAlphabetIndex(bankStatementItem.narration_column)],
           invoice_number: receipt.invoice_number,
           amount: receipt.modes.find(
             (b) => b.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002"
