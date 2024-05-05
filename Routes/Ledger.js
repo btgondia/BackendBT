@@ -434,33 +434,31 @@ router.post("/getExcelDetailsData", async (req, res) => {
         .replace("dd", ("00" + date?.getDate()?.toString()).slice(-2));
       let value;
       let otherReciptsData = [];
-      if (item.ledger_uuid === "6fb56620-fb72-4e35-bd66-b439c78a4d2e") {
-        let allReceiptsData = await Receipts.find({
-          "modes.remarks": { $in: narrationArray },
-          pending: 0,
+
+      let allReceiptsData = await Receipts.find({
+        "modes.remarks": { $in: narrationArray },
+        pending: 0,
+      });
+      allReceiptsData = JSON.parse(JSON.stringify(allReceiptsData));
+      let allCounterData = await Counters.find(
+        {
+          counter_uuid: { $in: allReceiptsData.map((a) => a.counter_uuid) },
+        },
+        { counter_title: 1, counter_uuid: 1 }
+      );
+      allCounterData = JSON.parse(JSON.stringify(allCounterData));
+      for (let receipt of allReceiptsData) {
+        otherReciptsData.push({
+          ...receipt,
+          ...allCounterData.find(
+            (a) => a.counter_uuid === receipt.counter_uuid
+          ),
+          narration: item[getAlphabetIndex(bankStatementItem.narration_column)],
+          invoice_number: receipt.invoice_number,
+          amount: receipt.modes.find(
+            (b) => b.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002"
+          ).amt,
         });
-        allReceiptsData = JSON.parse(JSON.stringify(allReceiptsData));
-        let allCounterData = await Counters.find(
-          {
-            counter_uuid: { $in: allReceiptsData.map((a) => a.counter_uuid) },
-          },
-          { counter_title: 1, counter_uuid: 1 }
-        );
-        allCounterData = JSON.parse(JSON.stringify(allCounterData));
-        for (let receipt of allReceiptsData) {
-          otherReciptsData.push({
-            ...receipt,
-            ...allCounterData.find(
-              (a) => a.counter_uuid === receipt.counter_uuid
-            ),
-            narration:
-              item[getAlphabetIndex(bankStatementItem.narration_column)],
-            invoice_number: receipt.invoice_number,
-            amount: receipt.modes.find(
-              (b) => b.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002"
-            ).amt,
-          });
-        }
       }
 
       if (reciptsData?.order_uuid)
