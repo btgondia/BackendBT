@@ -433,30 +433,8 @@ router.post("/getExcelDetailsData", async (req, res) => {
         .replace("yy", ("0000" + date?.getFullYear()?.toString()).slice(-2))
         .replace("dd", ("00" + date?.getDate()?.toString()).slice(-2));
       let value;
-      if (reciptsData?.order_uuid)
-        value = {
-          sr: +bankStatementItem.start_from_line + index,
-          reference_no: [reciptsData.invoice_number],
-          order_uuid: reciptsData.order_uuid,
-          counter_title: countersData.counter_title || "",
-          route_title: routeData?.route_title || "",
-          counter_uuid: countersData.counter_uuid,
-          mode_uuid:
-            ledger_uuid === "6fb56620-fb72-4e35-bd66-b439c78a4d2e"
-              ? "c67b5794-d2b6-11ec-9d64-0242ac120002"
-              : "c67b5988-d2b6-11ec-9d64-0242ac120002",
-          date,
-          received_amount,
-          paid_amount,
-          unMatch: multipleNarration ? true : false,
-          ledger_group_uuid: countersData.ledger_group_uuid || "",
-          transaction_tags: narrationArray,
-          multipleNarration,
-          matched_entry: true,
-          date_time_stamp,
-        };
-      else if (ledger_uuid === "6fb56620-fb72-4e35-bd66-b439c78a4d2e") {
-        let otherReciptsData = [];
+      let otherReciptsData = [];
+      if (item.ledger_uuid === "6fb56620-fb72-4e35-bd66-b439c78a4d2e") {
         let allReceiptsData = await Receipts.find({
           "modes.remarks": { $in: narrationArray },
           pending: 0,
@@ -483,7 +461,31 @@ router.post("/getExcelDetailsData", async (req, res) => {
             ).amt,
           });
         }
+      }
 
+      if (reciptsData?.order_uuid)
+        value = {
+          sr: +bankStatementItem.start_from_line + index,
+          reference_no: [reciptsData.invoice_number],
+          order_uuid: reciptsData.order_uuid,
+          counter_title: countersData.counter_title || "",
+          route_title: routeData?.route_title || "",
+          counter_uuid: countersData.counter_uuid,
+          mode_uuid:
+            ledger_uuid === "6fb56620-fb72-4e35-bd66-b439c78a4d2e"
+              ? "c67b5794-d2b6-11ec-9d64-0242ac120002"
+              : "c67b5988-d2b6-11ec-9d64-0242ac120002",
+          date,
+          received_amount,
+          paid_amount,
+          unMatch: multipleNarration ? true : false,
+          ledger_group_uuid: countersData.ledger_group_uuid || "",
+          transaction_tags: narrationArray,
+          multipleNarration,
+          matched_entry: true,
+          date_time_stamp,
+        };
+      else if (otherReciptsData.length) {
         value = {
           sr: +bankStatementItem.start_from_line + index,
           reference_no: "",
