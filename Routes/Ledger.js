@@ -255,6 +255,25 @@ function getAlphabetIndex(alphabet) {
   const sequence = "abcdefghijklmnopqrstuvwxyz";
   return sequence.indexOf(alphabet.toLowerCase());
 }
+function addZerosToNumericStrings(arr) {
+  // Create a Set to store unique values
+  const uniqueSet = new Set(arr);
+
+  // Convert Set back to an array
+  const uniqueArray = Array.from(uniqueSet);
+
+  // Iterate through the unique array
+  for (let i = 0; i < uniqueArray.length; i++) {
+      // Check if the current element is alphanumeric and has a length of 4
+      if (/^\d{4}$/.test(uniqueArray[i])) {
+          // If conditions met, add "00" to the beginning
+          uniqueArray[i] = "00" + uniqueArray[i];
+      }
+  }
+
+  return uniqueArray;
+}
+
 router.post("/getExcelDetailsData", async (req, res) => {
   try {
     let { array, ledger_uuid } = req.body;
@@ -360,7 +379,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
           $or: [
             { counter_uuid: countersData.counter_uuid },
             {
-              "modes.remarks": { $in: narrationArray },
+              "modes.remarks": { $in: addZerosToNumericStrings(narrationArray) },
             },
           ],
           pending: 0,
@@ -436,7 +455,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
       let otherReciptsData = [];
 
       let allReceiptsData = await Receipts.find({
-        "modes.remarks": { $in: narrationArray },
+        "modes.remarks": { $in: addZerosToNumericStrings(narrationArray) },
         pending: 0,
       });
       allReceiptsData = JSON.parse(JSON.stringify(allReceiptsData));
