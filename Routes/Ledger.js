@@ -256,22 +256,21 @@ function getAlphabetIndex(alphabet) {
   return sequence.indexOf(alphabet.toLowerCase());
 }
 function addZerosToNumericStrings(arr) {
-  // Create a Set to store unique values
-  const uniqueSet = new Set(arr);
+  // Filter out elements longer than 5 characters
+  const filteredArray = arr.filter(item => item.length < 6);
 
-  // Convert Set back to an array
-  const uniqueArray = Array.from(uniqueSet);
-
-  // Iterate through the unique array
-  for (let i = 0; i < uniqueArray.length; i++) {
-      // Check if the current element is alphanumeric and has a length of 4
-      if (/^\d{4}$/.test(uniqueArray[i])) {
-          // If conditions met, add "00" to the beginning
-          uniqueArray[i] = "00" + uniqueArray[i];
+  // Iterate through the filtered array
+  for (let i = 0; i < filteredArray.length; i++) {
+      // Check if the current element is alphanumeric
+      if (/^\d+$/.test(filteredArray[i])) {
+          // Calculate the number of zeros to add to make the length 6
+          const zerosToAdd = 6 - filteredArray[i].length;
+          // Prepend the appropriate number of zeros
+          filteredArray[i] = "0".repeat(zerosToAdd) + filteredArray[i];
       }
   }
 
-  return uniqueArray;
+  return filteredArray;
 }
 
 router.post("/getExcelDetailsData", async (req, res) => {
@@ -379,14 +378,16 @@ router.post("/getExcelDetailsData", async (req, res) => {
           $or: [
             { counter_uuid: countersData.counter_uuid },
             {
-              "modes.remarks": { $in: addZerosToNumericStrings(narrationArray) },
+              "modes.remarks": {
+                $in: addZerosToNumericStrings(narrationArray),
+              },
             },
           ],
           pending: 0,
-          "modes.mode_uuid":
-            ledger_uuid === "6fb56620-fb72-4e35-bd66-b439c78a4d2e"
-              ? "c67b5794-d2b6-11ec-9d64-0242ac120002"
-              : "c67b5988-d2b6-11ec-9d64-0242ac120002",
+          $or: [
+            { "modes.mode_uuid": "c67b5794-d2b6-11ec-9d64-0242ac120002" },
+            { "modes.mode_uuid": "c67b5988-d2b6-11ec-9d64-0242ac120002" },
+          ],
           "modes.amt": received_amount,
         },
         {
@@ -396,6 +397,9 @@ router.post("/getExcelDetailsData", async (req, res) => {
           modes: 1,
         }
       );
+      if(+bankStatementItem.start_from_line + index === 62){
+        console.log({reciptsData,narration:addZerosToNumericStrings(narrationArray)})
+      }
       reciptsData = JSON.parse(JSON.stringify(reciptsData));
 
       reciptsData = reciptsData?.find((a) =>
@@ -577,6 +581,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
           date_time_stamp,
         };
       }
+      
       data.push(value);
     }
     let result = data;
