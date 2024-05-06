@@ -257,12 +257,12 @@ function getAlphabetIndex(alphabet) {
 }
 function addZerosToNumericStrings(arr) {
   // Filter out elements longer than 5 characters
-  const filteredArray = arr.filter(item => item.length < 6);
+  const filteredArray = arr;
 
   // Iterate through the filtered array
   for (let i = 0; i < filteredArray.length; i++) {
-      // Check if the current element is alphanumeric
-      if (/^\d+$/.test(filteredArray[i])) {
+      
+      if (/^\d+$/.test(filteredArray[i])&&filteredArray[i].length<6) {
           // Calculate the number of zeros to add to make the length 6
           const zerosToAdd = 6 - filteredArray[i].length;
           // Prepend the appropriate number of zeros
@@ -320,16 +320,16 @@ router.post("/getExcelDetailsData", async (req, res) => {
       }
       //remove empty string from array
       narrationArray = narrationArray.filter((i) => i);
+
       //check anny neration starts with one or more 0 digit
       let zeroStartedArray = narrationArray.filter((i) => i.match(/^0+/));
       if (zeroStartedArray.length) {
         //remove all stating zero from narration array
         zeroStartedArray = zeroStartedArray.map((i) => i.replace(/^0+/, ""));
       }
-      narrationArray = [...narrationArray, ...zeroStartedArray];
-      //remove dulicates from narration array
+      narrationArray = addZerosToNumericStrings([...narrationArray, ...zeroStartedArray]);
       narrationArray = Array.from(new Set(narrationArray));
-
+      console.log({narrationArray})
       // find counter or ledger includs transaction_tags matches with narration
       let countersData = await Counters.find(
         { transaction_tags: { $in: narrationArray } },
@@ -379,7 +379,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
             { counter_uuid: countersData.counter_uuid },
             {
               "modes.remarks": {
-                $in: addZerosToNumericStrings(narrationArray),
+                $in: narrationArray,
               },
             },
           ],
@@ -397,9 +397,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
           modes: 1,
         }
       );
-      if(+bankStatementItem.start_from_line + index === 62){
-        console.log({reciptsData,narration:addZerosToNumericStrings(narrationArray)})
-      }
+      
       reciptsData = JSON.parse(JSON.stringify(reciptsData));
 
       reciptsData = reciptsData?.find((a) =>
@@ -459,9 +457,12 @@ router.post("/getExcelDetailsData", async (req, res) => {
       let otherReciptsData = [];
 
       let allReceiptsData = await Receipts.find({
-        "modes.remarks": { $in: addZerosToNumericStrings(narrationArray) },
+        "modes.remarks": { $in: narrationArray },
         pending: 0,
       });
+
+      
+
       allReceiptsData = JSON.parse(JSON.stringify(allReceiptsData));
       let allCounterData = await Counters.find(
         {
