@@ -266,7 +266,10 @@ function addZerosToNumericStrings(arr) {
           // Calculate the number of zeros to add to make the length 6
           const zerosToAdd = 6 - filteredArray[i].length;
           // Prepend the appropriate number of zeros
-          filteredArray[i] = "0".repeat(zerosToAdd) + filteredArray[i];
+          let value = "0".repeat(zerosToAdd) + filteredArray[i];
+          if(!filteredArray.find((a)=>a===value)){
+            filteredArray.push(value);
+          }
       }
   }
 
@@ -292,6 +295,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
     let total_paid_amount = 0;
 
     for (let [index, item] of arrayData.entries()) {
+     
       let narration =
         item[getAlphabetIndex(bankStatementItem.narration_column)];
       let received_amount = removeCommas(

@@ -151,6 +151,7 @@ router.post("/postAccountVouchers", async (req, res) => {
         type: "RECEIPT_ORDER",
         voucher_date: "",
       });
+      console.log({ voucherData,amt:item.amt });
       if (voucherData && item.matched_entry) {
         await AccountingVoucher.updateMany(
           { invoice_number: detail, type: "RECEIPT_ORDER", voucher_date: "" },
@@ -172,7 +173,7 @@ router.post("/postAccountVouchers", async (req, res) => {
             amount: truncateDecimals(a.amount || 0, 2),
           })),
         };
-        if (item.voucher_date) {
+        if (item.voucher_date&& voucherData) {
           let response = await AccountingVoucher.updateMany(
             {
               invoice_number: { $in: item.invoice_number },
