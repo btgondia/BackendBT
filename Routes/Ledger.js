@@ -261,16 +261,15 @@ function addZerosToNumericStrings(arr) {
 
   // Iterate through the filtered array
   for (let i = 0; i < filteredArray.length; i++) {
-      
-      if (/^\d+$/.test(filteredArray[i])&&filteredArray[i].length<6) {
-          // Calculate the number of zeros to add to make the length 6
-          const zerosToAdd = 6 - filteredArray[i].length;
-          // Prepend the appropriate number of zeros
-          let value = "0".repeat(zerosToAdd) + filteredArray[i];
-          if(!filteredArray.find((a)=>a===value)){
-            filteredArray.push(value);
-          }
+    if (/^\d+$/.test(filteredArray[i]) && filteredArray[i].length < 6) {
+      // Calculate the number of zeros to add to make the length 6
+      const zerosToAdd = 6 - filteredArray[i].length;
+      // Prepend the appropriate number of zeros
+      let value = "0".repeat(zerosToAdd) + filteredArray[i];
+      if (!filteredArray.find((a) => a === value)) {
+        filteredArray.push(value);
       }
+    }
   }
 
   return filteredArray;
@@ -295,7 +294,6 @@ router.post("/getExcelDetailsData", async (req, res) => {
     let total_paid_amount = 0;
 
     for (let [index, item] of arrayData.entries()) {
-     
       let narration =
         item[getAlphabetIndex(bankStatementItem.narration_column)];
       let received_amount = removeCommas(
@@ -331,9 +329,12 @@ router.post("/getExcelDetailsData", async (req, res) => {
         //remove all stating zero from narration array
         zeroStartedArray = zeroStartedArray.map((i) => i.replace(/^0+/, ""));
       }
-      narrationArray = addZerosToNumericStrings([...narrationArray, ...zeroStartedArray]);
+      narrationArray = addZerosToNumericStrings([
+        ...narrationArray,
+        ...zeroStartedArray,
+      ]);
       narrationArray = Array.from(new Set(narrationArray));
-      console.log({narrationArray})
+      console.log({ narrationArray });
       // find counter or ledger includs transaction_tags matches with narration
       let countersData = await Counters.find(
         { transaction_tags: { $in: narrationArray } },
@@ -401,10 +402,32 @@ router.post("/getExcelDetailsData", async (req, res) => {
           modes: 1,
         }
       );
-      
-      reciptsData = JSON.parse(JSON.stringify(reciptsData));
 
-      reciptsData = reciptsData?.find((a) =>
+      reciptsData = JSON.parse(JSON.stringify(reciptsData));
+      //check all recipt order_uuid is valid with order or complete order
+      let orderRecipt=[]
+      for(let recipt of reciptsData){
+        if(recipt.order_uuid){
+          let orderData = await OrderCompleted.findOne({
+            order_uuid: recipt.order_uuid,
+          });
+          if (!orderData) {
+            orderData = await Orders.findOne({
+              order_uuid: recipt.order_uuid,
+            });
+          }
+          if (!orderData) {
+            orderData = await PurchaseInvoice.findOne({
+              purchase_order_uuid: recipt.order_uuid,
+            });
+          }
+          if (orderData) {
+            orderRecipt.push(recipt)
+          }
+        }
+      }
+
+      reciptsData = orderRecipt?.find((a) =>
         a.modes.find((b) => {
           return +b.amt === +received_amount;
         })
@@ -464,8 +487,6 @@ router.post("/getExcelDetailsData", async (req, res) => {
         "modes.remarks": { $in: narrationArray },
         pending: 0,
       });
-
-      
 
       allReceiptsData = JSON.parse(JSON.stringify(allReceiptsData));
       let allCounterData = await Counters.find(
@@ -586,7 +607,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
           date_time_stamp,
         };
       }
-      
+
       data.push(value);
     }
     let result = data;
