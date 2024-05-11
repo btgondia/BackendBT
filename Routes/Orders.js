@@ -672,7 +672,7 @@ router.post("/postOrder", async (req, res) => {
         const status = +orderStage === 4 ? 1 : 2;
         const updated_data = {
           status,
-          invoice_number: `${value?.order_type}${_invoice_number}`,
+          invoice_number: `${value?.order_type??""}${_invoice_number}`,
         };
         if (+orderStage === 4) updated_data.completed_at = Date.now();
         await CounterCharges.updateMany(

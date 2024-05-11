@@ -531,6 +531,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
           multipleNarration,
           matched_entry: true,
           date_time_stamp,
+          narration: item[getAlphabetIndex(bankStatementItem.narration_column)],
         };
       else if (otherReciptsData.length) {
         value = {
@@ -550,6 +551,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
           otherReciptsData,
           mode_uuid: "c67b5794-d2b6-11ec-9d64-0242ac120002",
           date_time_stamp,
+          narration: item[getAlphabetIndex(bankStatementItem.narration_column)]
         };
       } else if (countersData.counter_uuid || countersData.ledger_uuid) {
         {
@@ -586,6 +588,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
             unMatch: true,
             transaction_tags: narrationArray,
             multipleNarration,
+            narration: item[getAlphabetIndex(bankStatementItem.narration_column)],
             otherReciptsData,
             mode_uuid: "c67b5988-d2b6-11ec-9d64-0242ac120002",
             date_time_stamp,
