@@ -22,9 +22,9 @@ const createAccountingVoucher = async (order, type, recept_number) => {
       { mode_uuid: a.mode_uuid },
       { ledger_uuid: 1, mode_title: 1 }
     );
-    let narration = `Received ${data.mode_title} for Inv. No. {${
+    let narration = `Received ${data.mode_title} for Inv. No. ${
       order.invoice_number ?? ""
-    }}${
+    }${
       a.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002"
         ? " , Chq No. " + a.remarks
         : ""
@@ -83,6 +83,7 @@ const createAccountingVoucher = async (order, type, recept_number) => {
   }
 };
 const deleteAccountingVoucher = async (recept_number, type, order_uuid) => {
+  console.log(recept_number, type, order_uuid);
   let voucherData = await AccountingVoucher.find({
     $or: [
       {
@@ -98,6 +99,7 @@ const deleteAccountingVoucher = async (recept_number, type, order_uuid) => {
     ],
     type,
   });
+  console.log(voucherData);
   if (voucherData.length) {
     for (let voucher of voucherData)
       await updateCounterClosingBalance(voucher.details, "delete");
@@ -305,16 +307,23 @@ router.post("/getSingleRecipt", async (req, res) => {
   }
 });
 router.put("/putReceipt", async (req, res) => {
-  try {
-    let value = req.body;
-    if (!value) res.json({ success: false, message: "Invalid Data" });
-    let { order_uuid, counter_uuid, modes, entry = 1 } = value;
-    let modesTotal = modes.reduce((a, b) => a + +b.amt, 0);
+  // try {
+  let value = req.body;
+  if (!value) res.json({ success: false, message: "Invalid Data" });
+  let { order_uuid, counter_uuid, modes, entry = 1 } = value;
+  let modesTotal = modes.reduce((a, b) => a + +b.amt, 0);
+  let prevData = await Receipts.findOne({ order_uuid, counter_uuid });
+  if (prevData) {
     if (!modesTotal) {
       await Receipts.deleteMany({ order_uuid, counter_uuid });
-      await deleteAccountingVoucher(value.receipt_number, "RECEIPT_ORDER");
+      await deleteAccountingVoucher(
+        prevData.receipt_number,
+        "RECEIPT_ORDER",
+        order_uuid
+      );
       return res.json({ success: true, message: "Receipts Deleted" });
     }
+
     let response = await Receipts.updateOne(
       { order_uuid, counter_uuid },
       { modes, entry }
@@ -329,9 +338,34 @@ router.put("/putReceipt", async (req, res) => {
       updateAccountingVoucher(value, "RECEIPT_ORDER", receipt_number);
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Receipts Not created" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
+  } else {
+    let next_receipt_number = await Details.find({});
+    next_receipt_number = next_receipt_number[0].next_receipt_number;
+    let pending = value.modes.filter((b) => +b.status === 0 && b.amt)?.length
+      ? 0
+      : 1;
+    let data = {
+      receipt_number: next_receipt_number,
+      time: new Date().getTime(),
+      pending,
+      invoice_number: value.invoice_number,
+      order_uuid: order_uuid,
+      counter_uuid: counter_uuid,
+      modes,
+    };
+    console.log(data);
+    let response = await Receipts.create(data);
+    await createAccountingVoucher(value, "RECEIPT_ORDER", next_receipt_number);
+    next_receipt_number = increaseNumericString(next_receipt_number);
+    await Details.updateMany({}, { next_receipt_number });
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
   }
+
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 router.put("/putSingleReceipt", async (req, res) => {
   try {

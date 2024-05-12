@@ -148,6 +148,22 @@ const CounterSchema = new mongoose.Schema({
     longitude: { type: Number },
   },
   notes: [{ type: String }],
+  counter_notes:[
+    {
+      uuid: {
+        type: String,
+      },
+      note: {
+        type: String,
+      },
+      date: {
+        type: String,
+      },
+      created_at: {
+        type: String,
+      },
+    }
+  ],
   opening_balance: [
     {
       amount: {

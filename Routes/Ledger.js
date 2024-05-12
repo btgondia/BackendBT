@@ -405,9 +405,9 @@ router.post("/getExcelDetailsData", async (req, res) => {
 
       reciptsData = JSON.parse(JSON.stringify(reciptsData));
       //check all recipt order_uuid is valid with order or complete order
-      let orderRecipt=[]
-      for(let recipt of reciptsData){
-        if(recipt.order_uuid){
+      let orderRecipt = [];
+      for (let recipt of reciptsData) {
+        if (recipt.order_uuid) {
           let orderData = await OrderCompleted.findOne({
             order_uuid: recipt.order_uuid,
           });
@@ -422,7 +422,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
             });
           }
           if (orderData) {
-            orderRecipt.push(recipt)
+            orderRecipt.push(recipt);
           }
         }
       }
@@ -510,7 +510,9 @@ router.post("/getExcelDetailsData", async (req, res) => {
         });
       }
 
-      if (reciptsData?.order_uuid)
+      if (reciptsData?.order_uuid) {
+        let voucherData=await AccountingVoucher.find({order_uuid:reciptsData.order_uuid})
+        let existVoucher=voucherData.find(a=>a.details.find(b=>b.ledger_uuid===ledger_uuid))
         value = {
           sr: +bankStatementItem.start_from_line + index,
           reference_no: [reciptsData.invoice_number],
@@ -518,10 +520,8 @@ router.post("/getExcelDetailsData", async (req, res) => {
           counter_title: countersData.counter_title || "",
           route_title: routeData?.route_title || "",
           counter_uuid: countersData.counter_uuid,
-          mode_uuid:
-            ledger_uuid === "6fb56620-fb72-4e35-bd66-b439c78a4d2e"
-              ? "c67b5794-d2b6-11ec-9d64-0242ac120002"
-              : "c67b5988-d2b6-11ec-9d64-0242ac120002",
+          mode_uuid: reciptsData.modes.find((a) => a.amt === +received_amount)
+            .mode_uuid,
           date,
           received_amount,
           paid_amount,
@@ -532,8 +532,10 @@ router.post("/getExcelDetailsData", async (req, res) => {
           matched_entry: true,
           date_time_stamp,
           narration: item[getAlphabetIndex(bankStatementItem.narration_column)],
+          existVoucher
         };
-      else if (otherReciptsData.length) {
+      } else if (otherReciptsData.length) {
+        otherReciptsData = JSON.parse(JSON.stringify(otherReciptsData));
         value = {
           sr: +bankStatementItem.start_from_line + index,
           reference_no: "",
@@ -545,13 +547,24 @@ router.post("/getExcelDetailsData", async (req, res) => {
           date,
           received_amount,
           paid_amount,
-          unMatch: true,
+          unMatch:
+            otherReciptsData.reduce((a, b) => a + b.amount, 0) ===
+            +received_amount
+              ? false
+              : true,
           transaction_tags: narrationArray,
           multipleNarration,
-          otherReciptsData,
+          otherReciptsData:
+            otherReciptsData.reduce((a, b) => a + b.amount, 0) ===
+            +received_amount
+              ? otherReciptsData.map((a) => ({
+                  ...a,
+                  checked: true,
+                }))
+              : otherReciptsData,
           mode_uuid: "c67b5794-d2b6-11ec-9d64-0242ac120002",
           date_time_stamp,
-          narration: item[getAlphabetIndex(bankStatementItem.narration_column)]
+          narration: item[getAlphabetIndex(bankStatementItem.narration_column)],
         };
       } else if (countersData.counter_uuid || countersData.ledger_uuid) {
         {
@@ -588,7 +601,8 @@ router.post("/getExcelDetailsData", async (req, res) => {
             unMatch: true,
             transaction_tags: narrationArray,
             multipleNarration,
-            narration: item[getAlphabetIndex(bankStatementItem.narration_column)],
+            narration:
+              item[getAlphabetIndex(bankStatementItem.narration_column)],
             otherReciptsData,
             mode_uuid: "c67b5988-d2b6-11ec-9d64-0242ac120002",
             date_time_stamp,
