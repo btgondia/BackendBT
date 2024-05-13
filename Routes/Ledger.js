@@ -377,17 +377,16 @@ router.post("/getExcelDetailsData", async (req, res) => {
         );
         countersData = countersData[0];
       }
-
+      console.log({ countersData });
       let reciptsData = await Receipts.find(
         {
-          $or: [
-            { counter_uuid: countersData.counter_uuid },
-            {
-              "modes.remarks": {
-                $in: narrationArray,
-              },
-            },
-          ],
+          ...(countersData.counter_uuid
+            ? { counter_uuid: countersData.counter_uuid }
+            : {
+                "modes.remarks": {
+                  $in: narrationArray,
+                },
+              }),
           pending: 0,
           $or: [
             { "modes.mode_uuid": "c67b5794-d2b6-11ec-9d64-0242ac120002" },
@@ -511,8 +510,12 @@ router.post("/getExcelDetailsData", async (req, res) => {
       }
 
       if (reciptsData?.order_uuid) {
-        let voucherData=await AccountingVoucher.find({order_uuid:reciptsData.order_uuid})
-        let existVoucher=voucherData.find(a=>a.details.find(b=>b.ledger_uuid===ledger_uuid))
+        let voucherData = await AccountingVoucher.find({
+          order_uuid: reciptsData.order_uuid,
+        });
+        let existVoucher = voucherData.find((a) =>
+          a.details.find((b) => b.ledger_uuid === ledger_uuid)
+        );
         value = {
           sr: +bankStatementItem.start_from_line + index,
           reference_no: [reciptsData.invoice_number],
@@ -532,8 +535,9 @@ router.post("/getExcelDetailsData", async (req, res) => {
           matched_entry: true,
           date_time_stamp,
           narration: item[getAlphabetIndex(bankStatementItem.narration_column)],
-          existVoucher
+          existVoucher: multipleNarration?true: existVoucher ? true : false,
         };
+        console.log({ multipleNarration, existVoucher });
       } else if (otherReciptsData.length) {
         otherReciptsData = JSON.parse(JSON.stringify(otherReciptsData));
         value = {
