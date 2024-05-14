@@ -35,6 +35,48 @@ const {
 } = require("../utils/helperFunctions");
 const AccountingVouchers = require("../Models/AccountingVoucher");
 const CreditNotes = require("../Models/CreditNotes");
+let ledger_list = [
+  {
+    value: 5,
+    ledger_uuid: [
+      "036d4761-e375-4cae-b826-f2c154b3403b",
+      "e13f277a-d700-4137-9395-c62598f26513",
+    ],
+    local_sale_ledger: "1caf98e1-63c0-417c-81c8-fe85657f82e5",
+    central_sale_ledger: "8a0cac47-9eb6-40df-918f-ea744e1a142f",
+    sale_igst_ledger: "f732ba11-c4fc-40c3-9b57-0f0e83e90c75",
+  },
+  {
+    value: 12,
+    ledger_uuid: [
+      "b997b4f4-8baf-443c-85b9-0cfcccb013fd",
+      "93456bbd-ffbe-4ce6-a2a7-d483c7917f92",
+    ],
+    local_sale_ledger: "a48035a8-f9c3-4232-8f5b-d168850c016d",
+    central_sale_ledger: "6ba8115e-cc94-49f6-bd5b-386f000f8c1d",
+    sale_igst_ledger: "61ba70f5-9de6-4a2e-8ace-bd0856358c42",
+  },
+  {
+    value: 18,
+    ledger_uuid: [
+      "ed787d1b-9b89-44e5-b828-c69352d1e336",
+      "28b8428f-f8f3-404f-a696-c5777fbf4096",
+    ],
+    local_sale_ledger: "81df442d-4106-49de-8a45-649c1ceb00ef",
+    central_sale_ledger: "3732892f-d5fa-415b-b72c-3e2d338e0e3f",
+    sale_igst_ledger: "2d4f7d50-8c2e-457e-817a-a811bce3ac8d",
+  },
+  {
+    value: 28,
+    ledger_uuid: [
+      "17612833-5f48-4cf8-8544-c5a1debed3ae",
+      "60b6ccb7-37e4-40b2-a7d9-d84123c810e7",
+    ],
+    local_sale_ledger: "b00a56db-344d-4c08-9d9a-933ab9ee378d",
+    central_sale_ledger: "aeae84fa-e4ce-4480-8448-250134d12004",
+    sale_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
+  },
+];
 const createAutoCreditNote = async (
   order,
   item_uuid,
@@ -58,6 +100,7 @@ const createAutoCreditNote = async (
     ...item,
     b: 1,
     price: price / +(item.conversion || 1),
+    item_total: price,
   };
 
   let order_grandtotal = Math.round(price);
@@ -96,22 +139,19 @@ const createCreditNotAccountingVoucher = async (order, type, narration) => {
   let isGst = gst?.startsWith("27") || !gst ? false : true;
 
   let arr = [];
-  const gst_value = Array.from(
-    new Set(order.item_details.map((a) => +a.gst_percentage))
-  );
+  // const gst_value = Array.from(
+  //   new Set(order.item_details.map((a) => +a.gst_percentage))
+  // );
 
-  for (let a of gst_value) {
-    const data = order.item_details.filter((b) => +b.gst_percentage === a);
-    let amt = 0;
-    for (let item of data) {
-      amt = +item.item_total + +amt;
-      amt = amt.toFixed(2);
-    }
+  // for (let a of gst_value) { 
+    const data = +order.item_details[0]?.item_gst||0;
+    let amt = order.item_details[0]?.item_total||0;;
+    
 
-    const value = (+amt - (+amt * 100) / (100 + a)).toFixed(2);
+    const value = (+amt - (+amt * 100) / (100 + data)).toFixed(2);
     console.log({ value, amt });
     if (amt && value) {
-      let ledger = ledger_list.find((b) => b.value === a) || {};
+      let ledger = ledger_list.find((b) => b.value === data) || {};
       arr.push({
         amount: -(amt - value).toFixed(3),
         ledger_uuid: isGst
@@ -134,7 +174,7 @@ const createCreditNotAccountingVoucher = async (order, type, narration) => {
           });
         }
     }
-  }
+  // }
   let round_off = order.round_off || 0;
   if (round_off)
     arr.push({
@@ -201,48 +241,7 @@ const createCreditNotAccountingVoucher = async (order, type, narration) => {
   await updateCounterClosingBalance(arr, "add");
 };
 
-let ledger_list = [
-  {
-    value: 5,
-    ledger_uuid: [
-      "036d4761-e375-4cae-b826-f2c154b3403b",
-      "e13f277a-d700-4137-9395-c62598f26513",
-    ],
-    local_sale_ledger: "1caf98e1-63c0-417c-81c8-fe85657f82e5",
-    central_sale_ledger: "8a0cac47-9eb6-40df-918f-ea744e1a142f",
-    sale_igst_ledger: "f732ba11-c4fc-40c3-9b57-0f0e83e90c75",
-  },
-  {
-    value: 12,
-    ledger_uuid: [
-      "b997b4f4-8baf-443c-85b9-0cfcccb013fd",
-      "93456bbd-ffbe-4ce6-a2a7-d483c7917f92",
-    ],
-    local_sale_ledger: "a48035a8-f9c3-4232-8f5b-d168850c016d",
-    central_sale_ledger: "6ba8115e-cc94-49f6-bd5b-386f000f8c1d",
-    sale_igst_ledger: "61ba70f5-9de6-4a2e-8ace-bd0856358c42",
-  },
-  {
-    value: 18,
-    ledger_uuid: [
-      "ed787d1b-9b89-44e5-b828-c69352d1e336",
-      "28b8428f-f8f3-404f-a696-c5777fbf4096",
-    ],
-    local_sale_ledger: "81df442d-4106-49de-8a45-649c1ceb00ef",
-    central_sale_ledger: "3732892f-d5fa-415b-b72c-3e2d338e0e3f",
-    sale_igst_ledger: "2d4f7d50-8c2e-457e-817a-a811bce3ac8d",
-  },
-  {
-    value: 28,
-    ledger_uuid: [
-      "17612833-5f48-4cf8-8544-c5a1debed3ae",
-      "60b6ccb7-37e4-40b2-a7d9-d84123c810e7",
-    ],
-    local_sale_ledger: "b00a56db-344d-4c08-9d9a-933ab9ee378d",
-    central_sale_ledger: "aeae84fa-e4ce-4480-8448-250134d12004",
-    sale_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
-  },
-];
+
 const createAccountingVoucher = async ({
   order,
   type,

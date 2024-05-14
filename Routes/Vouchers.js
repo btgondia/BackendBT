@@ -23,9 +23,14 @@ const CreditNotes = require("../Models/CreditNotes");
 router.get("/getUnknownVouchers", async (req, res) => {
   // try {
   let data = await AccountingVoucher.find({ voucher_date: "" });
-  let result = [];
   data = JSON.parse(JSON.stringify(data));
+  let result = [];
   for (let item of data) {
+    let amt = 0;
+    for (let detail of item.details) {
+      if (detail.amount > 0) amt += +detail.amount;
+     
+    }
     let ledgerData = await Ledger.find(
       {
         ledger_uuid: { $in: item.details.map((a) => a.ledger_uuid) },
@@ -47,6 +52,7 @@ router.get("/getUnknownVouchers", async (req, res) => {
     ].join(",");
     result.push({
       ...item,
+      amt:amt||item.amt,
       ledger_title,
       reference_no: item.invoice_number.length
         ? item.invoice_number.join(",")
@@ -128,9 +134,7 @@ router.post("/postAccountVouchers", async (req, res) => {
 
           // console.log({ response });
           response = JSON.parse(JSON.stringify(response));
-          response = response.modes.map((a) =>
-           ({ ...a, status: 1 })
-          );
+          response = response.modes.map((a) => ({ ...a, status: 1 }));
           let pending = response.find((b) => !b.status && +b.amt) ? 0 : 1;
           await OrderCompleted.updateMany(
             {
