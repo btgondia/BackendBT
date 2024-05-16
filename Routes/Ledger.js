@@ -501,6 +501,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
           ...allCounterData.find(
             (a) => a.counter_uuid === receipt.counter_uuid
           ),
+          counter_uuid: receipt.counter_uuid,
           narration: item[getAlphabetIndex(bankStatementItem.narration_column)],
           invoice_number: receipt.invoice_number,
           amount: receipt.modes.find(
@@ -575,12 +576,13 @@ router.post("/getExcelDetailsData", async (req, res) => {
           let otherReciptsData = await Receipts.find(
             {
               counter_uuid:
-                countersData.counter_uuid || countersData.ledger_uuid,
+                {$in: multipleNarration.map((a) => a.counter_uuid) },
               pending: 0,
             },
             {
               invoice_number: 1,
               modes: 1,
+              counter_uuid: 1,
             }
           );
 
@@ -590,6 +592,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
               amount: a.modes.find(
                 (b) => b.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002"
               ).amt,
+              counter_uuid: a.counter_uuid,
             })) || [];
           value = {
             sr: +bankStatementItem.start_from_line + index,

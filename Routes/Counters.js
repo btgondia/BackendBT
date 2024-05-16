@@ -286,7 +286,7 @@ router.get("/GetCounterData", async (req, res) => {
   }
 });
 router.post("/GetCounterData", async (req, res) => {
-  try {
+  // try {
     let value = req.body;
     let json = {};
 
@@ -295,12 +295,25 @@ router.post("/GetCounterData", async (req, res) => {
     }
     console.log(json);
     let data = await Counter.find({}, json);
+    data=JSON.parse(JSON.stringify(data))
+    let result = [];
+    let routeData = await Routes.find({
+      route_uuid: { $in: data.map((a) => a?.route_uuid).filter((a) => a)},
+    });
+    routeData = JSON.parse(JSON.stringify(routeData));
+    for (let i of data) {
+      if(value.find(a=>a==="route_title")){
+        
+        i = {...i,route_title:routeData?.find(a=>a.route_uuid===i.route_uuid)?.route_title||""}
+      }
+      result.push(i);
+    }
 
-    if (data.length) res.json({ success: true, result: data });
+    if (result.length) res.json({ success: true, result });
     else res.json({ success: false, message: "Counters Not found" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 router.get("/minimum_details", async (req, res) => {
   try {
