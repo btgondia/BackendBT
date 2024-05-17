@@ -536,7 +536,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
           matched_entry: true,
           date_time_stamp,
           narration: item[getAlphabetIndex(bankStatementItem.narration_column)],
-          existVoucher: multipleNarration?true: existVoucher ? true : false,
+          existVoucher: multipleNarration ? true : existVoucher ? true : false,
         };
         console.log({ multipleNarration, existVoucher });
       } else if (otherReciptsData.length) {
@@ -575,8 +575,9 @@ router.post("/getExcelDetailsData", async (req, res) => {
         {
           let otherReciptsData = await Receipts.find(
             {
-              counter_uuid:
-                {$in: multipleNarration.map((a) => a.counter_uuid) },
+              counter_uuid: {
+                $in: (multipleNarration || []).map((a) => a.counter_uuid),
+              },
               pending: 0,
             },
             {
