@@ -18,6 +18,7 @@ const { default: mongoose } = require("mongoose");
 const Details = require("../Models/Details");
 const { getMidnightTimestamp } = require("../utils/helperFunctions");
 const { get } = require("./Vouchers");
+const AccountingVoucher = require("../Models/AccountingVoucher");
 var msg91 = require("msg91-templateid")(
   "312759AUCbnlpoZeD61714959P1",
   "foodDo",
@@ -122,7 +123,7 @@ router.get("/GetCounterList", async (req, res) => {
       opening_balance_amount:
         a.opening_balance.find(
           (b) =>
-            (b.date) === default_opening_balance_date.default_opening_balance_date
+            b.date === default_opening_balance_date.default_opening_balance_date
         )?.amount || 0,
     }));
     if (data.length) res.json({ success: true, result: data });
@@ -220,14 +221,14 @@ router.post("/GetCounterList", async (req, res) => {
       { default_opening_balance_date: 1 }
     );
     data = data.map((a) => {
-      let opening_balance_amount=
-      a.opening_balance.find(
-        (b) =>
-          getMidnightTimestamp(+b.date) ===
-          getMidnightTimestamp(
-            +default_opening_balance_date.default_opening_balance_date
-          )
-      )?.amount || 0;
+      let opening_balance_amount =
+        a.opening_balance.find(
+          (b) =>
+            getMidnightTimestamp(+b.date) ===
+            getMidnightTimestamp(
+              +default_opening_balance_date.default_opening_balance_date
+            )
+        )?.amount || 0;
       return {
         ...a,
         route_title:
@@ -287,30 +288,34 @@ router.get("/GetCounterData", async (req, res) => {
 });
 router.post("/GetCounterData", async (req, res) => {
   // try {
-    let value = req.body;
-    let json = {};
+  let value = req.body;
+  let json = {};
 
-    for (let i of value) {
-      json = { ...json, [i]: 1 };
+  for (let i of value) {
+    json = { ...json, [i]: 1 };
+  }
+  console.log(json);
+  let data = await Counter.find({}, json);
+  data = JSON.parse(JSON.stringify(data));
+  let result = [];
+  let routeData = await Routes.find({
+    route_uuid: { $in: data.map((a) => a?.route_uuid).filter((a) => a) },
+  });
+  routeData = JSON.parse(JSON.stringify(routeData));
+  for (let i of data) {
+    if (value.find((a) => a === "route_title")) {
+      i = {
+        ...i,
+        route_title:
+          routeData?.find((a) => a.route_uuid === i.route_uuid)?.route_title ||
+          "",
+      };
     }
-    console.log(json);
-    let data = await Counter.find({}, json);
-    data=JSON.parse(JSON.stringify(data))
-    let result = [];
-    let routeData = await Routes.find({
-      route_uuid: { $in: data.map((a) => a?.route_uuid).filter((a) => a)},
-    });
-    routeData = JSON.parse(JSON.stringify(routeData));
-    for (let i of data) {
-      if(value.find(a=>a==="route_title")){
-        
-        i = {...i,route_title:routeData?.find(a=>a.route_uuid===i.route_uuid)?.route_title||""}
-      }
-      result.push(i);
-    }
+    result.push(i);
+  }
 
-    if (result.length) res.json({ success: true, result });
-    else res.json({ success: false, message: "Counters Not found" });
+  if (result.length) res.json({ success: true, result });
+  else res.json({ success: false, message: "Counters Not found" });
   // } catch (err) {
   //   res.status(500).json({ success: false, message: err });
   // }
@@ -1375,6 +1380,166 @@ router.get("/counter-special-prices/:item_uuid", async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+let sale_ledger_list = [
+  {
+    value: 5,
+    ledger_uuid: [
+      "036d4761-e375-4cae-b826-f2c154b3403b",
+      "e13f277a-d700-4137-9395-c62598f26513",
+    ],
+    local_sale_ledger: "1caf98e1-63c0-417c-81c8-fe85657f82e5",
+    central_sale_ledger: "8a0cac47-9eb6-40df-918f-ea744e1a142f",
+    sale_igst_ledger: "f732ba11-c4fc-40c3-9b57-0f0e83e90c75",
+  },
+  {
+    value: 12,
+    ledger_uuid: [
+      "b997b4f4-8baf-443c-85b9-0cfcccb013fd",
+      "93456bbd-ffbe-4ce6-a2a7-d483c7917f92",
+    ],
+    local_sale_ledger: "a48035a8-f9c3-4232-8f5b-d168850c016d",
+    central_sale_ledger: "6ba8115e-cc94-49f6-bd5b-386f000f8c1d",
+    sale_igst_ledger: "61ba70f5-9de6-4a2e-8ace-bd0856358c42",
+  },
+  {
+    value: 18,
+    ledger_uuid: [
+      "ed787d1b-9b89-44e5-b828-c69352d1e336",
+      "28b8428f-f8f3-404f-a696-c5777fbf4096",
+    ],
+    local_sale_ledger: "81df442d-4106-49de-8a45-649c1ceb00ef",
+    central_sale_ledger: "3732892f-d5fa-415b-b72c-3e2d338e0e3f",
+    sale_igst_ledger: "2d4f7d50-8c2e-457e-817a-a811bce3ac8d",
+  },
+  {
+    value: 28,
+    ledger_uuid: [
+      "17612833-5f48-4cf8-8544-c5a1debed3ae",
+      "60b6ccb7-37e4-40b2-a7d9-d84123c810e7",
+    ],
+    local_sale_ledger: "b00a56db-344d-4c08-9d9a-933ab9ee378d",
+    central_sale_ledger: "aeae84fa-e4ce-4480-8448-250134d12004",
+    sale_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
+  },
+];
+
+router.get("/getGSTReport", async (req, res) => {
+  let { startDate, endDate } = req.query;
+  // try {
+    let counterData = await Counter.find({});
+    counterData = JSON.parse(JSON.stringify(counterData));
+    let b2b = [];
+    for (let counter of counterData?.filter((a) => a.gst)) {
+      let accounting_voucher = await AccountingVoucher.find({
+        "details.ledger_uuid": counter.counter_uuid,
+        voucher_date: { $gte: startDate, $lte: endDate },
+      });
+      if (accounting_voucher.length);
+      console.log(accounting_voucher.length);
+      accounting_voucher = JSON.parse(JSON.stringify(accounting_voucher));
+      let inv = [];
+      for (let voucher of accounting_voucher) {
+        let val = 0;
+        for (let item of voucher.details) {
+          if (item.amount > 0) val += item.amount;
+        }
+        let itms = [];
+        for (let item of voucher.details) {
+          let ledger = sale_ledger_list.find((a) =>
+            a.ledger_uuid.includes(item.ledger_uuid)
+          );
+          if (ledger) {
+            let cgst = voucher.details.find(
+              (a) => a.ledger_uuid === ledger.ledger_uuid[0]
+            )?.amount;
+            let sgst = voucher.details.find(
+              (a) => a.ledger_uuid === ledger.ledger_uuid[1]
+            )?.amount;
+            let itm = {
+              num: 1801,
+              itm_det: {
+                txval: item.amount,
+                rt: ledger.value,
+
+                csamt: cgst,
+                rtamt: sgst,
+                csamt: 0.0,
+              },
+            };
+            itms.push(itm);
+          }
+        }
+        let invoice = {
+          inum: voucher.invoice_number,
+          idt: voucher.voucher_date,
+          val,
+          pos: "27",
+          rchrg: "N",
+          inv_typ: "R",
+          itms,
+        };
+
+        let data = {
+          ctin: counter.gstin,
+          inv: invoice,
+        };
+        inv.push(data);
+      }
+      b2b.push(...inv);
+    }
+    let b2cs = [];
+    let notGstCounterVouchers = await AccountingVoucher.find({
+      "details.ledger_uuid": {
+        $nin: counterData.filter((a) => a.gst).map((a) => a.counter_uuid),
+      },
+      voucher_date: { $gte: startDate, $lte: endDate },
+    });
+    notGstCounterVouchers = JSON.parse(JSON.stringify(notGstCounterVouchers));
+    for( let item of sale_ledger_list){
+      let txval=0
+      let camt=0
+      let samt=0
+      for( let voucher of notGstCounterVouchers){
+        let ledger = voucher.details.find(
+          (a) => a.ledger_uuid === item.local_sale_ledger
+        )?.amount||0
+        
+          let cgst = voucher.details.find(
+            (a) => a.ledger_uuid === item.ledger_uuid[0]
+          )?.amount||0;
+          let sgst = voucher.details.find(
+            (a) => a.ledger_uuid === item.ledger_uuid[1]
+          )?.amount||0;
+          txval= txval+ ledger
+          camt = camt +cgst
+          samt = samt +sgst
+        
+      }
+      b2cs.push({
+        sply_ty:"INTRA",
+        rt:item.value,
+        type:"OE",
+        pos:"27",
+        txval:txval.toFixed(2),
+        camt:camt.toFixed(2),
+        samt:samt.toFixed(2),
+        csamt:0.0
+      })
+    }
+
+    let json = {
+      gstin: "27ABIPR1186M1Z2",
+      fp: "032024",
+      version: "GST3.1.8",
+      hash: "KVEZiG/Qy3056q9l1Po1hz7bE79c7iozk0MpVcH0zdU=",
+      b2b,
+      b2cs,
+    };
+    res.json({ success: true, result: json });
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 
 module.exports = router;
