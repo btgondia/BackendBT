@@ -2,6 +2,7 @@ const Counters = require("../Models/Counters")
 const OrderCompleted = require("../Models/OrderCompleted")
 const Orders = require("../Models/Orders")
 const Receipts = require("../Models/Receipts")
+const Routes = require("../Models/Routes")
 const Users = require("../Models/Users")
 const { checkPDFs } = require("./puppeteerUtilities")
 
@@ -30,13 +31,14 @@ const getReceipts = async () => {
 		if (orderData) {
 			let counterData = await Counters.findOne(
 				{ counter_uuid: orderData.counter_uuid || item.counter_uuid },
-				{ counter_title: 1, counter_uuid: 1,payment_reminder_days:1 }
+				{ counter_title: 1, counter_uuid: 1,payment_reminder_days:1,route_uuid:1 }
 			)
 			for (let item1 of modes) {
+				let route_title = await Routes.findOne({ route_uuid: counterData.route_uuid }, { route_title: 1 })
 				let obj = {
 					mode_title: item1.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002" ? "UPI" : "Cheque",
 					mode_uuid: item1.mode_uuid,
-					counter_title: counterData?.counter_title || "",
+					counter_title: (counterData?.counter_title || "")+", "+(route_title?.route_title || ""),
 					counter_uuid: counterData?.counter_uuid || "",
 					invoice_number: orderData?.invoice_number || "",
 					order_date: orderData?.status?.find(a => +a?.stage === 1)?.time,

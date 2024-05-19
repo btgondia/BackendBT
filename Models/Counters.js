@@ -25,6 +25,9 @@ const CounterSchema = new mongoose.Schema({
   payment_reminder_days: {
     type: Number,
   },
+  payment_remarks: [{
+    type: String,
+  }],
   outstanding_type: {
     type: Number,
   },

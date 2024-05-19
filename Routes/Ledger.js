@@ -645,6 +645,48 @@ router.post("/getExcelDetailsData", async (req, res) => {
   }
 });
 
+router.post("/getOtherReceiptsData", async (req, res) => {
+  try {
+    let { counter_uuid ,narration} = req.body;
+    let otherReciptsData = [];
+
+    let allReceiptsData = await Receipts.find({
+      counter_uuid,
+      pending: 0,
+    });
+
+    allReceiptsData = JSON.parse(JSON.stringify(allReceiptsData));
+    let allCounterData = await Counters.find(
+      {
+        counter_uuid,
+      },
+      { counter_title: 1, counter_uuid: 1 }
+    );
+    allCounterData = JSON.parse(JSON.stringify(allCounterData));
+    for (let receipt of allReceiptsData) {
+      otherReciptsData.push({
+        ...receipt,
+        ...allCounterData.find(
+          (a) => a.counter_uuid === receipt.counter_uuid
+        ),
+        counter_uuid: receipt.counter_uuid,
+        narration,
+        invoice_number: receipt.invoice_number,
+        amount: receipt.modes.find(
+          (b) => b.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002"
+        ).amt,
+      });
+    }
+    if (otherReciptsData.length) {
+      res.json({ success: true, result: otherReciptsData });
+    } else res.json({ success: false, message: "Ledger Not Found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+
+
+
 //put ledger
 router.put("/putLedger", async (req, res) => {
   try {

@@ -24,6 +24,22 @@ var msg91 = require("msg91-templateid")(
   "foodDo",
   "4"
 );
+router.post("/getFilteredList", async (req, res) => {
+  try {
+    let { counterList=[],jsonList=[] } = req.body;
+    console.log(counterList,jsonList);
+    let json = {};
+    for (let i of (jsonList||[])) {
+      json = { ...json, [i]: 1 };
+    }
+    let data = await Counter.find(counterList?.length ? { counter_uuid: { $in: counterList } } : {}, json);
+    if (data.length) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Counters Not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+}
+)
 
 router.post("/postCounter", async (req, res) => {
   try {
@@ -608,7 +624,7 @@ router.post("/GetCounterByCategory", async (req, res) => {
 });
 
 router.put("/putCounter", async (req, res) => {
-  try {
+  // try {
     let result = [];
     for (let value of req.body) {
       if (!value) res.json({ success: false, message: "Invalid Data" });
@@ -630,9 +646,9 @@ router.put("/putCounter", async (req, res) => {
       } else result.push({ success: false, message: "Counter Not created" });
     }
     res.json({ success: true, result });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err });
-  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 router.put("/CalculateLines", async (req, res) => {
   try {
@@ -1156,7 +1172,6 @@ router.post("/report/new", async (req, res) => {
       routes,
     } = await req.body;
     const limit = 150;
-
     const aggregate = [
       {
         $match: {

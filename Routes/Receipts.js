@@ -13,6 +13,7 @@ const {
   increaseNumericString,
   truncateDecimals,
 } = require("../utils/helperFunctions");
+const Counters = require("../Models/Counters");
 
 const createAccountingVoucher = async (order, type, recept_number) => {
   console.log(type, recept_number);
@@ -371,10 +372,10 @@ router.put("/putSingleReceipt", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    let { order_uuid, counter_uuid, modes, entry = 1, receipt_number } = value;
+    let { order_uuid, counter_uuid, receipt_number } = value;
     let response = await Receipts.updateOne(
       { order_uuid, counter_uuid, receipt_number },
-      { modes, entry }
+      value
     );
 
     if (response.acknowledged) {
@@ -499,5 +500,40 @@ router.put("/putRemarks", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.post("/getComments", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+
+
+    let response = await Receipts.findOne({
+      order_uuid: value.order_uuid,
+      counter_uuid: value.counter_uuid,
+
+    },{
+      comment:1,
+      receipt_number:1,
+      order_uuid:1,
+      counter_uuid:1,
+      receipt_number:1,
+    });
+
+    let counter_title = await Counters.findOne(
+      { counter_uuid: value.counter_uuid },
+      { counter_title: 1 }
+    );
+    response = JSON.parse(JSON.stringify(response));
+    response = {
+      ...response,
+      counter_title: counter_title.counter_title,
+    };
+    if (response) {
+      res.json({ success: true, result: response });
+    } else res.json({ success: false, message: "Receipts Not created" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+})
+
 
 module.exports = router;

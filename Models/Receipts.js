@@ -40,6 +40,20 @@ const ReceiptsSchema = new mongoose.Schema({
       remarks: { type: String },
     },
   ],
+  comment:[
+    {
+      uuid: {
+        type: String,
+      },
+      note: {
+        type: String,
+      },
+    
+      created_at: {
+        type: String,
+      },
+    }
+  ],
 });
 
 module.exports = mongoose.model("receipts", ReceiptsSchema);
