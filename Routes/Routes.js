@@ -54,7 +54,7 @@ router.get("/GetRouteList", async (req, res) => {
   try {
     let data = await Routes.find({});
 
-    if (data) {
+    if (data.length) {
       res.json({ success: true, result: data });
     } else res.json({ success: false, message: "Routes Not found" });
   } catch (err) {
