@@ -194,6 +194,7 @@ router.get("/GetItemData", async (req, res) => {
 				item_price_a: 1,
 				item_price_b: 1,
 				item_price_c: 1,
+				hsn:1
 			}
 		)
 

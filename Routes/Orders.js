@@ -114,7 +114,7 @@ const createAutoCreditNote = async (
     credit_note_order_uuid,
     ledger_uuid: order.counter_uuid,
     credit_notes_invoice_date: voucher_date,
-    credit_note_invoice_number: `CN-${order.invoice_number}`,
+    credit_notes_invoice_number: `CN-${order.invoice_number}`,
   });
   await createCreditNotAccountingVoucher(
     {
@@ -297,7 +297,21 @@ const createAccountingVoucher = async ({
       }
     }
   }
+  let prevCreditNote = await CreditNotes.findOne({
+    credit_notes_invoice_number: `CN-${order.invoice_number}`,
+  },{credit_note_order_uuid:1,credit_notes_invoice_number:1});
+  if (prevCreditNote) {
+    await CreditNotes.deleteOne({ credit_note_order_uuid: prevCreditNote.credit_note_order_uuid });
+    await deleteAccountingVoucher(
+      prevCreditNote.credit_note_order_uuid,
+      prevCreditNote.credit_notes_invoice_number,
+      "CREDIT_NOTE",
+      false
+    );
+  }
   if (order?.replacement || order?.shortage || order?.adjustment) {
+   
+    await
     createAutoCreditNote(
       order,
       gst
