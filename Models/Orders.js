@@ -12,6 +12,7 @@ const OrdersSchema = new mongoose.Schema({
 	replacement_mrp: { type: Number },
 	shortage: { type: Number },
 	adjustment: { type: Number },
+	coin: { type: Number },
 	counter_order: { type: Number },
 	adjustment_remarks: { type: String },
 	to_print: { type: String },

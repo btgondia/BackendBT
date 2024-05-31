@@ -143,37 +143,36 @@ const createCreditNotAccountingVoucher = async (order, type, narration) => {
   //   new Set(order.item_details.map((a) => +a.gst_percentage))
   // );
 
-  // for (let a of gst_value) { 
-    const data = +order.item_details[0]?.item_gst||0;
-    let amt = order.item_details[0]?.item_total||0;;
-    
+  // for (let a of gst_value) {
+  const data = +order.item_details[0]?.item_gst || 0;
+  let amt = order.item_details[0]?.item_total || 0;
 
-    const value = (+amt - (+amt * 100) / (100 + data)).toFixed(2);
-    console.log({ value, amt });
-    if (amt && value) {
-      let ledger = ledger_list.find((b) => b.value === data) || {};
+  const value = (+amt - (+amt * 100) / (100 + data)).toFixed(2);
+  console.log({ value, amt });
+  if (amt && value) {
+    let ledger = ledger_list.find((b) => b.value === data) || {};
+    arr.push({
+      amount: -(amt - value).toFixed(3),
+      ledger_uuid: isGst
+        ? ledger?.central_purchase_ledger
+        : ledger?.local_sale_ledger,
+      narration,
+    });
+    if (isGst) {
       arr.push({
-        amount: -(amt - value).toFixed(3),
-        ledger_uuid: isGst
-          ? ledger?.central_purchase_ledger
-          : ledger?.local_sale_ledger,
+        amount: -value,
+        ledger_uuid: ledger?.sale_igst_ledger,
         narration,
       });
-      if (isGst) {
+    } else
+      for (let item of ledger?.ledger_uuid || []) {
         arr.push({
-          amount: -value,
-          ledger_uuid: ledger?.sale_igst_ledger,
+          amount: -truncateDecimals(value / 2, 2),
+          ledger_uuid: item,
           narration,
         });
-      } else
-        for (let item of ledger?.ledger_uuid || []) {
-          arr.push({
-            amount: -truncateDecimals(value / 2, 2),
-            ledger_uuid: item,
-            narration,
-          });
-        }
-    }
+      }
+  }
   // }
   let round_off = order.round_off || 0;
   if (round_off)
@@ -241,7 +240,6 @@ const createCreditNotAccountingVoucher = async (order, type, narration) => {
   await updateCounterClosingBalance(arr, "add");
 };
 
-
 const createAccountingVoucher = async ({
   order,
   type,
@@ -297,11 +295,16 @@ const createAccountingVoucher = async ({
       }
     }
   }
-  let prevCreditNote = await CreditNotes.findOne({
-    credit_notes_invoice_number: `CN-${order.invoice_number}`,
-  },{credit_note_order_uuid:1,credit_notes_invoice_number:1});
+  let prevCreditNote = await CreditNotes.findOne(
+    {
+      credit_notes_invoice_number: `CN-${order.invoice_number}`,
+    },
+    { credit_note_order_uuid: 1, credit_notes_invoice_number: 1 }
+  );
   if (prevCreditNote) {
-    await CreditNotes.deleteOne({ credit_note_order_uuid: prevCreditNote.credit_note_order_uuid });
+    await CreditNotes.deleteOne({
+      credit_note_order_uuid: prevCreditNote.credit_note_order_uuid,
+    });
     await deleteAccountingVoucher(
       prevCreditNote.credit_note_order_uuid,
       prevCreditNote.credit_notes_invoice_number,
@@ -310,9 +313,7 @@ const createAccountingVoucher = async ({
     );
   }
   if (order?.replacement || order?.shortage || order?.adjustment) {
-   
-    await
-    createAutoCreditNote(
+    await createAutoCreditNote(
       order,
       gst
         ? "7605d5e9-8165-46aa-8899-5c2d40622d30"
@@ -336,7 +337,15 @@ const createAccountingVoucher = async ({
     +(order.order_grandtotal || 0) +
     +(order?.replacement || 0) +
     +(order?.shortage || 0) +
+    +(order?.coin || 0) +
     +(order?.adjustment || 0);
+  if (order.coin) {
+    arr.push({
+      narration: `Sales Invoice ${order.invoice_number}`,
+      amount: order.coin.toFixed(2),
+      ledger_uuid: "fc3ad018-b26a-4608-8e16-da1b7117e3e8",
+    });
+  }
   arr.push({
     narration: `Sales Invoice ${order.invoice_number}`,
     amount: (order_total - total).toFixed(2),
@@ -685,7 +694,7 @@ router.post("/postOrder", async (req, res) => {
         const status = +orderStage === 4 ? 1 : 2;
         const updated_data = {
           status,
-          invoice_number: `${value?.order_type??""}${_invoice_number}`,
+          invoice_number: `${value?.order_type ?? ""}${_invoice_number}`,
         };
         if (+orderStage === 4) updated_data.completed_at = Date.now();
         await CounterCharges.updateMany(
