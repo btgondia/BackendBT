@@ -483,12 +483,14 @@ router.post("/getExcelDetailsData", async (req, res) => {
       let otherReciptsData = [];
 
       let allReceiptsData = await Receipts.find({
-        $or: [
-          { "modes.remarks": { $in: narrationArray } },
-          { "modes.mode_uuid": "c67b5988-d2b6-11ec-9d64-0242ac120002" },
-        ],
+        "modes.remarks": { $in: narrationArray },
         pending: 0,
       });
+      if (!allReceiptsData.length)
+        allReceiptsData = await Receipts.find({
+          counter_uuid: countersData.counter_uuid,
+          pending: 0,
+        });
 
       allReceiptsData = JSON.parse(JSON.stringify(allReceiptsData));
       let allCounterData = await Counters.find(
@@ -552,8 +554,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
         value = {
           sr: +bankStatementItem.start_from_line + index,
           reference_no: "",
-          counter_title:
-            countersData.counter_title || countersData.ledger_title || "",
+          counter_title: countersData.counter_title || countersData.ledger_title,
           route_title: "",
           counter_uuid: countersData.counter_uuid || countersData.ledger_uuid,
           ledger_group_uuid: "",
