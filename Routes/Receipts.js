@@ -444,6 +444,37 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+router.put("/putBulkReceiptUPIStatus", async (req, res) => {
+  try {
+    let value = req.body;
+    if (!value) res.json({ success: false, message: "Invalid Data" });
+    let success = 0;
+    let failed = 0;
+    for (let item of value) {
+      let response = await Receipts.findOne({
+        $or: [
+          { invoice_number: item.invoice_number },
+          { order_uuid: item.order_uuid },
+        ],
+      });
+      response = JSON.parse(JSON.stringify(response));
+      response = response.modes.map((a) =>
+        a.mode_uuid === item.mode_uuid ? { ...a, status: 1 } : a
+      );
+      let pending = response.find((b) => b.status === 0 && b.amt) ? 0 : 1;
+      let data = await Receipts.updateMany(
+        { order_uuid: item.order_uuid },
+        { modes: response, pending }
+      );
+      if (data.acknowledged) success++;
+      else failed++;
+    }
+    res.json({ success: true, result: { success, failed } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+
+});
 // const updateStetus = async () => {
 //   let response = await Receipts.find({});
 

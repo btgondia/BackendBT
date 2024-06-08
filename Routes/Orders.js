@@ -2543,4 +2543,37 @@ router.post("/getOrderListByChequeNumber", async (req, res) => {
     res.status(500).json({ success: false, message: err?.message });
   }
 });
+//put comments 
+router.put("/putOrderComments", async (req, res) => {
+  try {
+    let value = req.body;
+    console.log(value);
+    let orderData = await Orders.findOne({
+      invoice_number: value.invoice_number,
+    });
+    let data = {};
+    if (orderData)
+      data = await Orders.updateOne(
+        { invoice_number: value.invoice_number },
+        value
+      );
+    else
+      data = await OrderCompleted.updateOne(
+        { invoice_number: value.invoice_number },
+        value
+      );
+    if (data.acknowledged) {
+      res.json({
+        success: true,
+        result: data,
+      });
+    } else
+      res.status(404).json({
+        success: false,
+        result: data,
+      });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 module.exports = router;

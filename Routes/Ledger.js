@@ -1204,8 +1204,8 @@ router.get("/getAccountingBalanceDetails", async (req, res) => {
         if (detail) amount += detail.amount;
       }
       amount = truncateDecimals(amount, 2);
-      closing_balance = truncateDecimals(closing_balance, 2);
-      opening_balance = truncateDecimals(opening_balance?.amount || 0, 2);
+
+      opening_balance = opening_balance?.amount || 0;
       if (amount !== closing_balance) {
         result.push({
           counter_uuid: item.counter_uuid,
@@ -1220,6 +1220,40 @@ router.get("/getAccountingBalanceDetails", async (req, res) => {
     if (result.length) {
       res.json({ success: true, result });
     } else res.json({ success: false, message: "Ledger Not Found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
+
+router.post("/fixeBalance", async (req, res) => {
+  try {
+    let success = 0;
+    let failed = 0;
+    for (let value of req.body) {
+      let ledgerData = await Ledger.findOne(
+        { ledger_uuid: value.ledger_uuid },
+        { opening_balance: 1 }
+      );
+      let response;
+      if (ledgerData)
+        response = await Ledger.updateOne(
+          { ledger_uuid: value.ledger_uuid },
+          {
+            closing_balance: value.amount,
+          }
+        );
+      else {
+        response = await Counters.updateOne(
+          { counter_uuid: value.ledger_uuid },
+          {
+            closing_balance: value.amount,
+          }
+        );
+      }
+      if (response.acknowledged) success++;
+      else failed++;
+    }
+    res.json({ success: true, success, failed });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
