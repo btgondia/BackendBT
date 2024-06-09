@@ -567,8 +567,7 @@ router.post("/getExcelDetailsData", async (req, res) => {
         value = {
           sr: +bankStatementItem.start_from_line + index,
           reference_no: "",
-          counter_title:
-            "",
+          counter_title: "",
           route_title: "",
           counter_uuid: "",
           ledger_group_uuid: "",
