@@ -229,7 +229,7 @@ router.put("/putCreditNote", async (req, res) => {
     //delete _id
     delete value._id;
     if(value.details)
-    updateAccountingVoucher(value, "PURCHASE_INVOICE");
+    updateAccountingVoucher(value, "CREDIT_NOTE");
     let response = await CreditNotes.findOneAndUpdate(
       { credit_note_order_uuid: value.credit_note_order_uuid },
       req.body
