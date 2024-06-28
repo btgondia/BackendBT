@@ -182,6 +182,7 @@ const updateAccountingVoucher = async (order, type) => {
     order_uuid: order.credit_note_order_uuid,
     type,
   });
+
   if (voucher) {
     await updateCounterClosingBalance(
       voucher.details,
@@ -228,8 +229,7 @@ router.put("/putCreditNote", async (req, res) => {
       res.json({ success: false, message: "Invalid Data" });
     //delete _id
     delete value._id;
-    if(value.details)
-    updateAccountingVoucher(value, "CREDIT_NOTE");
+    if(value?.credit_note_order_uuid) updateAccountingVoucher(value, "CREDIT_NOTE");
     let response = await CreditNotes.findOneAndUpdate(
       { credit_note_order_uuid: value.credit_note_order_uuid },
       req.body
