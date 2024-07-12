@@ -57,6 +57,7 @@ const Ledger = require("./Routes/Ledger");
 const LedgerGroup = require("./Routes/LedgerGroups");
 const PurchaseINvoice = require("./Routes/PurchaseInvoice");
 const CreditNotes = require("./Routes/CreditNote");
+const loggerMiddleware = require("./loggerMiddleware");
 
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
@@ -79,6 +80,8 @@ app.use(
     credentials: true,
   })
 );
+
+app.use(loggerMiddleware);
 
 app.use(bodyParser.json({ limit: "100mb" }));
 app.use(
@@ -147,6 +150,9 @@ app.get("/stream/:text", async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+});
+app.get('/DeleteMyData-2/:anystring', (req, res) => {
+  res.json({ success: true });
 });
 
 const MinLevelUpdateAutomation = async () => {
