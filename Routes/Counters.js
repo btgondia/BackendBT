@@ -26,7 +26,6 @@ const msg91 = require('msg91-templateid')(
 router.post('/getFilteredList', async (req, res) => {
   try {
     let { counterList = [], jsonList = [] } = req.body;
-    console.log(counterList, jsonList);
     let json = {};
     for (let i of jsonList || []) {
       json = { ...json, [i]: 1 };
@@ -59,11 +58,9 @@ router.post('/postCounter', async (req, res) => {
     if (!value.sort_order) {
       let response = await Counter.find({}, { counter_uuid: 1 });
       response = JSON.parse(JSON.stringify(response));
-      //   console.log(response)
       value.sort_order =
         Math.max(...response.map((o) => o?.sort_order || 0)) + 1 || 0;
     }
-    console.log(value);
     let response = await Counter.create(value);
     if (response) {
       res.json({ success: true, result: response });
@@ -200,7 +197,6 @@ router.get('/GetCounter/:counter_uuid', async (req, res) => {
 router.post('/GetCounterList', async (req, res) => {
   try {
     let { counters = [] } = req.body;
-    console.log(counters);
     let data = await Counter.find(
       counters?.length ? { counter_uuid: { $in: counters } } : {},
       {
@@ -317,7 +313,6 @@ router.post('/GetCounterData', async (req, res) => {
   for (let i of value) {
     json = { ...json, [i]: 1 };
   }
-  console.log(json);
   let data = await Counter.find({}, json);
   data = JSON.parse(JSON.stringify(data));
   let result = [];
@@ -361,7 +356,6 @@ router.get('/getCounterSales/:days', async (req, res) => {
     time.setHours(12);
     time = new Date(time.setDate(time.getDate() - +days)).getTime();
     // time= time.getTime()
-    console.log(time);
     let orderData = await OrderCompleted.find(
       !req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid }
     );
@@ -647,13 +641,11 @@ router.put('/putCounter', async (req, res) => {
         obj[key] = value[key];
         return obj;
       }, {});
-    console.log(value);
     let response = await Counter.updateOne(
       { counter_uuid: value.counter_uuid },
       value
     );
     if (response.acknowledged) {
-      console.log(response);
       result.push({ success: true, result: value });
     } else result.push({ success: false, message: 'Counter Not created' });
   }
@@ -784,7 +776,6 @@ router.put('/CalculateLines', async (req, res) => {
         console.log(counterorder.length);
       }
       index = index + 1;
-      console.log(index, counterData.length);
       if (index === counterData.length) {
         res.json({ success: true, result: '' });
       }
@@ -858,8 +849,6 @@ router.post('/sendWhatsappOtp', async (req, res) => {
         // invoice_number: value.invoice_number,
         created_at: new Date().getTime(),
       });
-
-      console.log(data, msgResponse);
 
       res.json({ success: true, message: 'Message Sent Successfully' });
     } else {
@@ -951,13 +940,11 @@ router.post('/verifyOtp', async (req, res) => {
               lable: [{ type: value.lable, varification: 1 }],
             },
           ];
-      console.log(mobile);
       let response = await Counter.updateOne(
         { counter_uuid: value.counter_uuid },
         { mobile }
       );
       await Otp.deleteMany({ mobile: value.mobile });
-      console.log(mobile);
       if (response.acknowledged)
         res.json({ success: true, message: 'Number Verified' });
       else res.json({ success: false, message: 'Number Not Verified' });
@@ -993,7 +980,6 @@ router.patch('/item_special_price/:counter_uuid', async (req, res) => {
 router.patch('/delete_special_price', async (req, res) => {
   try {
     const { counter_uuid, item_uuid } = await req.body;
-    console.log(req.body);
     let counter = await Counter.findOne({ counter_uuid });
     counter.item_special_price = (counter.item_special_price || [])?.filter(
       (i) => item_uuid !== i.item_uuid
