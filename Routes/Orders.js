@@ -1733,8 +1733,7 @@ router.get("/GetOrderRunningList", async (req, res) => {
 router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
   try {
     const result = await getRunningOrders({
-      user_uuid: req.params.user_uuid,
-      doCheckPDF: true,
+      user_uuid: req.params.user_uuid
     });
     res.json(result);
   } catch (err) {

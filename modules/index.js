@@ -95,22 +95,27 @@ const getReceipts = async () => {
 // }
 
 
-const getRunningOrders = async ({ user_uuid, doCheckPDF, condition = {}, getCounters }) => {
+const getRunningOrders = async ({ user_uuid, condition = {}, getCounters }) => {
 	try {
-		const userData = await Users.findOne({ user_uuid }, { routes: 1 });
+		let userData = await Users.findOne({ user_uuid }, { routes: 1 });
+		userData = JSON.parse(JSON.stringify(userData));
+
 		let data = [];
 		let counterData = [];
 
 		if (userData?.routes?.filter(i => +i !== 1)?.length) {
 			const counterQuery = userData.routes.includes("none") ? {} : { route_uuid: { $in: userData.routes } };
 
-			[counterData, data] = await Promise.all([
-				Counters.find(counterQuery, { counter_title: 1, counter_uuid: 1, route_uuid: 1 }),
-				Orders.find({
-					counter_uuid: { $in: userData.routes.includes("none") ? [] : userData.routes },
-					...condition,
-				}),
-			]);
+			counterData = await Counters.find(counterQuery, { counter_title: 1, counter_uuid: 1, route_uuid: 1 });
+			data =await Orders.find({
+				counter_uuid: { $in: counterData.filter(i => i.counter_uuid).map(i => i.counter_uuid) },
+				hold: { $ne: "Y" },
+				item_details: { $exists: true, $ne: [] },
+				status: { $exists: true, $ne: [] },
+
+				...condition
+			});
+			
 
 		} else {
 			data = await Orders.find({ ...condition });
@@ -124,9 +129,8 @@ const getRunningOrders = async ({ user_uuid, doCheckPDF, condition = {}, getCoun
 		if (getCounters) {
 			return { counterData: counterData.filter(i => data.find(_i => _i.counter_uuid === i.counter_uuid)) };
 		}
-
+data=JSON.parse(JSON.stringify(data))
 		data = data
-			.filter(i => i.order_uuid && i.hold !== "Y" && i.item_details.length)
 			.map(i => ({
 				...i,
 				counter_title: i.counter_uuid ? counterData.find(_i => _i.counter_uuid === i.counter_uuid)?.counter_title : "",

@@ -352,6 +352,15 @@ function parseDate(dateString, dateFormat) {
 
   return null; // If no format matches
 }
+const getDDMMYYDate = (date) => {
+  const today = new Date(date);
+  const dd = String(today.getDate()).padStart(2, '0');
+  const mm = String(today.getMonth() + 1).padStart(2, '0'); // January is 0!
+  const yy = today.getFullYear();
+
+  return `${dd}-${mm}-${yy}`;
+};
+
 module.exports = {
   getOrderStage,
   updateCounterClosingBalance,
@@ -361,4 +370,5 @@ module.exports = {
   increaseNumericString,
   getMidnightTimestamp,
   parseDate,
+  getDDMMYYDate
 };

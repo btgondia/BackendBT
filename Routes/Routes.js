@@ -81,7 +81,7 @@ router.post("/GetRouteList", async (req, res) => {
 router.get("/GetOrderRouteList", async (req, res) => {
   try {
     // console.time("routes");
-    let data = await Routes.find({});
+    let data = await Routes.find({},{route_uuid:1,route_title:1});
     data = JSON.parse(JSON.stringify(data));
     // console.timeEnd("routes");
     // console.time("counter");

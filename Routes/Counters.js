@@ -1,29 +1,29 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { v4: uuid } = require('uuid');
-const Counter = require('../Models/Counters');
-const OrderCompleted = require('../Models/OrderCompleted');
-const Orders = require('../Models/Orders');
-const Routes = require('../Models/Routes');
-const Companies = require('../Models/Companies');
-const Item = require('../Models/Item');
-const Otp = require('../Models/otp');
-const ItemCategories = require('../Models/ItemCategories');
-const notification_log = require('../Models/notification_log');
-const orderForms = require('../Models/orderForms');
-const Campaigns = require('../Models/Campaigns');
-const { messageEnque } = require('../queues/messageQueue');
-const Counters = require('../Models/Counters');
-const Details = require('../Models/Details');
-const { getMidnightTimestamp } = require('../utils/helperFunctions');
-const AccountingVoucher = require('../Models/AccountingVoucher');
-const msg91 = require('msg91-templateid')(
-  '312759AUCbnlpoZeD61714959P1',
-  'foodDo',
-  '4'
+const { v4: uuid } = require("uuid");
+const Counter = require("../Models/Counters");
+const OrderCompleted = require("../Models/OrderCompleted");
+const Orders = require("../Models/Orders");
+const Routes = require("../Models/Routes");
+const Companies = require("../Models/Companies");
+const Item = require("../Models/Item");
+const Otp = require("../Models/otp");
+const ItemCategories = require("../Models/ItemCategories");
+const notification_log = require("../Models/notification_log");
+const orderForms = require("../Models/orderForms");
+const Campaigns = require("../Models/Campaigns");
+const { messageEnque } = require("../queues/messageQueue");
+const Counters = require("../Models/Counters");
+const Details = require("../Models/Details");
+const { getMidnightTimestamp, getDDMMYYDate } = require("../utils/helperFunctions");
+const AccountingVoucher = require("../Models/AccountingVoucher");
+const msg91 = require("msg91-templateid")(
+  "312759AUCbnlpoZeD61714959P1",
+  "foodDo",
+  "4"
 );
 
-router.post('/getFilteredList', async (req, res) => {
+router.post("/getFilteredList", async (req, res) => {
   try {
     let { counterList = [], jsonList = [] } = req.body;
     let json = {};
@@ -35,16 +35,16 @@ router.post('/getFilteredList', async (req, res) => {
       json
     );
     if (data.length) res.json({ success: true, result: data });
-    else res.json({ success: false, message: 'Counters Not found' });
+    else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.post('/postCounter', async (req, res) => {
+router.post("/postCounter", async (req, res) => {
   try {
     let value = req.body;
-    if (!value) res.json({ success: false, message: 'Invalid Data' });
+    if (!value) res.json({ success: false, message: "Invalid Data" });
     let short_link = uuid().slice(0, 7);
     let verirfyshort_link = await Counter.findOne({}, { counter_uuid: 1 });
     while (verirfyshort_link) {
@@ -64,16 +64,16 @@ router.post('/postCounter', async (req, res) => {
     let response = await Counter.create(value);
     if (response) {
       res.json({ success: true, result: response });
-    } else res.json({ success: false, message: 'Counter Not created' });
+    } else res.json({ success: false, message: "Counter Not created" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.delete('/deleteCounter', async (req, res) => {
+router.delete("/deleteCounter", async (req, res) => {
   try {
     let { counter_uuid } = req.body;
-    if (!counter_uuid) res.json({ success: false, message: 'Invalid Data' });
+    if (!counter_uuid) res.json({ success: false, message: "Invalid Data" });
     let response = { acknowledged: false };
     let orderData = await Orders.find({
       counter_uuid,
@@ -86,13 +86,13 @@ router.delete('/deleteCounter', async (req, res) => {
     if (response.acknowledged) {
       res.json({ success: true, result: response });
     } else
-      res.status(404).json({ success: false, message: 'Counter Not Deleted' });
+      res.status(404).json({ success: false, message: "Counter Not Deleted" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.get('/GetCounterList', async (req, res) => {
+router.get("/GetCounterList", async (req, res) => {
   try {
     let data = await Counter.find(
       {},
@@ -135,7 +135,7 @@ router.get('/GetCounterList', async (req, res) => {
       ...a,
       route_title:
         RoutesData.find((b) => b.route_uuid === a.route_uuid)?.route_title ||
-        '',
+        "",
       opening_balance_amount:
         a.opening_balance.find(
           (b) =>
@@ -143,13 +143,13 @@ router.get('/GetCounterList', async (req, res) => {
         )?.amount || 0,
     }));
     if (data.length) res.json({ success: true, result: data });
-    else res.json({ success: false, message: 'Counters Not found' });
+    else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.get('/GetCounter/:counter_uuid', async (req, res) => {
+router.get("/GetCounter/:counter_uuid", async (req, res) => {
   try {
     let data = await Counter.findOne(
       { counter_uuid: req.params.counter_uuid },
@@ -185,16 +185,16 @@ router.get('/GetCounter/:counter_uuid', async (req, res) => {
     });
     data = {
       ...data,
-      route_title: RoutesData?.route_title || '',
+      route_title: RoutesData?.route_title || "",
     };
     if (data) res.json({ success: true, result: data });
-    else res.json({ success: false, message: 'Counters Not found' });
+    else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.post('/GetCounterList', async (req, res) => {
+router.post("/GetCounterList", async (req, res) => {
   try {
     let { counters = [] } = req.body;
     let data = await Counter.find(
@@ -250,18 +250,18 @@ router.post('/GetCounterList', async (req, res) => {
         ...a,
         route_title:
           RoutesData.find((b) => b.route_uuid === a.route_uuid)?.route_title ||
-          '',
+          "",
         opening_balance_amount,
       };
     });
     if (data.length) res.json({ success: true, result: data });
-    else res.json({ success: false, message: 'Counters Not found' });
+    else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.get('/GetCounterData', async (req, res) => {
+router.get("/GetCounterData", async (req, res) => {
   try {
     let data = await Counter.find(
       {},
@@ -299,13 +299,13 @@ router.get('/GetCounterData', async (req, res) => {
     );
 
     if (data.length) res.json({ success: true, result: data });
-    else res.json({ success: false, message: 'Counters Not found' });
+    else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.post('/GetCounterData', async (req, res) => {
+router.post("/GetCounterData", async (req, res) => {
   // try {
   let value = req.body;
   let json = {};
@@ -321,35 +321,35 @@ router.post('/GetCounterData', async (req, res) => {
   });
   routeData = JSON.parse(JSON.stringify(routeData));
   for (let i of data) {
-    if (value.find((a) => a === 'route_title')) {
+    if (value.find((a) => a === "route_title")) {
       i = {
         ...i,
         route_title:
           routeData?.find((a) => a.route_uuid === i.route_uuid)?.route_title ||
-          '',
+          "",
       };
     }
     result.push(i);
   }
 
   if (result.length) res.json({ success: true, result });
-  else res.json({ success: false, message: 'Counters Not found' });
+  else res.json({ success: false, message: "Counters Not found" });
   // } catch (err) {
   //   res.status(500).json({ success: false, message: err });
   // }
 });
 
-router.get('/minimum_details', async (req, res) => {
+router.get("/minimum_details", async (req, res) => {
   try {
     let data = await Counter.find({}, { counter_uuid: 1, counter_title: 1 });
     if (data.length) res.json({ success: true, result: data });
-    else res.json({ success: false, message: 'Counters Not found' });
+    else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.get('/getCounterSales/:days', async (req, res) => {
+router.get("/getCounterSales/:days", async (req, res) => {
   try {
     let days = req.params.days;
     let time = new Date();
@@ -413,7 +413,7 @@ router.get('/getCounterSales/:days', async (req, res) => {
           value - Math.floor(value) !== 0
             ? value
                 .toString()
-                .match(new RegExp('^-?\\d+(?:.\\d{0,' + (2 || -1) + '})?'))[0]
+                .match(new RegExp("^-?\\d+(?:.\\d{0," + (2 || -1) + "})?"))[0]
             : value;
         sales.push({ company_uuid: Company?.company_uuid, value });
       }
@@ -421,35 +421,35 @@ router.get('/getCounterSales/:days', async (req, res) => {
         ...item,
         route_title:
           RoutesData.find((b) => b.route_uuid === item.route_uuid)
-            ?.route_title || '',
+            ?.route_title || "",
         sales,
       };
       result.push(obj);
     }
 
     if (result.length) res.json({ success: true, result });
-    else res.json({ success: false, message: 'Counters Not found' });
+    else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.post('/GetCounter', async (req, res) => {
+router.post("/GetCounter", async (req, res) => {
   try {
     let data = await Counter.findOne({ counter_uuid: req.body.counter_uuid });
     if (data) res.json({ success: true, result: data });
-    else res.json({ success: false, message: 'Counter Not found' });
+    else res.json({ success: false, message: "Counter Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.post('/GetCounterByLink', async (req, res) => {
+router.post("/GetCounterByLink", async (req, res) => {
   try {
     let {
-      form_short_link = '',
-      campaign_short_link = '',
-      short_link = '',
+      form_short_link = "",
+      campaign_short_link = "",
+      short_link = "",
     } = req.body;
     let counterData = await Counter.findOne(
       { short_link },
@@ -471,7 +471,7 @@ router.post('/GetCounterByLink', async (req, res) => {
       );
 
       if (compainData?.form_uuid) {
-        if (compainData.form_uuid !== 'd') {
+        if (compainData.form_uuid !== "d") {
           form_uuid = compainData.form_uuid;
         }
       }
@@ -537,7 +537,7 @@ router.post('/GetCounterByLink', async (req, res) => {
         );
         res.json({
           success: true,
-          message: '',
+          message: "",
           result: {
             counter: counterData,
             company: companiesData,
@@ -546,16 +546,16 @@ router.post('/GetCounterByLink', async (req, res) => {
             order_status: +routeData?.order_status,
           },
         });
-      } else res.json({ success: false, message: 'No Order Form Applied' });
-    } else res.json({ success: false, message: 'Counter Not found' });
+      } else res.json({ success: false, message: "No Order Form Applied" });
+    } else res.json({ success: false, message: "Counter Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.post('/GetCounterByCategory', async (req, res) => {
+router.post("/GetCounterByCategory", async (req, res) => {
   try {
-    let { categories = [], counter_uuid = '' } = req.body;
+    let { categories = [], counter_uuid = "" } = req.body;
     let counterData = await Counter.findOne(
       { counter_uuid },
       {
@@ -614,7 +614,7 @@ router.post('/GetCounterByCategory', async (req, res) => {
 
       res.json({
         success: true,
-        message: '',
+        message: "",
         result: {
           counter: counterData,
           company: companiesData,
@@ -623,20 +623,20 @@ router.post('/GetCounterByCategory', async (req, res) => {
           order_status: +routeData?.order_status,
         },
       });
-    } else res.json({ success: false, message: 'Counter Not found' });
+    } else res.json({ success: false, message: "Counter Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.put('/putCounter', async (req, res) => {
+router.put("/putCounter", async (req, res) => {
   // try {
   let result = [];
   for (let value of req.body) {
-    if (!value) res.json({ success: false, message: 'Invalid Data' });
+    if (!value) res.json({ success: false, message: "Invalid Data" });
 
     value = Object.keys(value)
-      .filter((key) => key !== '_id')
+      .filter((key) => key !== "_id")
       .reduce((obj, key) => {
         obj[key] = value[key];
         return obj;
@@ -647,7 +647,7 @@ router.put('/putCounter', async (req, res) => {
     );
     if (response.acknowledged) {
       result.push({ success: true, result: value });
-    } else result.push({ success: false, message: 'Counter Not created' });
+    } else result.push({ success: false, message: "Counter Not created" });
   }
   res.json({ success: true, result });
   // } catch (err) {
@@ -655,7 +655,7 @@ router.put('/putCounter', async (req, res) => {
   // }
 });
 
-router.put('/CalculateLines', async (req, res) => {
+router.put("/CalculateLines", async (req, res) => {
   try {
     let { days, type } = req.body;
     var today = new Date();
@@ -664,7 +664,7 @@ router.put('/CalculateLines', async (req, res) => {
     ).getTime();
 
     let orderData = await OrderCompleted.find({
-      'status.time': { $gt: priorDate },
+      "status.time": { $gt: priorDate },
     });
     orderData = JSON.parse(JSON.stringify(orderData));
     orderData = orderData.filter((a) =>
@@ -707,7 +707,7 @@ router.put('/CalculateLines', async (req, res) => {
     );
     counterData = JSON.parse(JSON.stringify(counterData));
     let CompaniesData =
-      type === 'company'
+      type === "company"
         ? await Companies.find({})
         : await ItemCategories.find({});
     CompaniesData = JSON.parse(JSON.stringify(CompaniesData));
@@ -726,7 +726,7 @@ router.put('/CalculateLines', async (req, res) => {
             let ItemData = ItemsData.find(
               (a) =>
                 a.item_uuid === item.item_uuid &&
-                (type === 'company'
+                (type === "company"
                   ? a.company_uuid === company.company_uuid
                   : a.category_uuid === company.category_uuid)
             );
@@ -743,8 +743,8 @@ router.put('/CalculateLines', async (req, res) => {
           average_lines = [
             ...average_lines,
             {
-              [type === 'company' ? 'company_uuid' : 'category_uuid']:
-                company[type === 'company' ? 'company_uuid' : 'category_uuid'],
+              [type === "company" ? "company_uuid" : "category_uuid"]:
+                company[type === "company" ? "company_uuid" : "category_uuid"],
               lines:
                 data.length > 1
                   ? data.reduce((a, b) => a + b) / data.length
@@ -755,8 +755,8 @@ router.put('/CalculateLines', async (req, res) => {
           average_lines = [
             ...average_lines,
             {
-              [type === 'company' ? 'company_uuid' : 'category_uuid']:
-                company[type === 'company' ? 'company_uuid' : 'category_uuid'],
+              [type === "company" ? "company_uuid" : "category_uuid"]:
+                company[type === "company" ? "company_uuid" : "category_uuid"],
               lines: 0,
             },
           ];
@@ -766,18 +766,18 @@ router.put('/CalculateLines', async (req, res) => {
         await Counter.updateMany(
           { counter_uuid: counter.counter_uuid },
           {
-            [type === 'company'
-              ? 'average_lines_company'
-              : 'average_lines_category']: average_lines,
+            [type === "company"
+              ? "average_lines_company"
+              : "average_lines_category"]: average_lines,
           }
         );
       }
-      if (counter.counter_code === '5043.2') {
+      if (counter.counter_code === "5043.2") {
         console.log(counterorder.length);
       }
       index = index + 1;
       if (index === counterData.length) {
-        res.json({ success: true, result: '' });
+        res.json({ success: true, result: "" });
       }
     }
   } catch (err) {
@@ -785,15 +785,15 @@ router.put('/CalculateLines', async (req, res) => {
   }
 });
 
-router.put('/putCounter/sortOrder', async (req, res) => {
+router.put("/putCounter/sortOrder", async (req, res) => {
   try {
     const counters = await req.body;
     if (!counters?.[0])
-      return res.status(204).json({ message: 'Empty Payload' });
+      return res.status(204).json({ message: "Empty Payload" });
     const result = { succeed: [], failed: [] };
     let count = 0;
     const respond = () =>
-      ++count === counters?.length ? res.json(result) : '';
+      ++count === counters?.length ? res.json(result) : "";
 
     counters?.forEach(async (counter) => {
       try {
@@ -817,22 +817,22 @@ router.put('/putCounter/sortOrder', async (req, res) => {
   }
 });
 
-router.post('/sendWhatsappOtp', async (req, res) => {
+router.post("/sendWhatsappOtp", async (req, res) => {
   try {
     let value = req.body;
-    if (!value) res.json({ success: false, message: 'Invalid Data' });
+    if (!value) res.json({ success: false, message: "Invalid Data" });
     const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
       .toString()
       .slice(0, 6);
     let otp = await generatedOTP;
-    let message = 'Your OTP for Mobile Number Verification is ' + otp;
+    let message = "Your OTP for Mobile Number Verification is " + otp;
     if (value?.mobile) {
       const number =
         `${value.mobile}`.length === 10
           ? `91${value.mobile}`
           : `${value.mobile}`;
 
-      let data = { number, type: 'text', message };
+      let data = { number, type: "text", message };
 
       await Otp.create({
         mobile: value.mobile,
@@ -844,31 +844,31 @@ router.post('/sendWhatsappOtp', async (req, res) => {
 
       await notification_log.create({
         contact: value.mobile,
-        notification_uuid: 'Whatsapp Otp',
+        notification_uuid: "Whatsapp Otp",
         message: [{ text: message }],
         // invoice_number: value.invoice_number,
         created_at: new Date().getTime(),
       });
 
-      res.json({ success: true, message: 'Message Sent Successfully' });
+      res.json({ success: true, message: "Message Sent Successfully" });
     } else {
-      res.json({ success: false, message: 'Mobile Number Missing ' });
+      res.json({ success: false, message: "Mobile Number Missing " });
     }
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.post('/sendCallOtp', async (req, res) => {
+router.post("/sendCallOtp", async (req, res) => {
   try {
     let value = req.body;
-    if (!value) res.json({ success: false, message: 'Invalid Data' });
+    if (!value) res.json({ success: false, message: "Invalid Data" });
     const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
       .toString()
       .slice(0, 6);
     let otp = await generatedOTP;
     let message = `${otp} is your foodDo login OTP. dT0A1c4Hq0D - FOODDO`;
-    var mobileNo = +`${value.mobile}`.replace('91', '');
+    var mobileNo = +`${value.mobile}`.replace("91", "");
     if (value?.mobile) {
       await Otp.create({
         mobile: value.mobile,
@@ -877,7 +877,7 @@ router.post('/sendCallOtp', async (req, res) => {
       });
       await notification_log.create({
         contact: value.mobile,
-        notification_uuid: 'Whatsapp Otp',
+        notification_uuid: "Whatsapp Otp",
         message: [{ text: message }],
         // invoice_number: value.invoice_number,
         created_at: new Date().getTime(),
@@ -886,25 +886,25 @@ router.post('/sendCallOtp', async (req, res) => {
       let msgResponse = await msg91.send(
         mobileNo,
         message,
-        '1307160922320559546',
+        "1307160922320559546",
         function (err, response) {
           if (err) throw err;
         }
       );
 
-      res.json({ success: true, message: 'Message Sent Successfully' });
+      res.json({ success: true, message: "Message Sent Successfully" });
     } else {
-      res.json({ success: false, message: 'Mobile Number Missing ' });
+      res.json({ success: false, message: "Mobile Number Missing " });
     }
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.post('/verifyOtp', async (req, res) => {
+router.post("/verifyOtp", async (req, res) => {
   try {
     let value = req.body;
-    if (!value) res.json({ success: false, message: 'Invalid Data' });
+    if (!value) res.json({ success: false, message: "Invalid Data" });
 
     let otpJson = await Otp.findOne({ otp: value.otp, mobile: value.mobile });
     if (otpJson) {
@@ -946,17 +946,17 @@ router.post('/verifyOtp', async (req, res) => {
       );
       await Otp.deleteMany({ mobile: value.mobile });
       if (response.acknowledged)
-        res.json({ success: true, message: 'Number Verified' });
-      else res.json({ success: false, message: 'Number Not Verified' });
+        res.json({ success: true, message: "Number Verified" });
+      else res.json({ success: false, message: "Number Not Verified" });
     } else {
-      res.json({ success: false, message: 'Invalid Otp ' });
+      res.json({ success: false, message: "Invalid Otp " });
     }
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
 });
 
-router.patch('/item_special_price/:counter_uuid', async (req, res) => {
+router.patch("/item_special_price/:counter_uuid", async (req, res) => {
   try {
     const { counter_uuid } = req.params;
     const payload = await req.body;
@@ -971,13 +971,13 @@ router.patch('/item_special_price/:counter_uuid', async (req, res) => {
       { item_special_price: counter.item_special_price }
     );
     if (result.acknowledged) res.json({ success: true, counter });
-    else throw Error('Failed');
+    else throw Error("Failed");
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.patch('/delete_special_price', async (req, res) => {
+router.patch("/delete_special_price", async (req, res) => {
   try {
     const { counter_uuid, item_uuid } = await req.body;
     let counter = await Counter.findOne({ counter_uuid });
@@ -990,13 +990,13 @@ router.patch('/delete_special_price', async (req, res) => {
     );
 
     if (result.acknowledged) res.json({ success: true, counter });
-    else throw Error('Failed');
+    else throw Error("Failed");
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.patch('/update_location_coords', async (req, res) => {
+router.patch("/update_location_coords", async (req, res) => {
   try {
     const { counter_uuid, location_coords } = await req.body;
     const result = await Counter.updateOne(
@@ -1004,13 +1004,13 @@ router.patch('/update_location_coords', async (req, res) => {
       { location_coords }
     );
     if (result.acknowledged) res.json({ success: true });
-    else throw Error('Failed');
+    else throw Error("Failed");
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.patch('/delete_location_coords/:counter_uuid', async (req, res) => {
+router.patch("/delete_location_coords/:counter_uuid", async (req, res) => {
   try {
     const { counter_uuid } = req.params;
     const result = await Counter.updateOne(
@@ -1018,27 +1018,27 @@ router.patch('/delete_location_coords/:counter_uuid', async (req, res) => {
       { location_coords: null }
     );
     if (result.acknowledged) res.json({ success: true });
-    else throw Error('Failed');
+    else throw Error("Failed");
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.post('/report', async (req, res) => {
+router.post("/report", async (req, res) => {
   try {
     const { date_range, companies, routes } = await req.body;
     const counters = await OrderCompleted.aggregate([
       {
         $unwind: {
-          path: '$status',
-          includeArrayIndex: 'index',
+          path: "$status",
+          includeArrayIndex: "index",
           preserveNullAndEmptyArrays: false,
         },
       },
       {
         $match: {
           index: 0,
-          'status.time': {
+          "status.time": {
             $gte: new Date(+date_range?.from_date).setHours(0, 0, 0, 0),
             $lt: new Date(+date_range?.to_date).setHours(23, 59, 59, 999),
           },
@@ -1052,33 +1052,33 @@ router.post('/report', async (req, res) => {
       },
       {
         $lookup: {
-          from: 'counters',
-          localField: 'counter_uuid',
-          foreignField: 'counter_uuid',
+          from: "counters",
+          localField: "counter_uuid",
+          foreignField: "counter_uuid",
           let: { routes: routes },
           pipeline: [
             {
               $match: {
                 $expr: {
-                  $in: ['$route_uuid', '$$routes'],
+                  $in: ["$route_uuid", "$$routes"],
                 },
               },
             },
           ],
-          as: 'counter',
+          as: "counter",
         },
       },
       {
         $unwind: {
-          path: '$counter',
+          path: "$counter",
           preserveNullAndEmptyArrays: false,
         },
       },
       {
         $addFields: {
-          route_uuid: '$counter.route_uuid',
-          counter_title: '$counter.counter_title',
-          counter_index: '$counter.sort_order',
+          route_uuid: "$counter.route_uuid",
+          counter_title: "$counter.counter_title",
+          counter_index: "$counter.sort_order",
         },
       },
       {
@@ -1088,15 +1088,15 @@ router.post('/report', async (req, res) => {
       },
       {
         $unwind: {
-          path: '$item_details',
+          path: "$item_details",
           preserveNullAndEmptyArrays: false,
         },
       },
       {
         $lookup: {
-          from: 'items',
-          localField: 'item_details.item_uuid',
-          foreignField: 'item_uuid',
+          from: "items",
+          localField: "item_details.item_uuid",
+          foreignField: "item_uuid",
           let: {
             companies: companies,
           },
@@ -1104,23 +1104,23 @@ router.post('/report', async (req, res) => {
             {
               $match: {
                 $expr: {
-                  $in: ['$company_uuid', '$$companies'],
+                  $in: ["$company_uuid", "$$companies"],
                 },
               },
             },
           ],
-          as: 'item',
+          as: "item",
         },
       },
       {
         $unwind: {
-          path: '$item',
+          path: "$item",
           preserveNullAndEmptyArrays: false,
         },
       },
       {
         $addFields: {
-          'item_details.company_uuid': '$item.company_uuid',
+          "item_details.company_uuid": "$item.company_uuid",
         },
       },
       {
@@ -1130,23 +1130,23 @@ router.post('/report', async (req, res) => {
       },
       {
         $group: {
-          _id: '$counter_uuid',
+          _id: "$counter_uuid",
           item_details: {
             $push: {
-              company_uuid: '$item_details.company_uuid',
-              b: '$item_details.b',
-              p: '$item_details.p',
-              item_total: '$item_details.item_total',
+              company_uuid: "$item_details.company_uuid",
+              b: "$item_details.b",
+              p: "$item_details.p",
+              item_total: "$item_details.item_total",
             },
           },
           route_uuid: {
-            $first: '$route_uuid',
+            $first: "$route_uuid",
           },
           counter_title: {
-            $first: '$counter_title',
+            $first: "$counter_title",
           },
           counter_index: {
-            $first: '$counter_index',
+            $first: "$counter_index",
           },
         },
       },
@@ -1164,7 +1164,7 @@ router.post('/report', async (req, res) => {
   }
 });
 
-router.post('/report/new', async (req, res) => {
+router.post("/report/new", async (req, res) => {
   try {
     const {
       lastSortNo = 0,
@@ -1195,29 +1195,29 @@ router.post('/report/new', async (req, res) => {
       },
       {
         $lookup: {
-          from: 'completed_orders',
+          from: "completed_orders",
           let: {
-            counter_field: '$counter_uuid',
+            counter_field: "$counter_uuid",
           },
           pipeline: [
             {
               $match: {
                 $expr: {
-                  $eq: ['$$counter_field', '$counter_uuid'],
+                  $eq: ["$$counter_field", "$counter_uuid"],
                 },
               },
             },
             {
               $unwind: {
-                path: '$status',
-                includeArrayIndex: 'index',
+                path: "$status",
+                includeArrayIndex: "index",
                 preserveNullAndEmptyArrays: false,
               },
             },
             {
               $match: {
                 index: 0,
-                'status.time': {
+                "status.time": {
                   $gte: new Date(+date_range?.from_date).setHours(0, 0, 0, 0),
                   $lt: new Date(+date_range?.to_date).setHours(23, 59, 59, 999),
                 },
@@ -1226,37 +1226,37 @@ router.post('/report/new', async (req, res) => {
             {
               $replaceRoot: {
                 newRoot: {
-                  item_details: '$item_details',
+                  item_details: "$item_details",
                 },
               },
             },
           ],
-          as: 'order',
+          as: "order",
         },
       },
       {
         $unwind: {
-          path: '$order',
+          path: "$order",
           preserveNullAndEmptyArrays: false,
         },
       },
       {
         $addFields: {
-          item_details: '$order.item_details',
+          item_details: "$order.item_details",
           order: null,
         },
       },
       {
         $unwind: {
-          path: '$item_details',
+          path: "$item_details",
           preserveNullAndEmptyArrays: false,
         },
       },
       {
         $lookup: {
-          from: 'items',
-          localField: 'item_details.item_uuid',
-          foreignField: 'item_uuid',
+          from: "items",
+          localField: "item_details.item_uuid",
+          foreignField: "item_uuid",
           let: {
             companies: companies,
           },
@@ -1264,27 +1264,27 @@ router.post('/report/new', async (req, res) => {
             {
               $match: {
                 $expr: {
-                  $in: ['$company_uuid', '$$companies'],
+                  $in: ["$company_uuid", "$$companies"],
                 },
               },
             },
           ],
-          as: 'item',
+          as: "item",
         },
       },
       {
         $unwind: {
-          path: '$item',
+          path: "$item",
           preserveNullAndEmptyArrays: false,
         },
       },
       {
         $addFields: {
           new_item: {
-            item_total: '$item_details.item_total',
-            company_uuid: '$item.company_uuid',
-            b: '$item_details.b',
-            p: '$item_details.p',
+            item_total: "$item_details.item_total",
+            company_uuid: "$item.company_uuid",
+            b: "$item_details.b",
+            p: "$item_details.p",
           },
           item: null,
           item_details: null,
@@ -1292,18 +1292,18 @@ router.post('/report/new', async (req, res) => {
       },
       {
         $group: {
-          _id: '$counter_uuid',
+          _id: "$counter_uuid",
           item_details: {
-            $push: '$new_item',
+            $push: "$new_item",
           },
           counter_title: {
-            $first: '$counter_title',
+            $first: "$counter_title",
           },
           route_uuid: {
-            $first: '$route_uuid',
+            $first: "$route_uuid",
           },
           sort_order: {
-            $first: '$sort_order',
+            $first: "$sort_order",
           },
         },
       },
@@ -1331,7 +1331,7 @@ router.post('/report/new', async (req, res) => {
   }
 });
 
-router.get('/counter-special-prices/:item_uuid', async (req, res) => {
+router.get("/counter-special-prices/:item_uuid", async (req, res) => {
   try {
     const pipeline = [
       // {
@@ -1348,20 +1348,20 @@ router.get('/counter-special-prices/:item_uuid', async (req, res) => {
       // },
       {
         $unwind: {
-          path: '$item_special_price',
+          path: "$item_special_price",
           preserveNullAndEmptyArrays: false,
         },
       },
       {
         $match: {
-          'item_special_price.item_uuid': req.params.item_uuid,
+          "item_special_price.item_uuid": req.params.item_uuid,
         },
       },
       {
         $lookup: {
-          from: 'routes',
-          localField: 'route_uuid',
-          foreignField: 'route_uuid',
+          from: "routes",
+          localField: "route_uuid",
+          foreignField: "route_uuid",
           pipeline: [
             {
               $project: {
@@ -1369,12 +1369,12 @@ router.get('/counter-special-prices/:item_uuid', async (req, res) => {
               },
             },
           ],
-          as: 'route',
+          as: "route",
         },
       },
       {
         $unwind: {
-          path: '$route',
+          path: "$route",
           preserveNullAndEmptyArrays: false,
         },
       },
@@ -1382,8 +1382,8 @@ router.get('/counter-special-prices/:item_uuid', async (req, res) => {
         $project: {
           counter_uuid: 1,
           counter_title: 1,
-          route_title: '$route.route_title',
-          special_price: '$item_special_price.price',
+          route_title: "$route.route_title",
+          special_price: "$item_special_price.price",
         },
       },
       {
@@ -1403,65 +1403,67 @@ let sale_ledger_list = [
   {
     value: 5,
     ledger_uuid: [
-      '036d4761-e375-4cae-b826-f2c154b3403b',
-      'e13f277a-d700-4137-9395-c62598f26513',
+      "036d4761-e375-4cae-b826-f2c154b3403b",
+      "e13f277a-d700-4137-9395-c62598f26513",
     ],
-    local_sale_ledger: '1caf98e1-63c0-417c-81c8-fe85657f82e5',
-    central_sale_ledger: '8a0cac47-9eb6-40df-918f-ea744e1a142f',
-    sale_igst_ledger: 'f732ba11-c4fc-40c3-9b57-0f0e83e90c75',
+    local_sale_ledger: "1caf98e1-63c0-417c-81c8-fe85657f82e5",
+    central_sale_ledger: "8a0cac47-9eb6-40df-918f-ea744e1a142f",
+    sale_igst_ledger: "f732ba11-c4fc-40c3-9b57-0f0e83e90c75",
   },
   {
     value: 12,
     ledger_uuid: [
-      'b997b4f4-8baf-443c-85b9-0cfcccb013fd',
-      '93456bbd-ffbe-4ce6-a2a7-d483c7917f92',
+      "b997b4f4-8baf-443c-85b9-0cfcccb013fd",
+      "93456bbd-ffbe-4ce6-a2a7-d483c7917f92",
     ],
-    local_sale_ledger: 'a48035a8-f9c3-4232-8f5b-d168850c016d',
-    central_sale_ledger: '6ba8115e-cc94-49f6-bd5b-386f000f8c1d',
-    sale_igst_ledger: '61ba70f5-9de6-4a2e-8ace-bd0856358c42',
+    local_sale_ledger: "a48035a8-f9c3-4232-8f5b-d168850c016d",
+    central_sale_ledger: "6ba8115e-cc94-49f6-bd5b-386f000f8c1d",
+    sale_igst_ledger: "61ba70f5-9de6-4a2e-8ace-bd0856358c42",
   },
   {
     value: 18,
     ledger_uuid: [
-      'ed787d1b-9b89-44e5-b828-c69352d1e336',
-      '28b8428f-f8f3-404f-a696-c5777fbf4096',
+      "ed787d1b-9b89-44e5-b828-c69352d1e336",
+      "28b8428f-f8f3-404f-a696-c5777fbf4096",
     ],
-    local_sale_ledger: '81df442d-4106-49de-8a45-649c1ceb00ef',
-    central_sale_ledger: '3732892f-d5fa-415b-b72c-3e2d338e0e3f',
-    sale_igst_ledger: '2d4f7d50-8c2e-457e-817a-a811bce3ac8d',
+    local_sale_ledger: "81df442d-4106-49de-8a45-649c1ceb00ef",
+    central_sale_ledger: "3732892f-d5fa-415b-b72c-3e2d338e0e3f",
+    sale_igst_ledger: "2d4f7d50-8c2e-457e-817a-a811bce3ac8d",
   },
   {
     value: 28,
     ledger_uuid: [
-      '17612833-5f48-4cf8-8544-c5a1debed3ae',
-      '60b6ccb7-37e4-40b2-a7d9-d84123c810e7',
+      "17612833-5f48-4cf8-8544-c5a1debed3ae",
+      "60b6ccb7-37e4-40b2-a7d9-d84123c810e7",
     ],
-    local_sale_ledger: 'b00a56db-344d-4c08-9d9a-933ab9ee378d',
-    central_sale_ledger: 'aeae84fa-e4ce-4480-8448-250134d12004',
-    sale_igst_ledger: '6aa3f24a-3572-4825-b884-59425f7edbe7',
+    local_sale_ledger: "b00a56db-344d-4c08-9d9a-933ab9ee378d",
+    central_sale_ledger: "aeae84fa-e4ce-4480-8448-250134d12004",
+    sale_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
   },
 ];
 
-router.get('/getGSTReport', async (req, res) => {
+router.get("/getGSTReport", async (req, res) => {
   const { startDate, endDate } = req.query;
 
-  try {
+  // try {
     // Fetch all counters with GST
-    const counterData = await Counter.find({ gst: { $exists: true, $ne: '' } });
+    let counterData = await Counter.find({ gst: { $exists: true, $ne: "" } });
+    counterData = JSON.parse(JSON.stringify(counterData));
+    console.log(counterData.length);
 
     // Fetch accounting vouchers for GST counters
     const b2bs = [];
     for (const counter of counterData) {
       const accounting_vouchers = await AccountingVoucher.find({
-        'details.ledger_uuid': counter.counter_uuid,
+        "details.ledger_uuid": counter.counter_uuid,
         voucher_date: { $gte: startDate, $lte: endDate },
       });
-
-      const inv = accounting_vouchers.map((voucher) => {
+      let inv = [];
+      for (const voucher of accounting_vouchers) {
         let val = 0;
         const itms = [];
 
-        voucher?.details?.forEach((item) => {
+        for (const item of voucher?.details) {
           if (item?.amount > 0) {
             val += item?.amount;
             const ledger = sale_ledger_list.find((a) =>
@@ -1491,22 +1493,20 @@ router.get('/getGSTReport', async (req, res) => {
               });
             }
           }
-        });
+        }
 
-        return {
+        inv.push({
           inum: voucher?.invoice_number[0],
           idt: voucher?.voucher_date
-            ? new Intl.DateTimeFormat('en-US').format(
-                new Date(+voucher?.voucher_date)
-              )
-            : '',
+            ? getDDMMYYDate(new Date(+voucher?.voucher_date))
+            : "",
           val: +val?.toFixed(2),
-          pos: '27',
-          rchrg: 'N',
-          inv_typ: 'R',
+          pos: "27",
+          rchrg: "N",
+          inv_typ: "R",
           itms,
-        };
-      });
+        });
+      }
       if (inv.length) {
         const b2b = { ctin: counter?.gst, inv };
         b2bs.push(b2b);
@@ -1516,7 +1516,7 @@ router.get('/getGSTReport', async (req, res) => {
     // Fetch non-GST counters' vouchers
     const notGstCounterUuids = counterData.map((a) => a.counter_uuid);
     const notGstCounterVouchers = await AccountingVoucher.find({
-      'details?.ledger_uuid': { $nin: notGstCounterUuids },
+      "details?.ledger_uuid": { $nin: notGstCounterUuids },
       voucher_date: { $gte: startDate, $lte: endDate },
     });
 
@@ -1548,29 +1548,29 @@ router.get('/getGSTReport', async (req, res) => {
       return {
         camt: camt?.toFixed(2),
         csamt: 0.0,
-        pos: '27',
+        pos: "27",
         rt: item?.value,
         samt: samt?.toFixed(2),
-        sply_ty: 'INTRA',
+        sply_ty: "INTRA",
         txval: txval?.toFixed(2),
-        type: 'OE',
+        type: "OE",
       };
     });
 
     // Construct final JSON response
     const json = {
-      gstin: '27ABIPR1186M1Z2',
-      fp: '032024',
-      version: 'GST3.1.8',
-      hash: 'KVEZiG/Qy3056q9l1Po1hz7bE79c7iozk0MpVcH0zdU=',
+      gstin: "27ABIPR1186M1Z2",
+      fp: "032024",
+      version: "GST3.1.8",
+      hash: "KVEZiG/Qy3056q9l1Po1hz7bE79c7iozk0MpVcH0zdU=",
       b2b: b2bs,
       b2cs,
     };
 
     res.json({ success: true, result: json });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err.message });
+  // }
 });
 
 module.exports = router;
