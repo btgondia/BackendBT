@@ -108,6 +108,7 @@ const getRunningOrders = async ({ user_uuid, condition = {}, getCounters }) => {
 
 			counterData = await Counters.find(counterQuery, { counter_title: 1, counter_uuid: 1, route_uuid: 1 });
 			data =await Orders.find({
+				order_uuid: { $exists: true, $ne: "" },
 				counter_uuid: { $in: counterData.filter(i => i.counter_uuid).map(i => i.counter_uuid) },
 				hold: { $ne: "Y" },
 				item_details: { $exists: true, $ne: [] },
@@ -118,7 +119,10 @@ const getRunningOrders = async ({ user_uuid, condition = {}, getCounters }) => {
 			
 
 		} else {
-			data = await Orders.find({ ...condition });
+			data = await Orders.find({order_uuid: { $exists: true, $ne: "" },
+				hold: { $ne: "Y" },
+				item_details: { $exists: true, $ne: [] },
+				status: { $exists: true, $ne: [] }, ...condition });
 			const counterUUIDs = data.map(i => i.counter_uuid);
 			counterData = await Counters.find(
 				{ counter_uuid: { $in: counterUUIDs } },
