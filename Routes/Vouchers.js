@@ -25,7 +25,7 @@ const Routes = require("../Models/Routes");
 //get all accounting vouchers voucher_date = ""
 router.get("/getUnknownVouchers", async (req, res) => {
   // try {
-  let data = await AccountingVoucher.find({ voucher_date: "" });
+  let data = await AccountingVoucher.find({ voucher_date: 0 });
   data = JSON.parse(JSON.stringify(data));
   let result = [];
   for (let item of data) {
@@ -155,11 +155,11 @@ router.post("/postAccountVouchers", async (req, res) => {
         let voucherData = await AccountingVoucher.findOne({
           invoice_number: detail,
           type: "RECEIPT_ORDER",
-          voucher_date: "",
+          voucher_date: 0,
         });
         if (voucherData && item.matched_entry) {
           await AccountingVoucher.updateMany(
-            { invoice_number: detail, type: "RECEIPT_ORDER", voucher_date: "" },
+            { invoice_number: detail, type: "RECEIPT_ORDER", voucher_date: 0 },
             { voucher_date: item.voucher_date }
           );
           success++;
@@ -182,7 +182,7 @@ router.post("/postAccountVouchers", async (req, res) => {
             let response = await AccountingVoucher.updateMany(
               {
                 invoice_number: { $in: item.invoice_number },
-                voucher_date: "",
+                voucher_date: 0,
               },
               { voucher_date: item.voucher_date }
             );

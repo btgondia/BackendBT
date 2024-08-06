@@ -818,8 +818,10 @@ router.post("/getLegerReport", async (req, res) => {
       "details.ledger_uuid": value.counter_uuid,
       $or: [
         { voucher_date: { $gte: value.startDate, $lte: endDate } },
+        { voucher_date: { $gte: value.startDate, $lte: endDate } },
+        
         {
-          voucher_date: "",
+          voucher_date: 0,
         },
       ],
     });
@@ -859,7 +861,7 @@ router.post("/getLegerReport", async (req, res) => {
           orderData?.invoice_number ||
           orderData?.purchase_invoice_number ||
           "",
-        voucher_date: orderData?.party_invoice_date || item.voucher_date || "",
+        voucher_date: item.voucher_date||orderData?.party_invoice_date || "",
       });
     }
     if (result.length) {
@@ -1159,7 +1161,7 @@ router.get("/getAccountingBalanceDetails", async (req, res) => {
         },
         $or: [
           { voucher_date: { $gte: default_opening_balance_date } },
-          { voucher_date: "" },
+          { voucher_date: 0 },
         ],
       },
       { details: 1 }
@@ -1228,7 +1230,7 @@ router.get("/getAccountingBalanceDetails", async (req, res) => {
   }
 });
 
-router.post("/fixeBalance", async (req, res) => {
+router.put("/fixeBalance", async (req, res) => {
   try {
     let success = 0;
     let failed = 0;

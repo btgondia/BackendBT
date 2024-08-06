@@ -7,7 +7,7 @@ const accountingVoucherSchema = new mongoose.Schema({
   created_by: { type: String },
   type: { type: String },
   amt: { type: Number },
-  voucher_date: { type: String },
+  voucher_date: { type: Number },
   order_uuid: { type: String },
   invoice_number: [{ type: String }],
   recept_number: { type: String },

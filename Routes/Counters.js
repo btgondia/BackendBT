@@ -1480,6 +1480,10 @@ router.get("/getGSTReport", async (req, res) => {
                 voucher?.details?.find(
                   (a) => a.ledger_uuid === ledger.ledger_uuid[1]
                 )?.amount || 0;
+              const csamt =
+                voucher?.details?.find(
+                  (a) => a.ledger_uuid === ledger.central_sale_ledger
+                )?.amount || 0;
 
               itms.push({
                 num: 1801,
@@ -1488,7 +1492,7 @@ router.get("/getGSTReport", async (req, res) => {
                   rt: ledger?.value,
                   csamt: cgst,
                   rtamt: sgst,
-                  csamt: 0.0, // Double check if this is intended
+                  csamt: csamt||0.0, // Double check if this is intended
                 },
               });
             }
