@@ -743,4 +743,37 @@ router.post("/report", async (req, res) => {
 	}
 })
 
+router.get("/GetItemsPurchaseData", async (req, res) => {
+	const {category_uuid="", company_uuid=""} = req.query
+	try {
+		let data = await Item.find(
+			{
+				...(category_uuid ? { category_uuid } : {}),
+				...(company_uuid ? { company_uuid } : {})
+			},
+			{
+				item_title: 1,
+				item_uuid: 1,
+				item_code: 1,
+				company_uuid: 1,
+				category_uuid: 1,
+				last_purchase_price: 1,
+				status: 1,
+				
+				
+			}
+		)
+		if (data.length)
+			res.json({
+				success: true,
+				result: data
+			})
+		else res.json({ success: false, message: "Item Not found" })
+	} catch (err) {
+		res.status(500).json({ success: false, message: err })
+	}
+}
+)
+
+
 module.exports = router

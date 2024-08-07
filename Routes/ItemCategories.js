@@ -47,8 +47,9 @@ router.put("/putItemCategories", async (req, res) => {
 });
 
 router.get("/GetItemCategoryList", async (req, res) => {
+  const {company_uuid} = req.query;
   try {
-    let data = await ItemCategories.find({});
+    let data = await ItemCategories.find({...(company_uuid ? {company_uuid}:{})});
 
     if (data.length) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Item Categories Not found" });
