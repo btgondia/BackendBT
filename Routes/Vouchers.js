@@ -634,7 +634,7 @@ const getCompleteVoucherReceipts = async () => {
     let voucher_data = await AccountingVoucher.findOne({
       order_uuid: item.order_uuid,
       type: "RECEIPT_ORDER",
-      voucher_date: { $ne: "" },
+      voucher_date: { $ne: 0 },
     });
     console.log({ voucher_data });
     if (!voucher_data) continue;

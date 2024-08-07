@@ -796,7 +796,7 @@ router.post("/getLegerReport", async (req, res) => {
     let oldAccountingVouchers = await AccountingVoucher.find({
       "details.ledger_uuid": value.counter_uuid || value.ledger_uuid,
       //has voucher_Date exist
-      voucher_date: { $ne: "" },
+      voucher_date: { $ne: 0 },
       voucher_date: {
         $gte: default_opening_balance_date.default_opening_balance_date,
         $lte: value.startDate,
