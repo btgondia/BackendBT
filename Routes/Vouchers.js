@@ -25,7 +25,7 @@ const Routes = require("../Models/Routes");
 //get all accounting vouchers voucher_date = ""
 router.get("/getUnknownVouchers", async (req, res) => {
   // try {
-  let data = await AccountingVoucher.find({ voucher_date: 0 });
+  let data = await AccountingVoucher.find({$or:[{ voucher_date: 0 },{voucher_date:null}]});
   data = JSON.parse(JSON.stringify(data));
   let result = [];
   for (let item of data) {
@@ -155,11 +155,11 @@ router.post("/postAccountVouchers", async (req, res) => {
         let voucherData = await AccountingVoucher.findOne({
           invoice_number: detail,
           type: "RECEIPT_ORDER",
-          voucher_date: 0,
+          $or: [{ voucher_date: 0 }, { voucher_date: null }],
         });
         if (voucherData && item.matched_entry) {
           await AccountingVoucher.updateMany(
-            { invoice_number: detail, type: "RECEIPT_ORDER", voucher_date: 0 },
+            { invoice_number: detail, type: "RECEIPT_ORDER", $or: [{ voucher_date: 0 }, { voucher_date: null }] },
             { voucher_date: item.voucher_date }
           );
           success++;
@@ -182,7 +182,7 @@ router.post("/postAccountVouchers", async (req, res) => {
             let response = await AccountingVoucher.updateMany(
               {
                 invoice_number: { $in: item.invoice_number },
-                voucher_date: 0,
+                $or: [{ voucher_date: 0 }, { voucher_date: null }],
               },
               { voucher_date: item.voucher_date }
             );
@@ -634,10 +634,9 @@ const getCompleteVoucherReceipts = async () => {
     let voucher_data = await AccountingVoucher.findOne({
       order_uuid: item.order_uuid,
       type: "RECEIPT_ORDER",
-      voucher_date: { $ne: 0 },
     });
     console.log({ voucher_data });
-    if (!voucher_data) continue;
+    if (!voucher_data?.voucher_date) continue;
     let item1 = item.modes.find(
       (a) =>
         (a.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002" ||
@@ -697,9 +696,39 @@ const getCompleteVoucherReceipts = async () => {
 
   return { success: true, result: data };
 };
+// const getUnCompleteVoucherReceipts = async () => {
+//   let response = await AccountingVoucher.find({ $or: [{ voucher_date: 0 },{voucher_date:null}] });
+//   console.log({ response: response.length });
+//   response = await JSON.parse(JSON.stringify(response));
+//   let data = []
+//   for (let item of response) {
+//     let reciptsData = await Receipts.findOne({
+//       order_uuid: item.order_uuid,
+//       pending:1
+//     });
+//     reciptsData = JSON.parse(JSON.stringify(reciptsData));
+//     if (reciptsData?.order_uuid) {
+//       // if(reciptsData.modes.filter((a) => a.mode_uuid==="c67b54ba-d2b6-11ec-9d64-0242ac120002").length)
+     
+//       let mode = reciptsData.modes.map((a) => ({
+//         ...a,
+//         status: a.mode_uuid === "c67b5988-d2b6-11ec-9d64-0242ac120002" || a.mode_uuid === "c67b5794-d2b6-11ec-9d64-0242ac120002" ? 0 : 1,
+//       }));
+//       console.log({mode,reciptsData:reciptsData.receipt_number});
+//       await Receipts.updateOne(
+//         { receipt_number: reciptsData.receipt_number },
+//         { modes: mode,pending:0 }
+//       );
+//         // break;
+    
+//     }
+//   }
+
+//   return { success: true, result: data };
+// };
 router.get("/getCompleteVoucherList", async (req, res) => {
   try {
-  let data = await getCompleteVoucherReceipts();
+  let data = await  getCompleteVoucherReceipts();
   if (data.success) res.json(data);
   else res.json({ success: false, message: "Vouchers Not found" });
   } catch (err) {
