@@ -66,7 +66,7 @@ const createAccountingVoucher = async (order, type, recept_number) => {
         voucher_date:
           a.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002"
             ? new Date().getTime()
-            : "",
+            : 0,
         user_uuid: order.user_uuid,
         counter_uuid: order.counter_uuid,
         order_uuid: order.order_uuid,
