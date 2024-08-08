@@ -106,7 +106,7 @@ router.get("/getCounterSales/:days", async (req, res) => {
     });
     let CompaniesData = await Companies.find({});
     CompaniesData = JSON.parse(JSON.stringify(CompaniesData));
-    let ItemsData = await Item.find({});
+    let ItemsData = await Item.find({}, { item_uuid: 1, company_uuid: 1,conversion:1 });
     ItemsData = JSON.parse(JSON.stringify(ItemsData));
     let result = [];
     for (let item of data) {
@@ -225,7 +225,7 @@ router.put("/CalculateLines", async (req, res) => {
     );
     let ItemsData = await Item.find({
       item_uuid: { $in: itemsJsons.map((a) => a.item_uuid) },
-    });
+    }, { item_uuid: 1, company_uuid: 1, category_uuid: 1,conversion:1 });
     ItemsData = JSON.parse(JSON.stringify(ItemsData));
 
     let counterData = await Counter.find({});

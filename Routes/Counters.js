@@ -15,7 +15,10 @@ const Campaigns = require("../Models/Campaigns");
 const { messageEnque } = require("../queues/messageQueue");
 const Counters = require("../Models/Counters");
 const Details = require("../Models/Details");
-const { getMidnightTimestamp, getDDMMYYDate } = require("../utils/helperFunctions");
+const {
+  getMidnightTimestamp,
+  getDDMMYYDate,
+} = require("../utils/helperFunctions");
 const AccountingVoucher = require("../Models/AccountingVoucher");
 const msg91 = require("msg91-templateid")(
   "312759AUCbnlpoZeD61714959P1",
@@ -373,7 +376,10 @@ router.get("/getCounterSales/:days", async (req, res) => {
     });
     let CompaniesData = await Companies.find({});
     CompaniesData = JSON.parse(JSON.stringify(CompaniesData));
-    let ItemsData = await Item.find({});
+    let ItemsData = await Item.find(
+      {},
+      { company_uuid: 1, item_uuid: 1, conversion: 1 }
+    );
     ItemsData = JSON.parse(JSON.stringify(ItemsData));
     let result = [];
     for (let item of data) {
@@ -674,9 +680,12 @@ router.put("/CalculateLines", async (req, res) => {
       [],
       orderData.map((a) => a.item_details)
     );
-    let ItemsData = await Item.find({
-      item_uuid: { $in: itemsJsons.map((a) => a.item_uuid) },
-    });
+    let ItemsData = await Item.find(
+      {
+        item_uuid: { $in: itemsJsons.map((a) => a.item_uuid) },
+      },
+      { company_uuid: 1, item_uuid: 1, category_uuid: 1, conversion: 1 }
+    );
     ItemsData = JSON.parse(JSON.stringify(ItemsData));
 
     let counterData = await Counter.find(
@@ -1446,132 +1455,110 @@ router.get("/getGSTReport", async (req, res) => {
   const { startDate, endDate } = req.query;
 
   // try {
-    // Fetch all counters with GST
-    let counterData = await Counter.find({ gst: { $exists: true, $ne: "" } });
-    counterData = JSON.parse(JSON.stringify(counterData));
-    console.log(counterData.length);
+  // Fetch all counters with GST
+  let counterData = await Counter.find({ gst: { $exists: true, $ne: "" } });
+  counterData = JSON.parse(JSON.stringify(counterData));
+  console.log(counterData.length);
 
-    // Fetch accounting vouchers for GST counters
-    const b2bs = [];
-    for (const counter of counterData) {
-      const accounting_vouchers = await AccountingVoucher.find({
-        "details.ledger_uuid": counter.counter_uuid,
-        voucher_date: { $gte: startDate, $lte: endDate },
-      });
-      let inv = [];
-      for (const voucher of accounting_vouchers) {
-        let val = 0;
-        const itms = [];
+  // Fetch accounting vouchers for GST counters
+  const b2bs = [];
+  for (const counter of counterData) {
+    const inv = [];
+   const orders = await OrderCompleted.find({
+      counter_uuid: counter.counter_uuid,
+      "status.time": { $gte: startDate, $lte: endDate },
+    }, { item_details: 1 , invoice_number: 1, total_amount: 1,status:1});
+    let isGst = counter.gst?.startsWith("27") || !counter.gst ? false : true;
+    for (const order of orders) {
+      let itms =[]
 
-        for (const item of voucher?.details) {
-          if (item?.amount > 0) {
-            val += item?.amount;
-            const ledger = sale_ledger_list.find((a) =>
-              a?.ledger_uuid?.includes(item?.ledger_uuid)
-            );
-
-            if (ledger) {
-              const cgst =
-                voucher?.details?.find(
-                  (a) => a.ledger_uuid === ledger.ledger_uuid[0]
-                )?.amount || 0;
-
-              const sgst =
-                voucher?.details?.find(
-                  (a) => a.ledger_uuid === ledger.ledger_uuid[1]
-                )?.amount || 0;
-              const csamt =
-                voucher?.details?.find(
-                  (a) => a.ledger_uuid === ledger.central_sale_ledger
-                )?.amount || 0;
-
-              itms.push({
-                num: 1801,
-                itm_det: {
-                  txval: +item?.amount?.toFixed(2),
-                  rt: ledger?.value,
-                  csamt: cgst,
-                  rtamt: sgst,
-                  csamt: csamt||0.0, // Double check if this is intended
-                },
-              });
-            }
-          }
-        }
-
-        inv.push({
-          inum: voucher?.invoice_number[0],
-          idt: voucher?.voucher_date
-            ? getDDMMYYDate(new Date(+voucher?.voucher_date))
-            : "",
-          val: +val?.toFixed(2),
-          pos: "27",
-          rchrg: "N",
-          inv_typ: "R",
-          itms,
-        });
+      for (const item of order.item_details) {
+        const item_data = await Item.findOne({ item_uuid: item.item_uuid },{item_gst:1});
+        const amount = (+item.item_total - (+item.item_total * 100) / (100 + item_data?.item_gst)).toFixed(2)
+            itms.push({
+              num: item.item_code,
+              itm_det: {
+                rt: item_data?.item_gst,
+                txval:amount,
+                samt:isGst? amount/2:0,
+                camt:isGst? amount/2:0,
+                csamt:isGst?0:amount
+              },
+            })
       }
-      if (inv.length) {
-        const b2b = { ctin: counter?.gst, inv };
-        b2bs.push(b2b);
-      }
-    }
-
-    // Fetch non-GST counters' vouchers
-    const notGstCounterUuids = counterData.map((a) => a.counter_uuid);
-    const notGstCounterVouchers = await AccountingVoucher.find({
-      "details?.ledger_uuid": { $nin: notGstCounterUuids },
-      voucher_date: { $gte: startDate, $lte: endDate },
-    });
-
-    // Process non-GST counter vouchers
-    const b2cs = sale_ledger_list.map((item) => {
-      let txval = 0,
-        camt = 0,
-        samt = 0;
-
-      notGstCounterVouchers.forEach((voucher) => {
-        const ledger =
-          voucher?.details?.find(
-            (a) => a?.ledger_uuid === item?.local_sale_ledger
-          )?.amount || 0;
-
-        const cgst =
-          voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[0])
-            ?.amount || 0;
-
-        const sgst =
-          voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[1])
-            ?.amount || 0;
-
-        txval += ledger;
-        camt += cgst;
-        samt += sgst;
-      });
-
-      return {
-        camt: camt?.toFixed(2),
-        csamt: 0.0,
+      inv.push({
+        inum: order.invoice_number,
+        idt: order?.status?.length? getDDMMYYDate(+order.status[0].time): order.order_date,
+        val: order.total_amount,
         pos: "27",
-        rt: item?.value,
-        samt: samt?.toFixed(2),
-        sply_ty: "INTRA",
-        txval: txval?.toFixed(2),
-        type: "OE",
-      };
+        rchrg: "N",
+        inv_typ: "R",
+        itms,
+      });
+    }
+    console.log(inv.length);
+
+    if (inv.length) {
+      b2bs.push({ ctin: counter?.gst, inv });
+;
+    }
+  }
+
+  // Fetch non-GST counters' vouchers
+  const notGstCounterUuids = counterData.map((a) => a.counter_uuid);
+  const notGstCounterVouchers = await AccountingVoucher.find({
+    "details?.ledger_uuid": { $nin: notGstCounterUuids },
+    voucher_date: { $gte: startDate, $lte: endDate },
+  });
+
+  // Process non-GST counter vouchers
+  const b2cs = sale_ledger_list.map((item) => {
+    let txval = 0,
+      camt = 0,
+      samt = 0;
+
+    notGstCounterVouchers.forEach((voucher) => {
+      const ledger =
+        voucher?.details?.find(
+          (a) => a?.ledger_uuid === item?.local_sale_ledger
+        )?.amount || 0;
+
+      const cgst =
+        voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[0])
+          ?.amount || 0;
+
+      const sgst =
+        voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[1])
+          ?.amount || 0;
+
+      txval += ledger;
+      camt += cgst;
+      samt += sgst;
     });
 
-    // Construct final JSON response
-    const json = {
-      gstin: "27ABIPR1186M1Z2",
-      fp: "032024",
-      version: "GST3.1.8",
-      hash: "KVEZiG/Qy3056q9l1Po1hz7bE79c7iozk0MpVcH0zdU=",
-      b2b: b2bs,
-      b2cs,
+    return {
+      camt: camt?.toFixed(2),
+      csamt: 0.0,
+      pos: "27",
+      rt: item?.value,
+      samt: samt?.toFixed(2),
+      sply_ty: "INTRA",
+      txval: txval?.toFixed(2),
+      type: "OE",
     };
+  });
 
-    res.json({ success: true, result: json });
+  // Construct final JSON response
+  const json = {
+    gstin: "27ABIPR1186M1Z2",
+    fp: "032024",
+    version: "GST3.1.8",
+    hash: "KVEZiG/Qy3056q9l1Po1hz7bE79c7iozk0MpVcH0zdU=",
+    b2b: b2bs,
+    b2cs,
+  };
+
+  res.json({ success: true, result: json });
   // } catch (err) {
   //   res.status(500).json({ success: false, message: err.message });
   // }

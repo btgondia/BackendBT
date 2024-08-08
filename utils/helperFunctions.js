@@ -251,7 +251,7 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
   try {
     for (let item of items) {
       let itemData = (
-        await Item.findOne({ item_uuid: item.item_uuid })
+        await Item.findOne({ item_uuid: item.item_uuid }, { stock: 1 ,item_uuid:1})
       )?.toObject();
 
       let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0);
@@ -283,7 +283,7 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
     let old_items = orderData?.item_details || [];
     for (let item of old_items) {
       let itemData = (
-        await Item.findOne({ item_uuid: item.item_uuid })
+        await Item.findOne({ item_uuid: item.item_uuid }, { stock: 1 ,item_uuid:1})
       )?.toObject();
 
       let qty = +item.b * +itemData?.conversion + +item.p + (+item.free || 0);

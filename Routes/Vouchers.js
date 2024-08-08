@@ -407,7 +407,12 @@ router.post("/deliveredVouchers", async (req, res) => {
     data = JSON.parse(JSON.stringify(data));
     let item_uuids = data.map((a) => a.item_details);
     item_uuids = item_uuids.flat().map((a) => a.item_uuid);
-    const itemData = await Item.find({ item_uuid: { $in: item_uuids } });
+    const itemData = await Item.find({ item_uuid: { $in: item_uuids } }, {
+      item_uuid: 1,
+      item_price: 1,
+      conversion: 1,
+
+    });
     if (data.length)
       res.json({
         success: true,
@@ -442,7 +447,7 @@ router.put("/ConfirmVoucher", async (req, res) => {
     voucherData = JSON.parse(JSON.stringify(voucherData));
 
     for (let item of voucherData.item_details) {
-      let itemData = await Item.findOne({ item_uuid: item.item_uuid });
+      let itemData = await Item.findOne({ item_uuid: item.item_uuid },{stock:1,conversion:1,item_uuid:1});
       itemData = JSON.parse(JSON.stringify(itemData));
 
       if (itemData) {

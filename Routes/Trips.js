@@ -259,7 +259,7 @@ router.get("/GetTripSummaryDetails/:trip_uuid", async (req, res) => {
           let itemsFilteredData = sales_return.filter(
             (a) => a.item_uuid === item.item_uuid
           );
-          let itemsData = await Item.findOne({ item_uuid: item?.item_uuid });
+          let itemsData = await Item.findOne({ item_uuid: item?.item_uuid },{conversion:1});
 
           let b =
             itemsFilteredData.length > 1
@@ -286,7 +286,7 @@ router.get("/GetTripSummaryDetails/:trip_uuid", async (req, res) => {
       sales_return = salesresult;
       let itemData = await Item.find({
         item_uuid: sales_return.map((a) => a.item_uuid),
-      });
+      }, { item_title: 1,item_uuid:1 });
       sales_return = sales_return.map((b) => ({
         ...b,
         item_title: itemData.find((c) => c.item_uuid === b.item_uuid)
@@ -442,7 +442,7 @@ router.post("/GetTripItemSummary", async (req, res) => {
           : sales_return;
       let itemData = await Item.find({
         item_uuid: sales_return.map((a) => a.item_uuid),
-      });
+      }, { item_title: 1,item_uuid:1 });
       sales_return = sales_return.map((b) => ({
         ...b,
         item_title: itemData.find((c) => c.item_uuid === b.item_uuid)

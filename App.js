@@ -162,7 +162,7 @@ const MinLevelUpdateAutomation = async () => {
   let warehouseData = await WarehouseModel.find({});
   warehouseData = JSON.parse(JSON.stringify(warehouseData));
   warehouseData = warehouseData.filter((a) => a.warehouse_uuid);
-  let itemsData = await ItemModel.find({});
+  let itemsData = await ItemModel.find({}, { stock: 1, conversion: 1,item_uuid:1 });
   itemsData = JSON.parse(JSON.stringify(itemsData));
 
   for (let warehouseItem of warehouseData) {

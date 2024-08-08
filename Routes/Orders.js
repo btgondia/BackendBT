@@ -92,7 +92,7 @@ const createAutoCreditNote = async (
     (order.shortage ? " Shortage: " + order.shortage : "") +
     (order.adjustment ? " Adjustment: " + order.adjustment : "");
   console.log({ narration });
-  let item = await Item.findOne({ item_uuid });
+  let item = await Item.findOne({ item_uuid },{conversion:1, item_gst: 1,item_title:1, item_hsn:1,item_uuid :1});
   item = JSON.parse(JSON.stringify(item));
   item = { ...item, item_total: 0 };
 
@@ -235,7 +235,6 @@ const createCreditNotAccountingVoucher = async (order, type, narration) => {
     details: arr,
     created_at: new Date().getTime(),
   };
-  console.log({ voucher });
   await AccountingVouchers.create(voucher);
   await updateCounterClosingBalance(arr, "add");
 };
@@ -542,7 +541,7 @@ router.post("/postOrder", async (req, res) => {
     );
     let itemsData = await Item.find({
       item_uuid: { $in: value.item_details.map((a) => a.item_uuid) },
-    });
+    }, { item_uuid: 1, item_group_uuid: 1 });
 
     let incentiveData = await Incentive.find({ status: 1 });
     incentiveData = JSON.parse(JSON.stringify(incentiveData));
@@ -614,7 +613,7 @@ router.post("/postOrder", async (req, res) => {
           for (let item of eligibleItems) {
             let itemData = await Item.findOne({
               item_uuid: item.item_uuid,
-            });
+            }, { conversion: 1 ,item_uuid:1});
             amt =
               +amt +
               ((+item.b * +itemData?.conversion || 0) + item.p) *
@@ -776,7 +775,7 @@ router.put("/putOrders", async (req, res) => {
     let itemData = value?.item_details?.length
       ? await Item.find({
           item_uuid: { $in: value.item_details.map((a) => a.item_uuid) },
-        })
+        }, { item_uuid: 1, item_group_uuid: 1 })
       : [];
 
     let old_stage = prevData
@@ -908,7 +907,7 @@ router.put("/putOrders", async (req, res) => {
               item_uuid: {
                 $in: value?.item_details?.map((a) => a.item_uuid) || [],
               },
-            })
+            }, { item_uuid: 1, item_group_uuid: 1 })
           : [];
 
         let incentiveData = (await Incentive.find({ status: 1 }))?.map((i) =>
@@ -1100,7 +1099,7 @@ router.put("/putOrders", async (req, res) => {
               for (let item of eligibleItems) {
                 let itemData = await Item.findOne({
                   item_uuid: item.item_uuid,
-                });
+                }, { conversion: 1 });
                 amt =
                   +amt +
                   ((+item?.b * +itemData?.conversion || 0) + item.p) *
