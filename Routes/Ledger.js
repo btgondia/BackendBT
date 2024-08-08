@@ -801,8 +801,6 @@ router.post("/getLegerReport", async (req, res) => {
         $gte: default_opening_balance_date.default_opening_balance_date,
         $lte: value.startDate,
       }},
-      {voucher_date: 0,},
-      {voucher_date: null},
     ],
     });
 
@@ -880,81 +878,72 @@ router.post("/getLegerReport", async (req, res) => {
   }
 });
 router.get("/getDebitCreditAccountingBalanceDetails", async (req, res) => {
-  // try {
-  let ledgerData = await Ledger.find(
-    {},
-    {
-      ledger_uuid: 1,
-      ledger_title: 1,
-      opening_balance: 1,
-      closing_balance: 1,
-    }
-  );
-  ledgerData = JSON.parse(JSON.stringify(ledgerData));
-  let counterData = await Counters.find(
-    {},
-    {
-      counter_uuid: 1,
-      counter_title: 1,
-      opening_balance: 1,
-      closing_balance: 1,
-    }
-  );
-  counterData = JSON.parse(JSON.stringify(counterData));
-  let default_opening_balance_date = await Details.findOne(
-    {},
-    { default_opening_balance_date: 1 }
-  );
-  default_opening_balance_date =
-    default_opening_balance_date.default_opening_balance_date;
-  let result = [];
-  let AccountingVoucherData = await AccountingVoucher.find(
-    {
-     
+  try {
+    const defaultOpeningBalanceDate = await Details.findOne({}, { default_opening_balance_date: 1 });
     
-      // $or: [
-      //   { voucher_date: { $gte: default_opening_balance_date } },
-      //   { voucher_date: 0 },
-      //   { voucher_date: null },
-      // ],
-    },
-    { details: 1, voucher_date: 1 ,accounting_voucher_uuid:1,amt:1,}
-  );
-
-
-    for (let voucher of AccountingVoucherData) {
-      let debit = 0;
-      let credit = 0;
-      for (let detail of voucher.details) {
-      if (detail?.amount) {
-        if (detail.amount > 0) {
-          debit = (+debit +detail.amount).toFixed(2);
-        } else {
-          credit = (+credit + detail.amount).toFixed(2);
+    const vouchers = await AccountingVoucher.aggregate([
+      {
+        $match: {
+          $or: [
+            { voucher_date: { $gte: defaultOpeningBalanceDate.default_opening_balance_date } },
+            { voucher_date: 0 },
+            { voucher_date: null },
+          ],
+        },
+      },
+      {
+        $unwind: "$details",
+      },
+      {
+        $group: {
+          _id: {
+            accounting_voucher_uuid: "$accounting_voucher_uuid",
+            voucher_date: "$voucher_date",
+            amt: "$amt",
+          },
+          debit: {
+            $sum: {
+              $cond: [{ $gt: ["$details.amount", 0] }, "$details.amount", 0],
+            },
+          },
+          credit: {
+            $sum: {
+              $cond: [{ $lt: ["$details.amount", 0] }, "$details.amount", 0],
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          accounting_voucher_uuid: "$_id.accounting_voucher_uuid",
+          voucher_date: "$_id.voucher_date",
+          amt: "$_id.amt",
+          debit: { $round: ["$debit", 2] },
+          credit: { $round: ["$credit", 2] },
+          debitCreditDifference: {
+            $abs: { $subtract: [{ $round: ["$debit", 2] }, { $abs: { $round: ["$credit", 2] } }] }
+          }
+        },
+      },
+      {
+        $match: {
+          debitCreditDifference: { $gt: 0 }
         }
-        
       }
-    }
-    console.log({debit,credit})
-    if(+debit !== Math.abs(+credit)){
-      result.push({
-        voucher_date: voucher.voucher_date,
-        debit,
-        credit,
-        accounting_voucher_uuid:voucher.accounting_voucher_uuid,
-        amt:voucher.amt
-      });
-    }
-  }
-    
+    ]);
 
-  if (result.length) {
-    res.json({ success: true, result });
-  } else res.json({ success: false, message: "Ledger Not Found" });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err });
-  // }
+    if (vouchers.length) {
+      res.json({ success: true, result: vouchers });
+    } else {
+      res.json({ success: false, message: "Ledger Not Found" });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
+
+
 router.post("/getOpeningBalanceReport", async (req, res) => {
   try {
     let { date } = req.body;
@@ -1291,7 +1280,7 @@ router.get("/getAccountingBalanceDetails", async (req, res) => {
       opening_balance = opening_balance?.amount || 0;
       if (amount !== closing_balance) {
         result.push({
-          counter_uuid: item.counter_uuid,
+          ledger_uuid: item.counter_uuid,
           title: item.counter_title,
           opening_balance,
           closing_balance,
@@ -1313,6 +1302,7 @@ router.put("/fixeBalance", async (req, res) => {
     let success = 0;
     let failed = 0;
     for (let value of req.body) {
+      console.log(value);
       let ledgerData = await Ledger.findOne(
         { ledger_uuid: value.ledger_uuid },
         { opening_balance: 1 }
