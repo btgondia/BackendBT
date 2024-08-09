@@ -1455,135 +1455,166 @@ router.get("/getGSTReport", async (req, res) => {
   const { startDate, endDate } = req.query;
 
   try {
-  // Fetch all counters with GST
-  let counterData = await Counter.find({ gst: { $exists: true, $ne: "" } }, { gst: 1 ,counter_uuid:1,counter_title:1});
-  counterData = JSON.parse(JSON.stringify(counterData));
-  let vouchers = await AccountingVoucher.find({
-    details: { $elemMatch: { ledger_uuid: { $in: counterData.map((a) => a.counter_uuid) } } },
-        voucher_date: { $gte: startDate, $lte: endDate },
-        type: "SALE_ORDER",
-  })
-  vouchers = JSON.parse(JSON.stringify(vouchers));
-  // Fetch accounting vouchers for GST counters
-  const b2bs = [];
-  for (const counter of counterData) {
-    const inv = [];
+    // Fetch all counters with GST
+    let counterData = await Counter.find(
+      { gst: { $exists: true, $ne: "" } },
+      { gst: 1, counter_uuid: 1, counter_title: 1 }
+    );
+    counterData = JSON.parse(JSON.stringify(counterData));
+    let vouchers = await AccountingVoucher.find({
+      details: {
+        $elemMatch: {
+          ledger_uuid: { $in: counterData.map((a) => a.counter_uuid) },
+        },
+      },
+      voucher_date: { $gte: startDate, $lte: endDate },
+      type: "SALE_ORDER",
+    });
+    vouchers = JSON.parse(JSON.stringify(vouchers));
+    // Fetch accounting vouchers for GST counters
+    const b2bs = [];
+    for (const counter of counterData) {
+      const inv = [];
 
-    let vouchersData = vouchers.filter((a) => a.details.find((b) => b.ledger_uuid === counter.counter_uuid));
-    console.log(vouchersData.length)
-    for (const voucher of vouchersData) {
-      let orderData = await OrderCompleted.findOne({
-       $or: [{invoice_number: voucher.invoice_number,},{order_uuid: voucher.order_uuid,}]
-      },{item_details:1,invoice_number:1,order_date:1,total_amount:1});
-      let itms =[]
-
-  
-      let ledgers = voucher.details.map((a) => {
-        let central_ledger=sale_ledger_list.find((b) => a.ledger_uuid ===b.central_sale_ledger)
-        let local_ledger=sale_ledger_list.find((b) => a.ledger_uuid ===b.local_sale_ledger)
-
-        if(central_ledger){
-          return {
-            ...central_ledger,
-            ...a,
-            isLocal:false
-          }
-        }else if(local_ledger){
-          return {
-            ...local_ledger,
-            ...a,
-            isLocal:true,
-            local_ledgers:local_ledger.ledger_uuid
-        }
-      }else{
-          return null
-        }
-      }).filter((a)=>a);
-      for (const ledger of ledgers) {
-        itms.push({
-          num: 0,
-          itm_det: {
-            rt: ledger.value,
-            txval: ledger.amount,
-            camt: ledger.isLocal?voucher.details.find((a) => a.ledger_uuid === ledger.local_ledgers[0])?.amount || 0:0,
-            samt: ledger.isLocal?voucher.details.find((a) => a.ledger_uuid === ledger.local_ledgers[1])?.amount || 0:0,
-            csamt:ledger.isLocal?0.0:ledger.amount,
+      let vouchersData = vouchers.filter((a) =>
+        a.details.find((b) => b.ledger_uuid === counter.counter_uuid)
+      );
+      console.log(vouchersData.length);
+      for (const voucher of vouchersData) {
+        let orderData = await OrderCompleted.findOne(
+          {
+            $or: [
+              { invoice_number: voucher.invoice_number },
+              { order_uuid: voucher.order_uuid },
+            ],
           },
+          { item_details: 1, invoice_number: 1, order_date: 1, total_amount: 1 }
+        );
+        let itms = [];
+
+        let ledgers = voucher.details
+          .map((a) => {
+            let central_ledger = sale_ledger_list.find(
+              (b) => a.ledger_uuid === b.central_sale_ledger
+            );
+            let local_ledger = sale_ledger_list.find(
+              (b) => a.ledger_uuid === b.local_sale_ledger
+            );
+
+            if (central_ledger) {
+              return {
+                ...central_ledger,
+                ...a,
+                isLocal: false,
+              };
+            } else if (local_ledger) {
+              return {
+                ...local_ledger,
+                ...a,
+                isLocal: true,
+                local_ledgers: local_ledger.ledger_uuid,
+              };
+            } else {
+              return null;
+            }
+          })
+          .filter((a) => a);
+        for (const ledger of ledgers) {
+          if (+ledger.value) {
+            itms.push({
+              num: 0,
+              itm_det: {
+                rt: ledger.value,
+                txval: ledger.amount,
+                camt: ledger.isLocal
+                  ? voucher.details.find(
+                      (a) => a.ledger_uuid === ledger.local_ledgers[0]
+                    )?.amount || 0
+                  : 0,
+                samt: ledger.isLocal
+                  ? voucher.details.find(
+                      (a) => a.ledger_uuid === ledger.local_ledgers[1]
+                    )?.amount || 0
+                  : 0,
+                csamt: ledger.isLocal ? 0.0 : ledger.amount,
+              },
+            });
+          }
+        }
+
+        inv.push({
+          inum: orderData.invoice_number,
+          idt: voucher.voucher_date
+            ? getDDMMYYDate(voucher.voucher_date)
+            : voucher.voucher_date,
+          val: voucher.total_amount,
+          pos: "27",
+          rchrg: "N",
+          inv_typ: "R",
+          itms,
         });
       }
-      
-      inv.push({
-        inum: orderData.invoice_number,
-        idt: voucher.voucher_date? getDDMMYYDate(voucher.voucher_date): voucher.voucher_date,
-        val: voucher.total_amount,
-        pos: "27",
-        rchrg: "N",
-        inv_typ: "R",
-        itms,
-      });
+
+      if (inv.length) {
+        b2bs.push({ ctin: counter?.gst, inv });
+      }
     }
 
-    if (inv.length) {
-      b2bs.push({ ctin: counter?.gst, inv });
-;
-    }
-  }
-
-  // Fetch non-GST counters' vouchers
-  const notGstCounterUuids = counterData.map((a) => a.counter_uuid);
-  const notGstCounterVouchers = await AccountingVoucher.find({
-    "details?.ledger_uuid": { $nin: notGstCounterUuids },
-    voucher_date: { $gte: startDate, $lte: endDate },
-  });
-
-  // Process non-GST counter vouchers
-  const b2cs = sale_ledger_list.map((item) => {
-    let txval = 0,
-      camt = 0,
-      samt = 0;
-
-    notGstCounterVouchers.forEach((voucher) => {
-      const ledger =
-        voucher?.details?.find(
-          (a) => a?.ledger_uuid === item?.local_sale_ledger
-        )?.amount || 0;
-
-      const cgst =
-        voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[0])
-          ?.amount || 0;
-
-      const sgst =
-        voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[1])
-          ?.amount || 0;
-
-      txval += ledger;
-      camt += cgst;
-      samt += sgst;
+    // Fetch non-GST counters' vouchers
+    const notGstCounterUuids = counterData.map((a) => a.counter_uuid);
+    const notGstCounterVouchers = await AccountingVoucher.find({
+      "details?.ledger_uuid": { $nin: notGstCounterUuids },
+      voucher_date: { $gte: startDate, $lte: endDate },
     });
 
-    return {
-      camt: camt?.toFixed(2),
-      csamt: 0.0,
-      pos: "27",
-      rt: item?.value,
-      samt: samt?.toFixed(2),
-      sply_ty: "INTRA",
-      txval: txval?.toFixed(2),
-      type: "OE",
+    // Process non-GST counter vouchers
+    const b2cs = sale_ledger_list.map((item) => {
+      let txval = 0,
+        camt = 0,
+        samt = 0;
+
+      notGstCounterVouchers.forEach((voucher) => {
+        const ledger =
+          voucher?.details?.find(
+            (a) => a?.ledger_uuid === item?.local_sale_ledger
+          )?.amount || 0;
+
+        const cgst =
+          voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[0])
+            ?.amount || 0;
+
+        const sgst =
+          voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[1])
+            ?.amount || 0;
+
+        txval += ledger;
+        camt += cgst;
+        samt += sgst;
+      });
+
+      return {
+        camt: camt?.toFixed(2),
+        csamt: 0.0,
+        pos: "27",
+        rt: item?.value,
+        samt: samt?.toFixed(2),
+        sply_ty: "INTRA",
+        txval: txval?.toFixed(2),
+        type: "OE",
+      };
+    });
+
+    // Construct final JSON response
+    const json = {
+      gstin: "27ABIPR1186M1Z2",
+      fp: "032024",
+      version: "GST3.1.8",
+      hash: "KVEZiG/Qy3056q9l1Po1hz7bE79c7iozk0MpVcH0zdU=",
+      b2b: b2bs,
+      b2cs,
     };
-  });
 
-  // Construct final JSON response
-  const json = {
-    gstin: "27ABIPR1186M1Z2",
-    fp: "032024",
-    version: "GST3.1.8",
-    hash: "KVEZiG/Qy3056q9l1Po1hz7bE79c7iozk0MpVcH0zdU=",
-    b2b: b2bs,
-    b2cs,
-  };
-
-  res.json({ success: true, result: json });
+    res.json({ success: true, result: json });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
