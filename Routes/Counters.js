@@ -1465,9 +1465,8 @@ router.get("/getGSTReport", async (req, res) => {
   for (const counter of counterData) {
     const inv = [];
 let vouchers = await AccountingVoucher.find({
-      // "details?.ledger_uuid": counter?.counter_uuid,
-      invoice_number:"A-4850",
-      // voucher_date: { $gte: startDate, $lte: endDate },
+      "details?.ledger_uuid": counter?.counter_uuid,
+      voucher_date: { $gte: startDate, $lte: endDate },
 })
 vouchers = JSON.parse(JSON.stringify(vouchers));
     for (const voucher of vouchers) {
