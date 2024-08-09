@@ -1456,21 +1456,22 @@ router.get("/getGSTReport", async (req, res) => {
 
   // try {
   // Fetch all counters with GST
-  let counterData = await Counter.find({ gst: { $exists: true, $ne: "" } });
+  let counterData = await Counter.find({ gst: { $exists: true, $ne: "" } }, { gst: 1 ,counter_uuid:1,counter_title:1});
   counterData = JSON.parse(JSON.stringify(counterData));
-  
-
+  let vouchers = await AccountingVoucher.find({
+    details: { $elemMatch: { ledger_uuid: { $in: counterData.map((a) => a.counter_uuid) } } },
+        voucher_date: { $gte: startDate, $lte: endDate },
+        type: "SALE_ORDER",
+  })
+  vouchers = JSON.parse(JSON.stringify(vouchers));
   // Fetch accounting vouchers for GST counters
   const b2bs = [];
   for (const counter of counterData) {
     const inv = [];
-let vouchers = await AccountingVoucher.find({
-  details: { $elemMatch: { ledger_uuid: { $in: counterData.map((a) => a.counter_uuid) } } },
-      voucher_date: { $gte: startDate, $lte: endDate },
-      type: "SALE_ORDER",
-})
-vouchers = JSON.parse(JSON.stringify(vouchers));
-    for (const voucher of vouchers) {
+
+    let vouchersData = vouchers.filter((a) => a.details.find((b) => b.ledger_uuid === counter.counter_uuid));
+    console.log(vouchersData.length)
+    for (const voucher of vouchersData) {
       let orderData = await OrderCompleted.findOne({
        $or: [{invoice_number: voucher.invoice_number,},{order_uuid: voucher.order_uuid,}]
       },{item_details:1,invoice_number:1,order_date:1,total_amount:1});
