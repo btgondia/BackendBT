@@ -1458,15 +1458,16 @@ router.get("/getGSTReport", async (req, res) => {
   // Fetch all counters with GST
   let counterData = await Counter.find({ gst: { $exists: true, $ne: "" } });
   counterData = JSON.parse(JSON.stringify(counterData));
-  console.log(counterData.length);
+  
 
   // Fetch accounting vouchers for GST counters
   const b2bs = [];
   for (const counter of counterData) {
     const inv = [];
 let vouchers = await AccountingVoucher.find({
-      "details?.ledger_uuid": counter?.counter_uuid,
+  details: { $elemMatch: { ledger_uuid: { $in: counterData.map((a) => a.counter_uuid) } } },
       voucher_date: { $gte: startDate, $lte: endDate },
+      type: "SALE_ORDER",
 })
 vouchers = JSON.parse(JSON.stringify(vouchers));
     for (const voucher of vouchers) {
@@ -1498,14 +1499,13 @@ vouchers = JSON.parse(JSON.stringify(vouchers));
         }
       }).filter((a)=>a);
       for (const ledger of ledgers) {
-        console.log(ledger);
         itms.push({
           num: 0,
           itm_det: {
             rt: ledger.value,
             txval: ledger.amount,
-            camt: voucher.details.find((a) => a.ledger_uuid === ledger.local_ledgers[0])?.amount || 0,
-            samt: voucher.details.find((a) => a.ledger_uuid === ledger.local_ledgers[1])?.amount || 0,
+            camt: ledger.isLocal?voucher.details.find((a) => a.ledger_uuid === ledger.local_ledgers[0])?.amount || 0:0,
+            samt: ledger.isLocal?voucher.details.find((a) => a.ledger_uuid === ledger.local_ledgers[1])?.amount || 0:0,
             csamt:ledger.isLocal?0.0:ledger.amount,
           },
         });
@@ -1521,7 +1521,6 @@ vouchers = JSON.parse(JSON.stringify(vouchers));
         itms,
       });
     }
-    console.log(inv.length);
 
     if (inv.length) {
       b2bs.push({ ctin: counter?.gst, inv });

@@ -906,21 +906,143 @@ router.get("/getDebitCreditAccountingBalanceDetails", async (req, res) => {
           credit = +credit.toFixed(4);
         }
       }
-      if(+credit ===3786.4) {
+      if (+credit === 3786.4) {
         item.details.map((a) => {
           console.log(a.amount);
         });
       }
       // console.log({ debit, credit });
-      if(Math.abs(debit) !== Math.abs(credit)) {
-      vouchers.push({
-        voucher_date: item.voucher_date,
-        voucher_number: item.voucher_number,
-        amt: item.amt,
-        debit,
-        credit,
-      });
+      if (Math.abs(debit) !== Math.abs(credit)) {
+        vouchers.push({
+          voucher_date: item.voucher_date,
+          voucher_number: item.voucher_number,
+          amt: item.amt,
+          debit,
+          credit,
+        });
+      }
     }
+
+    if (vouchers.length) {
+      res.json({ success: true, result: vouchers });
+    } else {
+      res.json({ success: false, message: "Ledger Not Found" });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+let sale_ledger_list = [
+  {
+    value: 5,
+    ledger_uuid: [
+      "036d4761-e375-4cae-b826-f2c154b3403b",
+      "e13f277a-d700-4137-9395-c62598f26513",
+    ],
+    local_sale_ledger: "1caf98e1-63c0-417c-81c8-fe85657f82e5",
+    central_sale_ledger: "8a0cac47-9eb6-40df-918f-ea744e1a142f",
+    sale_igst_ledger: "f732ba11-c4fc-40c3-9b57-0f0e83e90c75",
+  },
+  {
+    value: 12,
+    ledger_uuid: [
+      "b997b4f4-8baf-443c-85b9-0cfcccb013fd",
+      "93456bbd-ffbe-4ce6-a2a7-d483c7917f92",
+    ],
+    local_sale_ledger: "a48035a8-f9c3-4232-8f5b-d168850c016d",
+    central_sale_ledger: "6ba8115e-cc94-49f6-bd5b-386f000f8c1d",
+    sale_igst_ledger: "61ba70f5-9de6-4a2e-8ace-bd0856358c42",
+  },
+  {
+    value: 18,
+    ledger_uuid: [
+      "ed787d1b-9b89-44e5-b828-c69352d1e336",
+      "28b8428f-f8f3-404f-a696-c5777fbf4096",
+    ],
+    local_sale_ledger: "81df442d-4106-49de-8a45-649c1ceb00ef",
+    central_sale_ledger: "3732892f-d5fa-415b-b72c-3e2d338e0e3f",
+    sale_igst_ledger: "2d4f7d50-8c2e-457e-817a-a811bce3ac8d",
+  },
+  {
+    value: 28,
+    ledger_uuid: [
+      "17612833-5f48-4cf8-8544-c5a1debed3ae",
+      "60b6ccb7-37e4-40b2-a7d9-d84123c810e7",
+    ],
+    local_sale_ledger: "b00a56db-344d-4c08-9d9a-933ab9ee378d",
+    central_sale_ledger: "aeae84fa-e4ce-4480-8448-250134d12004",
+    sale_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
+  },
+];
+router.get("/getGSTErrorDetails", async (req, res) => {
+  try {
+    let opening_balance_date = await Details.findOne(
+      {},
+      { default_opening_balance_date: 1 }
+    );
+    let default_opening_balance_date =
+      opening_balance_date.default_opening_balance_date;
+
+    let voucherData = await AccountingVoucher.find(
+      {
+        type: "SALE_ORDER",
+        voucher_date: { $gte: default_opening_balance_date },
+      },
+      {
+        voucher_date: 1,
+        voucher_number: 1,
+        voucher_type: 1,
+        details: 1,
+        amt: 1,
+        accounting_voucher_number: 1,
+        accounting_voucher_uuid: 1,
+        invoice_number: 1,
+      }
+    );
+    voucherData = JSON.parse(JSON.stringify(voucherData));
+    let counterData = await Counters.find(
+      {
+        counter_uuid: {
+          $in: voucherData
+            .map((a) => a.details.map((b) => b.ledger_uuid))
+            .flat(),
+        },
+      },
+      { counter_uuid: 1, gst: 1, counter_title: 1 }
+    );
+    counterData = JSON.parse(JSON.stringify(counterData));
+    let vouchers = [];
+    for (let item of voucherData) {
+      let counter = counterData.find((a) =>
+        item.details.find((b) => b.ledger_uuid === a.counter_uuid)
+      );
+      let gst_number = counter?.gst;
+
+      let central_sale_ledger = item.details.find((a) =>
+        sale_ledger_list.find((b) => b.central_sale_ledger === a.ledger_uuid)
+      );
+      let local_sale_ledger = item.details.find((a) =>
+        sale_ledger_list.find((b) => b.local_sale_ledger === a.ledger_uuid)
+      );
+
+      let C3 = !gst_number && central_sale_ledger;
+      let C1 = gst_number?.startsWith("27") && central_sale_ledger;
+      let C2 = gst_number&& !gst_number?.startsWith("27") && local_sale_ledger;
+      let Gst_error = C1 || C2 || C3;
+   
+      if (Gst_error) {
+        vouchers.push({
+          voucher_date: item.voucher_date,
+          voucher_number: item.voucher_number,
+
+          ledger_uuid: counter.counter_uuid,
+          title: counter.counter_title,
+          error_type: C1 ? "C1" : C2 ? "C2" : C3 ? "C3" : "",
+          accounting_voucher_number: item.accounting_voucher_number,
+          accounting_voucher_uuid: item.accounting_voucher_uuid,
+          invoice_number: item.invoice_number,
+        });
+      }
     }
 
     if (vouchers.length) {
