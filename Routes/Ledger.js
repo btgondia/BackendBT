@@ -10,14 +10,17 @@ const Receipts = require("../Models/Receipts");
 const Routes = require("../Models/Routes");
 const OrderCompleted = require("../Models/OrderCompleted");
 const Orders = require("../Models/Orders");
+const Item = require("../Models/Item");
 const {
   removeCommas,
   truncateDecimals,
   getMidnightTimestamp,
   parseDate,
+  updateCounterClosingBalance,
 } = require("../utils/helperFunctions");
 const PurchaseInvoice = require("../Models/PurchaseInvoice");
 const { all } = require("./Orders");
+const CreditNotes = require("../Models/CreditNotes");
 
 router.get("/getLedgerClosingBalance", async (req, res) => {
   try {
@@ -793,7 +796,7 @@ router.post("/getLegerReport", async (req, res) => {
       };
     }
 
-    let oldAccountingVouchers = await AccountingVoucher.find({
+    let oldAccountingVoucher = await AccountingVoucher.find({
       "details.ledger_uuid": value.counter_uuid || value.ledger_uuid,
       //has voucher_Date exist
       $or: [
@@ -808,7 +811,7 @@ router.post("/getLegerReport", async (req, res) => {
 
     let balance = opening_balance?.amount || 0;
 
-    for (let item of oldAccountingVouchers) {
+    for (let item of oldAccountingVoucher) {
       let amount = item.details.find(
         (i) => i.ledger_uuid === value.counter_uuid
       ).amount;
@@ -1027,9 +1030,9 @@ router.get("/getGSTErrorDetails", async (req, res) => {
 
       let C3 = !gst_number && central_sale_ledger;
       let C1 = gst_number?.startsWith("27") && central_sale_ledger;
-      let C2 = gst_number&& !gst_number?.startsWith("27") && local_sale_ledger;
+      let C2 = gst_number && !gst_number?.startsWith("27") && local_sale_ledger;
       let Gst_error = C1 || C2 || C3;
-   
+
       if (Gst_error) {
         vouchers.push({
           voucher_date: item.voucher_date,
@@ -1053,6 +1056,383 @@ router.get("/getGSTErrorDetails", async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+});
+const createAccountingVoucher = async ({
+  order,
+  type,
+  voucher_date = new Date().getTime(),
+  created_at = new Date().getTime(),
+}) => {
+  console.log({ order });
+  let counterData = await Counters.findOne(
+    { counter_uuid: order.counter_uuid },
+    { gst: 1 }
+  );
+  let gst = counterData?.gst || "";
+  //check is gst starts with 27
+  let isGst = gst?.startsWith("27") || !gst ? false : true;
+  let arr = [];
+  const gst_value = Array.from(
+    new Set(order.item_details.map((a) => +a.gst_percentage))
+  );
+
+  for (let a of gst_value) {
+    const data = order.item_details.filter((b) => +b.gst_percentage === a);
+    let amt = 0;
+    for (let item of data) {
+      amt = +item.item_total + +amt;
+      amt = amt.toFixed(2);
+    }
+    const value = (+amt - (+amt * 100) / (100 + a)).toFixed(2);
+    console.log({ value, amt });
+
+    if (amt && value) {
+      let ledger = sale_ledger_list.find((b) => b.value === a) || {};
+      arr.push({
+        narration: `Sales Invoice ${order.invoice_number}`,
+        amount: (amt - value).toFixed(3),
+        ledger_uuid: isGst
+          ? ledger?.central_sale_ledger
+          : ledger?.local_sale_ledger,
+      });
+      if (isGst) {
+        arr.push({
+          narration: `Sales Invoice ${order.invoice_number}`,
+          amount: value,
+          ledger_uuid: ledger?.sale_igst_ledger,
+        });
+      } else {
+        for (let item of ledger?.ledger_uuid || []) {
+          narration: `Sales Invoice ${order.invoice_number}`,
+            arr.push({
+              amount: truncateDecimals(value / 2, 2),
+              ledger_uuid: item,
+            });
+        }
+      }
+    }
+  }
+  let prevCreditNote = await CreditNotes.findOne(
+    {
+      credit_notes_invoice_number: `CN-${order.invoice_number}`,
+    },
+    { credit_note_order_uuid: 1, credit_notes_invoice_number: 1 }
+  );
+  if (prevCreditNote) {
+    await CreditNotes.deleteOne({
+      credit_note_order_uuid: prevCreditNote.credit_note_order_uuid,
+    });
+    let voucherData = await AccountingVoucher.find({
+      $or: [
+        { invoice_number: prevCreditNote.credit_notes_invoice_number },
+        { order_uuid: prevCreditNote.credit_note_order_uuid },
+      ],
+      type:"CREDIT_NOTE",
+    });
+    if (voucherData.length) {
+      for (let voucher of voucherData){
+        await updateCounterClosingBalance(voucher.details, "delete");
+      }
+        
+      await AccountingVoucher.deleteMany({
+        $or: [
+          { invoice_number: prevCreditNote?.credit_notes_invoice_number },
+          { order_uuid: prevCreditNote?.credit_note_order_uuid },
+        ],
+        type:"CREDIT_NOTE",
+      });
+    }
+  }
+  
+  if (order?.replacement || order?.shortage || order?.adjustment) {
+    await createAutoCreditNote(
+      order,
+      gst
+        ? "7605d5e9-8165-46aa-8899-5c2d40622d30"
+        : "d68051cc-573d-4721-b42e-bd226157268b",
+      voucher_date
+    );
+  }
+  let total = 0;
+  for (let item of order.item_details) {
+    total = +item.item_total + +total;
+    total = total.toFixed(2);
+  }
+  if (order?.chargesTotal || 0) {
+    arr.push({
+      narration: `Sales Invoice ${order.invoice_number}`,
+      amount: -order.chargesTotal,
+      ledger_uuid: "5350c03e-fea5-4366-a09e-53131552e075",
+    });
+  }
+  let order_total =
+    +(order.order_grandtotal || 0) +
+    +(order?.replacement || 0) +
+    +(order?.shortage || 0) +
+    +(order?.coin || 0) +
+    +(order?.adjustment || 0);
+  if (order.coin) {
+    arr.push({
+      narration: `Sales Invoice ${order.invoice_number}`,
+      amount: order.coin.toFixed(2),
+      ledger_uuid: "fc3ad018-b26a-4608-8e16-da1b7117e3e8",
+    });
+  }
+  arr.push({
+    narration: `Sales Invoice ${order.invoice_number}`,
+    amount: (order_total - total).toFixed(2),
+    ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
+  });
+  arr.push({
+    narration: `Sales Invoice ${order.invoice_number}`,
+    ledger_uuid: order.counter_uuid,
+    amount: -order_total || 0,
+  });
+  arr = arr.map((a) => ({
+    ...a,
+    amount: removeCommas(a.amount),
+  }));
+  let voucher_round_off = 0;
+  for (let item of arr) {
+    voucher_round_off = +item.amount + +voucher_round_off;
+    voucher_round_off = +voucher_round_off.toFixed(3);
+  }
+  if (+voucher_round_off) {
+    arr.push({
+      narration: `Sales Invoice ${order.invoice_number}`,
+      ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
+      amount: -(voucher_round_off || 0).toFixed(3),
+    });
+  }
+
+  let voucher_difference = 0;
+  for (let item of arr) {
+    voucher_difference = +voucher_difference + +item.amount;
+    voucher_difference = +voucher_difference.toFixed(2);
+    console.log({
+      voucher_difference,
+      amount: item.amount,
+      ledger_uuid: item.ledger_uuid,
+    });
+  }
+  // console.log({ arr, voucher_difference });
+  const voucher = {
+    accounting_voucher_uuid: uuid(),
+    type: type,
+    voucher_date,
+    user_uuid: order.user_uuid,
+    counter_uuid: order.counter_uuid,
+    order_uuid: order.order_uuid,
+    invoice_number: order.invoice_number,
+    amount: order.order_grandtotal,
+    voucher_verification: voucher_difference ? 1 : 0,
+    voucher_difference,
+    details: arr,
+    created_at,
+  };
+  await AccountingVoucher.create(voucher);
+  await updateCounterClosingBalance(arr, "add");
+};
+const createAutoCreditNote = async (
+  order,
+  item_uuid,
+  voucher_date = new Date().getTime()
+) => {
+  let price =
+    +(order.replacement || 0) +
+    +(order.shortage || 0) +
+    +(order.adjustment || 0);
+  console.log({ price });
+  let narration =
+    (order.replacement ? "Replacement: " + order.replacement : "") +
+    (order.shortage ? " Shortage: " + order.shortage : "") +
+    (order.adjustment ? " Adjustment: " + order.adjustment : "");
+  console.log({ narration });
+  let item = await Item.findOne({ item_uuid },{conversion:1, item_gst: 1,item_title:1, item_hsn:1,item_uuid :1});
+  item = JSON.parse(JSON.stringify(item));
+  item = { ...item, item_total: 0 };
+
+  item = {
+    ...item,
+    b: 1,
+    price: price / +(item.conversion || 1),
+    item_total: price,
+  };
+
+  let order_grandtotal = Math.round(price);
+  let credit_note_order_uuid = uuid();
+
+  await CreditNotes.create({
+    ...order,
+    order_grandtotal,
+    old_grandtotal: order_grandtotal,
+    item_details: [item],
+    credit_note_order_uuid,
+    ledger_uuid: order.counter_uuid,
+    credit_notes_invoice_date: voucher_date,
+    credit_notes_invoice_number: `CN-${order.invoice_number}`,
+  });
+  await createCreditNotAccountingVoucher(
+    {
+      ...order,
+      order_grandtotal,
+      item_details: [item],
+      credit_note_order_uuid,
+      ledger_uuid: order.counter_uuid,
+      voucher_date,
+    },
+    "CREDIT_NOTE",
+    narration
+  );
+};
+const createCreditNotAccountingVoucher = async (order, type, narration) => {
+  let counterData = await Counters.findOne(
+    { counter_uuid: order.counter_uuid },
+    { gst: 1 }
+  );
+  let gst = counterData?.gst || "";
+  //check is gst starts with 27
+  let isGst = gst?.startsWith("27") || !gst ? false : true;
+
+  let arr = [];
+  // const gst_value = Array.from(
+  //   new Set(order.item_details.map((a) => +a.gst_percentage))
+  // );
+
+  // for (let a of gst_value) {
+  const data = +order.item_details[0]?.item_gst || 0;
+  let amt = order.item_details[0]?.item_total || 0;
+
+  const value = (+amt - (+amt * 100) / (100 + data)).toFixed(2);
+  console.log({ value, amt });
+  if (amt && value) {
+    let ledger = sale_ledger_list.find((b) => b.value === data) || {};
+    arr.push({
+      amount: -(amt - value).toFixed(3),
+      ledger_uuid: isGst
+        ? ledger?.central_purchase_ledger
+        : ledger?.local_sale_ledger,
+      narration,
+    });
+    if (isGst) {
+      arr.push({
+        amount: -value,
+        ledger_uuid: ledger?.sale_igst_ledger,
+        narration,
+      });
+    } else
+      for (let item of ledger?.ledger_uuid || []) {
+        arr.push({
+          amount: -truncateDecimals(value / 2, 2),
+          ledger_uuid: item,
+          narration,
+        });
+      }
+  }
+  // }
+  let round_off = order.round_off || 0;
+  if (round_off)
+    arr.push({
+      amount: -round_off,
+      ledger_uuid: "20327e4d-cd6b-4a64-8fa4-c4d27a5c39a0",
+      narration,
+    });
+  arr.push({
+    ledger_uuid: order.counter_uuid || order.ledger_uuid,
+    amount: order.order_grandtotal || 0,
+    narration,
+  });
+
+  for (let item of order.deductions || []) {
+    arr.push({
+      ledger_uuid: item.ledger_uuid,
+      amount: -item.amount,
+      narration,
+    });
+  }
+  arr = arr.map((a) => ({
+    ...a,
+    amount: removeCommas(a.amount),
+  }));
+  let voucher_round_off = 0;
+  for (let item of arr) {
+    voucher_round_off = +item.amount + +voucher_round_off;
+    voucher_round_off = +voucher_round_off.toFixed(3);
+  }
+  if (+voucher_round_off) {
+    arr.push({
+      ledger_uuid: "ebab980c-4761-439a-9139-f70875e8a298",
+      amount: -(voucher_round_off || 0).toFixed(3),
+      narration,
+    });
+  }
+  let voucher_difference = 0;
+  for (let item of arr) {
+    voucher_difference = +voucher_difference + +item.amount;
+    voucher_difference = +voucher_difference.toFixed(2);
+    console.log({
+      voucher_difference,
+      amount: item.amount,
+      ledger_uuid: item.ledger_uuid,
+    });
+  }
+
+  const voucher = {
+    accounting_voucher_uuid: uuid(),
+    type: type,
+    voucher_date: new Date().getTime(),
+    user_uuid: order.user_uuid,
+    counter_uuid: order.counter_uuid,
+    order_uuid: order.credit_note_order_uuid,
+    invoice_number: order.credit_notes_invoice_number,
+    amount: order.order_grandtotal,
+    voucher_verification: voucher_difference ? 1 : 0,
+    voucher_difference,
+    details: arr,
+    created_at: new Date().getTime(),
+  };
+  await AccountingVoucher.create(voucher);
+  await updateCounterClosingBalance(arr, "add");
+};
+
+router.post("/removeGSTError", async (req, res) => {
+  // try {
+  let success = 0;
+  let failed = 0;
+  let value = req.body;
+  if (!value) return res.json({ success: false, message: "Invalid Data" });
+  for (let item of value) {
+    let voucherData = await AccountingVoucher.findOne({
+      accounting_voucher_uuid: item,
+    });
+    if (voucherData) {
+      voucherData = JSON.parse(JSON.stringify(voucherData));
+      if (voucherData) {
+        let order = await OrderCompleted.findOne({
+          order_uuid: voucherData.order_uuid,
+        });
+
+        await updateCounterClosingBalance(voucherData.details, "delete");
+        await AccountingVoucher.deleteMany({
+          accounting_voucher_uuid: item,
+        });
+        await createAccountingVoucher({
+          order,
+          type: "SALE_ORDER",
+          voucher_date: voucherData.voucher_date,
+          created_at: voucherData.created_at,
+        });
+      }
+      success++;
+    } else {
+      failed++;
+    }
+  }
+
+  res.json({ success: true, message: "GST Error Removed", success, failed });
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err.message });
+  // }
 });
 
 router.post("/getOpeningBalanceReport", async (req, res) => {

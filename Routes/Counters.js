@@ -1454,7 +1454,7 @@ let sale_ledger_list = [
 router.get("/getGSTReport", async (req, res) => {
   const { startDate, endDate } = req.query;
 
-  // try {
+  try {
   // Fetch all counters with GST
   let counterData = await Counter.find({ gst: { $exists: true, $ne: "" } }, { gst: 1 ,counter_uuid:1,counter_title:1});
   counterData = JSON.parse(JSON.stringify(counterData));
@@ -1584,9 +1584,9 @@ router.get("/getGSTReport", async (req, res) => {
   };
 
   res.json({ success: true, result: json });
-  // } catch (err) {
-  //   res.status(500).json({ success: false, message: err.message });
-  // }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 module.exports = router;
