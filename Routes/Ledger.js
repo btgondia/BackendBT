@@ -797,11 +797,13 @@ router.post("/getLegerReport", async (req, res) => {
       "details.ledger_uuid": value.counter_uuid || value.ledger_uuid,
       //has voucher_Date exist
       $or: [
-      {voucher_date: {
-        $gte: default_opening_balance_date.default_opening_balance_date,
-        $lte: value.startDate,
-      }},
-    ],
+        {
+          voucher_date: {
+            $gte: default_opening_balance_date.default_opening_balance_date,
+            $lte: value.startDate,
+          },
+        },
+      ],
     });
 
     let balance = opening_balance?.amount || 0;
@@ -879,59 +881,47 @@ router.post("/getLegerReport", async (req, res) => {
 });
 router.get("/getDebitCreditAccountingBalanceDetails", async (req, res) => {
   try {
-    const defaultOpeningBalanceDate = await Details.findOne({}, { default_opening_balance_date: 1 });
-    
-    const vouchers = await AccountingVoucher.aggregate([
+    let voucherData = await AccountingVoucher.find(
+      {},
       {
-        $match: {
-          $or: [
-            { voucher_date: { $gte: defaultOpeningBalanceDate.default_opening_balance_date } },
-            { voucher_date: 0 },
-            { voucher_date: null },
-          ],
-        },
-      },
-      {
-        $unwind: "$details",
-      },
-      {
-        $group: {
-          _id: {
-            accounting_voucher_uuid: "$accounting_voucher_uuid",
-            voucher_date: "$voucher_date",
-            amt: "$amt",
-          },
-          debit: {
-            $sum: {
-              $cond: [{ $gt: ["$details.amount", 0] }, "$details.amount", 0],
-            },
-          },
-          credit: {
-            $sum: {
-              $cond: [{ $lt: ["$details.amount", 0] }, "$details.amount", 0],
-            },
-          },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          accounting_voucher_uuid: "$_id.accounting_voucher_uuid",
-          voucher_date: "$_id.voucher_date",
-          amt: "$_id.amt",
-          debit: { $round: ["$debit", 2] },
-          credit: { $round: ["$credit", 2] },
-          debitCreditDifference: {
-            $abs: { $subtract: [{ $round: ["$debit", 2] }, { $abs: { $round: ["$credit", 2] } }] }
-          }
-        },
-      },
-      {
-        $match: {
-          debitCreditDifference: { $gt: 0 }
+        voucher_date: 1,
+        voucher_number: 1,
+        voucher_type: 1,
+        details: 1,
+        amt: 1,
+      }
+    );
+    voucherData = JSON.parse(JSON.stringify(voucherData));
+    let vouchers = [];
+    for (let item of voucherData) {
+      let credit = 0;
+      let debit = 0;
+
+      for (let detail of item.details) {
+        if (+detail.amount < 0) {
+          debit = +debit + +detail.amount;
+          debit = +debit.toFixed(4);
+        } else {
+          credit = +credit + +detail.amount;
+          credit = +credit.toFixed(4);
         }
       }
-    ]);
+      if(+credit ===3786.4) {
+        item.details.map((a) => {
+          console.log(a.amount);
+        });
+      }
+      // console.log({ debit, credit });
+      if(Math.abs(debit) !== Math.abs(credit)) {
+      vouchers.push({
+        voucher_date: item.voucher_date,
+        voucher_number: item.voucher_number,
+        amt: item.amt,
+        debit,
+        credit,
+      });
+    }
+    }
 
     if (vouchers.length) {
       res.json({ success: true, result: vouchers });
@@ -942,7 +932,6 @@ router.get("/getDebitCreditAccountingBalanceDetails", async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
-
 
 router.post("/getOpeningBalanceReport", async (req, res) => {
   try {
