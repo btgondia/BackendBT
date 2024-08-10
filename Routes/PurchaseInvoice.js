@@ -14,6 +14,11 @@ const {
 
 let ledger_list = [
   {
+    value: 0,
+    local_purchase_ledger:"d0a3090e-0d51-425b-a123-a00d347e2e65",
+    central_purchase_ledger:"5cdf81b8-db0d-47a7-9e95-c4b1d27abaf7"
+  },
+  {
     value: 5,
     ledger_uuid: [
       "e8a3be31-34df-4888-8050-904bf9392158",

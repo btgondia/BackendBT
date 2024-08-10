@@ -37,6 +37,11 @@ const AccountingVouchers = require("../Models/AccountingVoucher");
 const CreditNotes = require("../Models/CreditNotes");
 let ledger_list = [
   {
+    value: 0,
+    local_sale_ledger: "388c5597-4f43-4dfc-9baf-ac0f657535ce",
+    central_sale_ledger: "32c3c571-fd82-4af6-a1b2-a8f2a3b9c92e",
+  },
+  {
     value: 5,
     ledger_uuid: [
       "036d4761-e375-4cae-b826-f2c154b3403b",
@@ -92,7 +97,10 @@ const createAutoCreditNote = async (
     (order.shortage ? " Shortage: " + order.shortage : "") +
     (order.adjustment ? " Adjustment: " + order.adjustment : "");
   console.log({ narration });
-  let item = await Item.findOne({ item_uuid },{conversion:1, item_gst: 1,item_title:1, item_hsn:1,item_uuid :1});
+  let item = await Item.findOne(
+    { item_uuid },
+    { conversion: 1, item_gst: 1, item_title: 1, item_hsn: 1, item_uuid: 1 }
+  );
   item = JSON.parse(JSON.stringify(item));
   item = { ...item, item_total: 0 };
 
@@ -539,9 +547,12 @@ router.post("/postOrder", async (req, res) => {
       { counter_uuid: value.counter_uuid },
       { counter_group_uuid: 1 }
     );
-    let itemsData = await Item.find({
-      item_uuid: { $in: value.item_details.map((a) => a.item_uuid) },
-    }, { item_uuid: 1, item_group_uuid: 1 });
+    let itemsData = await Item.find(
+      {
+        item_uuid: { $in: value.item_details.map((a) => a.item_uuid) },
+      },
+      { item_uuid: 1, item_group_uuid: 1 }
+    );
 
     let incentiveData = await Incentive.find({ status: 1 });
     incentiveData = JSON.parse(JSON.stringify(incentiveData));
@@ -611,9 +622,12 @@ router.post("/postOrder", async (req, res) => {
         }
         if (incentive_item.calculation === "qty" && incentive_item.value) {
           for (let item of eligibleItems) {
-            let itemData = await Item.findOne({
-              item_uuid: item.item_uuid,
-            }, { conversion: 1 ,item_uuid:1});
+            let itemData = await Item.findOne(
+              {
+                item_uuid: item.item_uuid,
+              },
+              { conversion: 1, item_uuid: 1 }
+            );
             amt =
               +amt +
               ((+item.b * +itemData?.conversion || 0) + item.p) *
@@ -672,7 +686,13 @@ router.post("/postOrder", async (req, res) => {
           order_status: "R",
           entry: +orderStage === 5 ? 1 : 0,
         });
-        await createAccountingVoucher({ order: value, type: "SALE_ORDER" });
+        await createAccountingVoucher({
+          order: value,
+          type: "SALE_ORDER",
+          voucher_date: value?.status?.length
+            ? value.status[0].time
+            : new Date().getTime(),
+        });
       }
     } else
       response = await Orders.create({
@@ -773,9 +793,12 @@ router.put("/putOrders", async (req, res) => {
     if (status) status = await checkingOrderSkip(value.status);
 
     let itemData = value?.item_details?.length
-      ? await Item.find({
-          item_uuid: { $in: value.item_details.map((a) => a.item_uuid) },
-        }, { item_uuid: 1, item_group_uuid: 1 })
+      ? await Item.find(
+          {
+            item_uuid: { $in: value.item_details.map((a) => a.item_uuid) },
+          },
+          { item_uuid: 1, item_group_uuid: 1 }
+        )
       : [];
 
     let old_stage = prevData
@@ -886,7 +909,7 @@ router.put("/putOrders", async (req, res) => {
             ...value,
             entry: value?.order_type === "E" ? 2 : +new_stage === 5 ? 1 : 0,
           });
-          await createAccountingVoucher({ order: value, type: "SALE_ORDER" });
+          await createAccountingVoucher({ order: value, type: "SALE_ORDER" ,voucher_date: value?.status?.length ? value.status[0].time : new Date().getTime()});
         }
 
         await Orders.deleteOne({ order_uuid: value.order_uuid });
@@ -903,11 +926,14 @@ router.put("/putOrders", async (req, res) => {
           { counter_group_uuid: 1 }
         );
         let itemsData = value?.item_details?.length
-          ? await Item.find({
-              item_uuid: {
-                $in: value?.item_details?.map((a) => a.item_uuid) || [],
+          ? await Item.find(
+              {
+                item_uuid: {
+                  $in: value?.item_details?.map((a) => a.item_uuid) || [],
+                },
               },
-            }, { item_uuid: 1, item_group_uuid: 1 })
+              { item_uuid: 1, item_group_uuid: 1 }
+            )
           : [];
 
         let incentiveData = (await Incentive.find({ status: 1 }))?.map((i) =>
@@ -1097,9 +1123,12 @@ router.put("/putOrders", async (req, res) => {
             }
             if (incentive_item.calculation === "qty" && incentive_item.value) {
               for (let item of eligibleItems) {
-                let itemData = await Item.findOne({
-                  item_uuid: item.item_uuid,
-                }, { conversion: 1 });
+                let itemData = await Item.findOne(
+                  {
+                    item_uuid: item.item_uuid,
+                  },
+                  { conversion: 1 }
+                );
                 amt =
                   +amt +
                   ((+item?.b * +itemData?.conversion || 0) + item.p) *
@@ -1732,7 +1761,7 @@ router.get("/GetOrderRunningList", async (req, res) => {
 router.get("/GetOrderAllRunningList/:user_uuid", async (req, res) => {
   try {
     const result = await getRunningOrders({
-      user_uuid: req.params.user_uuid
+      user_uuid: req.params.user_uuid,
     });
     res.json(result);
   } catch (err) {
@@ -2541,7 +2570,7 @@ router.post("/getOrderListByChequeNumber", async (req, res) => {
     res.status(500).json({ success: false, message: err?.message });
   }
 });
-//put comments 
+//put comments
 router.put("/putOrderComments", async (req, res) => {
   try {
     let value = req.body;

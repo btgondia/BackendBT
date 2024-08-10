@@ -781,9 +781,7 @@ router.put("/CalculateLines", async (req, res) => {
           }
         );
       }
-      if (counter.counter_code === "5043.2") {
-        console.log(counterorder.length);
-      }
+
       index = index + 1;
       if (index === counterData.length) {
         res.json({ success: true, result: "" });
@@ -1335,7 +1333,6 @@ router.post("/report/new", async (req, res) => {
 
     res.json({ success: true, result: counters });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1450,11 +1447,49 @@ let sale_ledger_list = [
     sale_igst_ledger: "6aa3f24a-3572-4825-b884-59425f7edbe7",
   },
 ];
-
+router.get("/getGSTCounterErrorReport", async (req, res) => {
+  try {
+    let counterData = await Counter.find(
+      { gst: { $exists: true, $ne: "" } },
+      { gst: 1, counter_uuid: 1, counter_title: 1 }
+    );
+    counterData = JSON.parse(JSON.stringify(counterData));
+    let result = [];
+    for (const counter of counterData) {
+      if (
+        !counter.gst ||
+        counter?.gst?.length !== 15 ||
+        isNaN(counter.gst.substring(0, 2)) ||
+        !isNaN(counter.gst.substring(2, 3))
+      ) {
+        result.push(counter);
+      }
+    }
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.get("/getGSTReport", async (req, res) => {
   const { startDate, endDate } = req.query;
 
   try {
+    let nil = {
+      inv: [
+        { sply_ty: "INTRB2B", expt_amt: 0, nil_amt: 0, ngsup_amt: 0 },
+        {
+          sply_ty: "INTRAB2B",
+          expt_amt: 0,
+          nil_amt: 0,
+          ngsup_amt: 0,
+        },
+        { sply_ty: "INTRB2C", expt_amt: 0, nil_amt: 0, ngsup_amt: 0 },
+        { sply_ty: "INTRAB2C", expt_amt: 0, nil_amt: 0, ngsup_amt: 0 },
+      ],
+    };
+
+    let zero_local_sale_ledger = "388c5597-4f43-4dfc-9baf-ac0f657535ce";
+    let zero_central_sale_ledger = "32c3c571-fd82-4af6-a1b2-a8f2a3b9c92e";
     // Fetch all counters with GST
     let counterData = await Counter.find(
       { gst: { $exists: true, $ne: "" } },
@@ -1473,14 +1508,18 @@ router.get("/getGSTReport", async (req, res) => {
     vouchers = JSON.parse(JSON.stringify(vouchers));
     // Fetch accounting vouchers for GST counters
     const b2bs = [];
-    for (const counter of counterData) {
+    for (const counter of counterData.filter((a) =>
+      vouchers.find((b) =>
+        b.details.find((c) => c.ledger_uuid === a.counter_uuid)
+      )
+    )) {
       const inv = [];
 
       let vouchersData = vouchers.filter((a) =>
         a.details.find((b) => b.ledger_uuid === counter.counter_uuid)
       );
-      console.log(vouchersData.length);
       for (const voucher of vouchersData) {
+        let val = 0;
         let orderData = await OrderCompleted.findOne(
           {
             $or: [
@@ -1521,8 +1560,9 @@ router.get("/getGSTReport", async (req, res) => {
           .filter((a) => a);
         for (const ledger of ledgers) {
           if (+ledger.value) {
+            val = (+val + (+ledger.amount || 0)).toFixed(2);
             itms.push({
-              num: 0,
+              num: ledger.value + "01",
               itm_det: {
                 rt: ledger.value,
                 txval: ledger.amount,
@@ -1547,12 +1587,37 @@ router.get("/getGSTReport", async (req, res) => {
           idt: voucher.voucher_date
             ? getDDMMYYDate(voucher.voucher_date)
             : voucher.voucher_date,
-          val: voucher.total_amount,
+          val: (+val).toFixed(0),
           pos: "27",
           rchrg: "N",
           inv_typ: "R",
           itms,
         });
+        let zeroSalesLedgers = voucher.details.filter(
+          (a) =>
+            a.ledger_uuid === zero_local_sale_ledger ||
+            a.ledger_uuid === zero_central_sale_ledger
+        );
+        if (zeroSalesLedgers.length) {
+          let zeroVal = zeroSalesLedgers.reduce((a, b) => a + b.amount, 0);
+          let isGstStartWith27 = counter.gst.startsWith("27");
+
+          nil = {
+            inv: nil.inv.map((a) => {
+              if (
+                (!isGstStartWith27 && a.sply_ty === "INTRB2B") ||
+                (isGstStartWith27 && a.sply_ty === "INTRAB2B")
+              ) {
+                return {
+                  ...a,
+                  nil_amt: (+a.nil_amt + zeroVal).toFixed(2),
+                };
+              } else {
+                return a;
+              }
+            }),
+          };
+        }
       }
 
       if (inv.length) {
@@ -1565,15 +1630,15 @@ router.get("/getGSTReport", async (req, res) => {
     const notGstCounterVouchers = await AccountingVoucher.find({
       "details?.ledger_uuid": { $nin: notGstCounterUuids },
       voucher_date: { $gte: startDate, $lte: endDate },
+      type: "SALE_ORDER",
     });
-
-    // Process non-GST counter vouchers
-    const b2cs = sale_ledger_list.map((item) => {
+    let b2cs = {};
+    for (let item of sale_ledger_list) {
       let txval = 0,
         camt = 0,
         samt = 0;
 
-      notGstCounterVouchers.forEach((voucher) => {
+      for (let voucher of notGstCounterVouchers) {
         const ledger =
           voucher?.details?.find(
             (a) => a?.ledger_uuid === item?.local_sale_ledger
@@ -1586,13 +1651,14 @@ router.get("/getGSTReport", async (req, res) => {
         const sgst =
           voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[1])
             ?.amount || 0;
+        if (ledger || cgst || sgst) console.log(ledger, cgst, sgst, voucher);
 
         txval += ledger;
         camt += cgst;
         samt += sgst;
-      });
+      }
 
-      return {
+      b2cs = {
         camt: camt?.toFixed(2),
         csamt: 0.0,
         pos: "27",
@@ -1602,7 +1668,29 @@ router.get("/getGSTReport", async (req, res) => {
         txval: txval?.toFixed(2),
         type: "OE",
       };
-    });
+    }
+    for (let voucher of notGstCounterVouchers) {
+      let zeroSalesLedgers = voucher.details.filter(
+        (a) =>
+          a.ledger_uuid === zero_local_sale_ledger ||
+          a.ledger_uuid === zero_central_sale_ledger
+      );
+      if (zeroSalesLedgers.length) {
+        let zeroVal = zeroSalesLedgers.reduce((a, b) => a + b.amount, 0);
+        nil = {
+          inv: nil.inv.map((a) => {
+            if (a.sply_ty === "INTRAB2C") {
+              return {
+                ...a,
+                nil_amt: (+a.nil_amt + zeroVal).toFixed(2),
+              };
+            } else {
+              return a;
+            }
+          }),
+        };
+      }
+    }
 
     // Construct final JSON response
     const json = {
@@ -1612,6 +1700,7 @@ router.get("/getGSTReport", async (req, res) => {
       hash: "KVEZiG/Qy3056q9l1Po1hz7bE79c7iozk0MpVcH0zdU=",
       b2b: b2bs,
       b2cs,
+      nil,
     };
 
     res.json({ success: true, result: json });
