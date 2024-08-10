@@ -1492,10 +1492,11 @@ router.get("/getGSTReport", async (req, res) => {
     let zero_central_sale_ledger = "32c3c571-fd82-4af6-a1b2-a8f2a3b9c92e";
     // Fetch all counters with GST
     let counterData = await Counter.find(
-      { gst: { $exists: true, $ne: "" } },
+      { },
       { gst: 1, counter_uuid: 1, counter_title: 1 }
     );
     counterData = JSON.parse(JSON.stringify(counterData));
+    let gstCounterData=counterData.filter((a) => a.gst);
     let vouchers = await AccountingVoucher.find({
       details: {
         $elemMatch: {
@@ -1508,20 +1509,18 @@ router.get("/getGSTReport", async (req, res) => {
     vouchers = JSON.parse(JSON.stringify(vouchers));
     // Fetch accounting vouchers for GST counters
     const b2bs = [];
-    for (const counter of counterData.filter((a) =>
-      vouchers.find((b) =>
-        b.details.find((c) => c.ledger_uuid === a.counter_uuid)
-      )
-    )) {
+    for (const counter of gstCounterData) {
       const inv = [];
 
       let vouchersData = vouchers.filter((a) =>
         a.details.find((b) => b.ledger_uuid === counter.counter_uuid)
       );
       for (const voucher of vouchersData) {
+        
         let val = 0;
         let orderData = await OrderCompleted.findOne(
           {
+            counter_uuid: counter.counter_uuid,
             $or: [
               { invoice_number: voucher.invoice_number },
               { order_uuid: voucher.order_uuid },
@@ -1529,6 +1528,8 @@ router.get("/getGSTReport", async (req, res) => {
           },
           { item_details: 1, invoice_number: 1, order_date: 1, total_amount: 1 }
         );
+        if(!counterData.find(a=>a.counter_uuid===orderData?.counter_uuid)?.gst) continue;
+        if(!orderData) continue;
         let itms = [];
 
         let ledgers = voucher.details
@@ -1626,7 +1627,7 @@ router.get("/getGSTReport", async (req, res) => {
     }
 
     // Fetch non-GST counters' vouchers
-    const notGstCounterUuids = counterData.map((a) => a.counter_uuid);
+    const notGstCounterUuids = counterData.filter((a) => a.counter_uuid&&!a.gst).map(a=>a.counter_uuid);
     const notGstCounterVouchers = await AccountingVoucher.find({
       "details?.ledger_uuid": { $nin: notGstCounterUuids },
       voucher_date: { $gte: startDate, $lte: endDate },
@@ -1639,6 +1640,19 @@ router.get("/getGSTReport", async (req, res) => {
         samt = 0;
 
       for (let voucher of notGstCounterVouchers) {
+        let orderData = await OrderCompleted.findOne(
+          {
+            $or: [
+              { invoice_number: voucher.invoice_number },
+              { order_uuid: voucher.order_uuid },
+            ],
+          },
+          { order_uuid:1,counter_uuid:1}
+        );
+        if(counterData.find(a=>a.counter_uuid===orderData?.counter_uuid)?.gst) continue;
+
+        if(!orderData) continue;
+
         const ledger =
           voucher?.details?.find(
             (a) => a?.ledger_uuid === item?.local_sale_ledger
@@ -1691,7 +1705,7 @@ router.get("/getGSTReport", async (req, res) => {
         };
       }
     }
-
+console.log(gstCounterData.length,notGstCounterVouchers.length,counterData.length)
     // Construct final JSON response
     const json = {
       gstin: "27ABIPR1186M1Z2",
