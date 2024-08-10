@@ -1500,11 +1500,6 @@ router.get("/getGSTReport", async (req, res) => {
     counterData = JSON.parse(JSON.stringify(counterData));
     let gstCounterData = counterData.filter((a) => a.gst);
     let vouchers = await AccountingVoucher.find({
-      details: {
-        $elemMatch: {
-          ledger_uuid: { $in: counterData.map((a) => a.counter_uuid) },
-        },
-      },
       voucher_date: { $gte: startDate, $lte: endDate },
       type: "SALE_ORDER",
     });
@@ -1729,11 +1724,12 @@ router.get("/getGSTReport", async (req, res) => {
     const notGstCounterUuids = counterData
       .filter((a) => a.counter_uuid && !a.gst)
       .map((a) => a.counter_uuid);
-    const notGstCounterVouchers = await AccountingVoucher.find({
-      "details?.ledger_uuid": { $nin: notGstCounterUuids },
-      voucher_date: { $gte: startDate, $lte: endDate },
-      type: "SALE_ORDER",
-    });
+    const notGstCounterVouchers = vouchers.filter(
+      (a) =>
+        notGstCounterUuids.includes(
+          a.details.find((b) => b.ledger_uuid === a.counter_uuid)?.ledger_uuid
+        )
+    );
     let b2cs = {};
     for (let item of sale_ledger_list) {
       let txval = 0,
@@ -1774,9 +1770,6 @@ router.get("/getGSTReport", async (req, res) => {
         camt += cgst;
         samt += sgst;
       }
-      console.log("txval", txval);
-      console.log("camt", camt);
-      console.log("samt", samt);
 
       b2cs = {
         camt: camt?.toFixed(2),
