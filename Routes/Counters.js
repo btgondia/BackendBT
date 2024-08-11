@@ -1475,8 +1475,8 @@ router.get("/getGSTCounterErrorReport", async (req, res) => {
 router.get("/getGSTReport", async (req, res) => {
   const { startDate, endDate } = req.query;
 
-  try {
-    let accounting_voucher_uuid=[]
+  // try {
+  let accounting_voucher_uuid = [];
   let nil = {
     inv: [
       { sply_ty: "INTRB2B", expt_amt: 0, nil_amt: 0, ngsup_amt: 0 },
@@ -1509,6 +1509,28 @@ router.get("/getGSTReport", async (req, res) => {
     voucher_date: { $gte: startDate, $lte: endDate },
     type: "CREDIT_NOTE",
   });
+  let allCompletedOrders = await OrderCompleted.find(
+    {
+      order_uuid: { $in: vouchers.map((a) => a.order_uuid) },
+    },
+    { counter_uuid: 1, gst: 1, order_uuid: 1, invoice_number: 1 }
+  );
+  allCompletedOrders = JSON.parse(JSON.stringify(allCompletedOrders));
+  let allCreditNotes = await CreditNotes.find(
+    {
+      credit_note_order_uuid: {
+        $in: creditNoteData.map((a) => a.order_uuid),
+      },
+    },
+    {
+      ledger_uuid: 1,
+      gst: 1,
+      credit_note_order_uuid: 1,
+      credit_notes_invoice_number: 1,
+    }
+  );
+  allCreditNotes = JSON.parse(JSON.stringify(allCreditNotes));
+
   creditNoteData = JSON.parse(JSON.stringify(creditNoteData));
   // Fetch accounting vouchers for GST counters
   const b2bs = [];
@@ -1521,15 +1543,11 @@ router.get("/getGSTReport", async (req, res) => {
     );
     for (const voucher of vouchersData) {
       let val = 0;
-      let orderData = await OrderCompleted.findOne(
-        {
-          counter_uuid: counter.counter_uuid,
-          $or: [
-            { invoice_number: voucher.invoice_number },
-            { order_uuid: voucher.order_uuid },
-          ],
-        },
-        { item_details: 1, invoice_number: 1, order_date: 1, total_amount: 1 }
+      let orderData = allCompletedOrders.find(
+        (a) =>
+          a.counter_uuid === counter.counter_uuid &&
+          (a.order_uuid === voucher.order_uuid ||
+            a.invoice_number === voucher.invoice_number)
       );
       if (
         !counterData.find((a) => a.counter_uuid === orderData?.counter_uuid)
@@ -1601,7 +1619,7 @@ router.get("/getGSTReport", async (req, res) => {
         inv_typ: "R",
         itms,
       });
-      accounting_voucher_uuid.push(voucher.accounting_voucher_uuid)
+      accounting_voucher_uuid.push(voucher.accounting_voucher_uuid);
       let zeroSalesLedgers = voucher.details.filter(
         (a) =>
           a.ledger_uuid === zero_local_sale_ledger ||
@@ -1639,15 +1657,11 @@ router.get("/getGSTReport", async (req, res) => {
     );
     for (const voucher of creditNoteVouchersData) {
       let val = 0;
-      let orderData = await CreditNotes.findOne(
-        {
-          ledger_uuid: counter.counter_uuid,
-          $or: [
-            { credit_notes_invoice_number: voucher.invoice_number },
-            { credit_note_order_uuid: voucher.order_uuid },
-          ],
-        },
-        { item_details: 1, credit_notes_invoice_number: 1 }
+      let orderData = allCreditNotes.find(
+        (a) =>
+          a.ledger_uuid === counter.counter_uuid &&
+          (a.credit_note_order_uuid === voucher.order_uuid ||
+            a.credit_notes_invoice_number === voucher.invoice_number)
       );
 
       if (!orderData) continue;
@@ -1687,29 +1701,33 @@ router.get("/getGSTReport", async (req, res) => {
             num: ledger.value + "01",
             itm_det: {
               rt: ledger.value,
-              txval: ledger.amount,
-              camt: ledger.isLocal
-                ? voucher.details.find(
-                    (a) => a.ledger_uuid === ledger.local_ledgers[0]
-                  )?.amount || 0
-                : 0,
-              samt: ledger.isLocal
-                ? voucher.details.find(
-                    (a) => a.ledger_uuid === ledger.local_ledgers[1]
-                  )?.amount || 0
-                : 0,
-              csamt: ledger.isLocal ? 0.0 : ledger.amount,
+              txval: Math.abs(ledger.amount),
+              camt: Math.abs(
+                ledger.isLocal
+                  ? voucher.details.find(
+                      (a) => a.ledger_uuid === ledger.local_ledgers[0]
+                    )?.amount || 0
+                  : 0
+              ),
+              samt: Math.abs(
+                ledger.isLocal
+                  ? voucher.details.find(
+                      (a) => a.ledger_uuid === ledger.local_ledgers[1]
+                    )?.amount || 0
+                  : 0
+              ),
+              csamt: Math.abs(ledger.isLocal ? 0.0 : ledger.amount),
             },
           });
         }
       }
-      accounting_voucher_uuid.push(voucher.accounting_voucher_uuid)
+      accounting_voucher_uuid.push(voucher.accounting_voucher_uuid);
       nt.push({
         inum: orderData.credit_notes_invoice_number,
         idt: voucher.voucher_date
           ? getDDMMYYDate(voucher.voucher_date)
           : voucher.voucher_date,
-        val: (+val).toFixed(0),
+        val: Math.abs((+val).toFixed(0)),
         pos: "27",
         rchrg: "N",
         inv_typ: "R",
@@ -1727,9 +1745,7 @@ router.get("/getGSTReport", async (req, res) => {
     .filter((a) => a.counter_uuid && !a.gst)
     .map((a) => a.counter_uuid);
   const notGstCounterVouchers = vouchers.filter((a) =>
-    notGstCounterUuids.includes(
-      a.details.find((b) => b.ledger_uuid === a.counter_uuid)?.ledger_uuid
-    )
+    notGstCounterUuids.find((b) => a.details.find((c) => b === c.ledger_uuid))
   );
   let ledgerData = await Ledger.find({}, { ledger_uuid: 1, ledger_title: 1 });
   ledgerData = JSON.parse(JSON.stringify(ledgerData));
@@ -1756,16 +1772,12 @@ router.get("/getGSTReport", async (req, res) => {
     let txval = 0;
     let camt = 0;
     let samt = 0;
+    let csamt = 0;
 
     for (let voucher of notGstCounterVouchers) {
-      let orderData = await OrderCompleted.findOne(
-        {
-          $or: [
-            { invoice_number: voucher.invoice_number },
-            { order_uuid: voucher.order_uuid },
-          ],
-        },
-        { order_uuid: 1, counter_uuid: 1 }
+      let orderData = allCompletedOrders.find(
+        (a) =>
+          a.order_uuid === voucher.order_uuid
       );
       if (
         counterData.find((a) => a.counter_uuid === orderData?.counter_uuid)?.gst
@@ -1788,22 +1800,43 @@ router.get("/getGSTReport", async (req, res) => {
         ? voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[1])
             ?.amount || 0
         : 0;
+      const centralsamt =
+        voucher?.details?.find(
+          (a) => a.ledger_uuid === item?.central_sale_ledger
+        )?.amount || 0;
 
       txval += ledger;
       camt += cgst;
       samt += sgst;
-      if(ledger || cgst || sgst)
-      accounting_voucher_uuid.push(voucher.accounting_voucher_uuid)
+      csamt += centralsamt;
+      if (ledger || cgst || sgst || csamt)
+        accounting_voucher_uuid.push(voucher.accounting_voucher_uuid);
+      let zeroSalesLedgers = voucher.details.filter(
+        (a) =>
+          a.ledger_uuid === zero_local_sale_ledger ||
+          a.ledger_uuid === zero_central_sale_ledger
+      );
+      if (zeroSalesLedgers.length) {
+        let zeroVal = zeroSalesLedgers.reduce((a, b) => a + b.amount, 0);
+        accounting_voucher_uuid.push(voucher.accounting_voucher_uuid);
+        nil = {
+          inv: nil.inv.map((a) => {
+            if (a.sply_ty === "INTRAB2C") {
+              return {
+                ...a,
+                nil_amt: (+a.nil_amt + zeroVal).toFixed(2),
+              };
+            } else {
+              return a;
+            }
+          }),
+        };
+      }
     }
     for (let voucher of notGstLedgerVouchers) {
-      let orderData = await CreditNotes.findOne(
-        {
-          $or: [
-            { credit_notes_invoice_number: voucher.invoice_number },
-            { credit_note_order_uuid: voucher.order_uuid },
-          ],
-        },
-        { credit_note_order_uuid: 1, counter_uuid: 1 }
+      let orderData = allCreditNotes.find(
+        (a) =>
+          a.credit_note_order_uuid === voucher.order_uuid
       );
       if (
         counterData.find((a) => a.counter_uuid === orderData?.ledger_uuid) ||
@@ -1818,24 +1851,31 @@ router.get("/getGSTReport", async (req, res) => {
           (a) => a?.ledger_uuid === item?.local_sale_ledger
         )?.amount || 0;
 
-      const cgst =item?.ledger_uuid?.length?
-        voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[0])
-          ?.amount || 0:0;
+      const cgst = item?.ledger_uuid?.length
+        ? voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[0])
+            ?.amount || 0
+        : 0;
 
-      const sgst =item?.ledger_uuid?.length?
-        voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[1])
-          ?.amount || 0:0;
+      const sgst = item?.ledger_uuid?.length
+        ? voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[1])
+            ?.amount || 0
+        : 0;
+      const centralsamt =
+        voucher?.details?.find(
+          (a) => a.ledger_uuid === item?.central_sale_ledger
+        )?.amount || 0;
 
       txval += ledger;
       camt += cgst;
       samt += sgst;
-      if(ledger || cgst || sgst)
-      accounting_voucher_uuid.push(voucher.accounting_voucher_uuid)
+      csamt += centralsamt;
+      if (ledger || cgst || sgst || csamt)
+        accounting_voucher_uuid.push(voucher.accounting_voucher_uuid);
     }
 
     b2cs.push({
       camt: camt?.toFixed(2),
-      csamt: 0.0,
+      csamt,
       pos: "27",
       rt: item?.value,
       samt: samt?.toFixed(2),
@@ -1843,29 +1883,6 @@ router.get("/getGSTReport", async (req, res) => {
       txval: txval?.toFixed(2),
       type: "OE",
     });
-  }
-  for (let voucher of notGstCounterVouchers) {
-    let zeroSalesLedgers = voucher.details.filter(
-      (a) =>
-        a.ledger_uuid === zero_local_sale_ledger ||
-        a.ledger_uuid === zero_central_sale_ledger
-    );
-    if (zeroSalesLedgers.length) {
-      let zeroVal = zeroSalesLedgers.reduce((a, b) => a + b.amount, 0);
-      accounting_voucher_uuid.push(voucher.accounting_voucher_uuid)
-      nil = {
-        inv: nil.inv.map((a) => {
-          if (a.sply_ty === "INTRAB2C") {
-            return {
-              ...a,
-              nil_amt: (+a.nil_amt + zeroVal).toFixed(2),
-            };
-          } else {
-            return a;
-          }
-        }),
-      };
-    }
   }
 
   for (const counter of ledgerData.filter((a) => a.gst)) {
@@ -1876,15 +1893,11 @@ router.get("/getGSTReport", async (req, res) => {
     );
     for (const voucher of vouchersData) {
       let val = 0;
-      let orderData = await CreditNotes.findOne(
-        {
-          ledger_uuid: counter.ledger_uuid,
-          $or: [
-            { credit_notes_invoice_number: voucher.invoice_number },
-            { credit_note_order_uuid: voucher.order_uuid },
-          ],
-        },
-        { item_details: 1, credit_notes_invoice_number: 1 }
+      let orderData = allCreditNotes.find(
+        (a) =>
+          a.ledger_uuid === counter.ledger_uuid &&
+          (a.credit_note_order_uuid === voucher.order_uuid ||
+            a.credit_notes_invoice_number === voucher.invoice_number)
       );
 
       if (!orderData) continue;
@@ -1940,7 +1953,7 @@ router.get("/getGSTReport", async (req, res) => {
           });
         }
       }
-accounting_voucher_uuid.push(voucher.accounting_voucher_uuid)
+      accounting_voucher_uuid.push(voucher.accounting_voucher_uuid);
       nt.push({
         inum: orderData.credit_notes_invoice_number,
         idt: voucher.voucher_date
@@ -1973,10 +1986,10 @@ accounting_voucher_uuid.push(voucher.accounting_voucher_uuid)
   //remove duplicate accounting_voucher_uuid
   accounting_voucher_uuid = [...new Set(accounting_voucher_uuid)];
 
-  res.json({ success: true, result: json,accounting_voucher_uuid });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
+  res.json({ success: true, result: json, accounting_voucher_uuid });
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err.message });
+  // }
 });
 
 module.exports = router;
