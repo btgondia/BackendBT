@@ -9,6 +9,9 @@ const gstReturnsSchema = new mongoose.Schema({
   title: { type: String },
   status: { type: String },
   accounting_voucher_uuid: [{ type: String }],
+  json_data: {type:String},
+  from_date: { type: Number },
+  to_date: { type: Number },
 });
 
 const GSTReturns = mongoose.model("gst_returns", gstReturnsSchema);

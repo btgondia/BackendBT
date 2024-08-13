@@ -22,6 +22,7 @@ const {
 const AccountingVoucher = require("../Models/AccountingVoucher");
 const Ledger = require("../Models/Ledger");
 const CreditNotes = require("../Models/CreditNotes");
+const HSNCode = require("../Models/hsn_code");
 const msg91 = require("msg91-templateid")(
   "312759AUCbnlpoZeD61714959P1",
   "foodDo",
@@ -1476,6 +1477,7 @@ router.get("/getGSTReport", async (req, res) => {
   const { startDate, endDate } = req.query;
 
   // try {
+  let hsn_codes = await HSNCode.find({}, { hsn_code: 1, gst_rate: 1 });
   let accounting_voucher_uuid = [];
   let nil = {
     inv: [
@@ -1593,12 +1595,12 @@ router.get("/getGSTReport", async (req, res) => {
               rt: ledger.value,
               txval: ledger.amount,
               camt: ledger.isLocal
-                ? voucher.details.find(
+                ? +voucher.details.find(
                     (a) => a.ledger_uuid === ledger.local_ledgers[0]
                   )?.amount || 0
                 : 0,
               samt: ledger.isLocal
-                ? voucher.details.find(
+                ? +voucher.details.find(
                     (a) => a.ledger_uuid === ledger.local_ledgers[1]
                   )?.amount || 0
                 : 0,
@@ -1761,14 +1763,15 @@ router.get("/getGSTReport", async (req, res) => {
         notGstCounterUuids.find((c) => c === b.ledger_uuid)
     )
   );
-  for (let item of [
+  let hsn =[]
+  for (let [index,item] of [
     {
       value: 0,
       local_sale_ledger: zero_local_sale_ledger,
       central_sale_ledger: zero_central_sale_ledger,
     },
     ...sale_ledger_list,
-  ]) {
+  ].entries()) {
     let txval = 0;
     let camt = 0;
     let samt = 0;
@@ -1852,16 +1855,16 @@ router.get("/getGSTReport", async (req, res) => {
         )?.amount || 0;
 
       const cgst = item?.ledger_uuid?.length
-        ? voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[0])
+        ? +voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[0])
             ?.amount || 0
         : 0;
 
       const sgst = item?.ledger_uuid?.length
-        ? voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[1])
+        ? +voucher?.details?.find((a) => a?.ledger_uuid === item?.ledger_uuid[1])
             ?.amount || 0
         : 0;
       const centralsamt =
-        voucher?.details?.find(
+        +voucher?.details?.find(
           (a) => a.ledger_uuid === item?.central_sale_ledger
         )?.amount || 0;
 
@@ -1874,14 +1877,31 @@ router.get("/getGSTReport", async (req, res) => {
     }
 
     b2cs.push({
-      camt: camt?.toFixed(2),
-      csamt,
+      camt: +camt?.toFixed(2),
+      csamt:+csamt?.toFixed(2),
       pos: "27",
-      rt: item?.value,
-      samt: samt?.toFixed(2),
+      rt: +item?.value,
+      samt: +samt?.toFixed(2),
       sply_ty: "INTRA",
-      txval: txval?.toFixed(2),
+      txval: +txval?.toFixed(2),
       type: "OE",
+    });
+    let hsn_code = hsn_codes.filter((a) => a.gst_rate === item.value);
+    hsn.push({
+      num: index+1,
+
+
+      hsn_sc: hsn_code.hsn_code,
+      desc: hsn_code?.title,
+      uqc: "OTH",
+      qty: 1,
+      rt: item?.value,
+      val: +txval?.toFixed(2),
+      txval: +txval?.toFixed(2),
+      iamt: +camt?.toFixed(2),
+      csamt: +csamt?.toFixed(2),
+      samt: +samt?.toFixed(2),
+      camt: +camt?.toFixed(2),
     });
   }
 
@@ -1937,14 +1957,14 @@ router.get("/getGSTReport", async (req, res) => {
             num: ledger.value + "01",
             itm_det: {
               rt: ledger.value,
-              txval: ledger.amount,
+              txval: +ledger.amount,
               camt: ledger.isLocal
-                ? voucher.details.find(
+                ? +voucher.details.find(
                     (a) => a.ledger_uuid === ledger.local_ledgers[0]
                   )?.amount || 0
                 : 0,
               samt: ledger.isLocal
-                ? voucher.details.find(
+                ? +voucher.details.find(
                     (a) => a.ledger_uuid === ledger.local_ledgers[1]
                   )?.amount || 0
                 : 0,
@@ -1972,16 +1992,19 @@ router.get("/getGSTReport", async (req, res) => {
     }
   }
 
+  
+
   // Construct final JSON response
   const json = {
     gstin: "27ABIPR1186M1Z2",
     fp: "032024",
-    version: "GST3.1.8",
+    version: "GST3.2",
     hash: "KVEZiG/Qy3056q9l1Po1hz7bE79c7iozk0MpVcH0zdU=",
     b2b: b2bs,
     b2cs,
     nil,
     cdnr,
+    hsn,
   };
   //remove duplicate accounting_voucher_uuid
   accounting_voucher_uuid = [...new Set(accounting_voucher_uuid)];

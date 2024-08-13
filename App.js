@@ -59,6 +59,7 @@ const PurchaseINvoice = require("./Routes/PurchaseInvoice");
 const CreditNotes = require("./Routes/CreditNote");
 const loggerMiddleware = require("./loggerMiddleware");
 const GSTReturns = require("./Routes/GSTReturns");
+const HSNCode = require("./Routes/hsn_code");
 
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
@@ -137,6 +138,7 @@ app.use("/ledgerGroup", LedgerGroup);
 app.use("/purchaseInvoice", PurchaseINvoice);
 app.use("/creditNote",CreditNotes)
 app.use("/gstReturns", GSTReturns);
+app.use("/hsn_code",HSNCode)
 app.get("/MinLevelUpdate", async (req, res, next) => {
   const response = await MinLevelUpdateAutomation();
   res.json({ success: true, message: "Updated", result: response });

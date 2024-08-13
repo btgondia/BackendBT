@@ -89,7 +89,8 @@ const ItemSchema = new mongoose.Schema({
 		}
 	],
 	img_status: { type: Number },
-	created_at: { type: Number }
+	created_at: { type: Number },
+	hsn_code_uuid: { type: String },
 })
 
 module.exports = mongoose.model("items", ItemSchema)
