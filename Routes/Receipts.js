@@ -116,9 +116,14 @@ const updateAccountingVoucher = async (order, type, recept_number) => {
 };
 router.get("/getPendingEntry", async (req, res) => {
   try {
-    let receiptData = await Receipts.find({
-      entry: 0,
-    });
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const limit = parseInt(req.query.limit) || 300; // Default to 300 records per page
+    const skip = (page - 1) * limit;
+
+    let receiptData = await Receipts.find({ entry: 0 })
+      .skip(skip)
+      .limit(limit);
+
     receiptData = JSON.parse(JSON.stringify(receiptData));
     console.log(receiptData);
     res.json({
@@ -129,6 +134,7 @@ router.get("/getPendingEntry", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+
 router.post("/postReceipt", async (req, res) => {
   try {
     let value = req.body;

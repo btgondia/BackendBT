@@ -1505,6 +1505,10 @@ router.get("/getSignedBills", async (req, res) => {
 
 router.get("/getPendingEntry", async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1; // default to page 1
+    const limit = parseInt(req.query.limit) || 300; // default to 300 records per page
+    const skip = (page - 1) * limit;
+
     let data = await OrderCompleted.find(
       { entry: 0 },
       {
@@ -1518,7 +1522,10 @@ router.get("/getPendingEntry", async (req, res) => {
         shortage: 1,
         adjustment: 1,
       }
-    );
+    )
+      .skip(skip)
+      .limit(limit);
+
     data = JSON.parse(JSON.stringify(data));
 
     let receiptData = await Receipts.find(
@@ -1632,6 +1639,7 @@ router.get("/getPendingEntry", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+
 
 router.put("/putCompleteSignedBills", async (req, res) => {
   try {
