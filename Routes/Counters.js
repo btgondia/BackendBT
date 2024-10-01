@@ -303,8 +303,15 @@ router.get("/GetCounterData", async (req, res) => {
         closing_balance: 1,
       }
     );
+    data = JSON.parse(JSON.stringify(data));
+    let routesData= await Routes.find({},{route_uuid:1,route_title:1})
+    let result =[];
+    for(let i of data){
+      let route=routesData.find(a=>a.route_uuid===i.route_uuid)
+      result.push({...i,route_title:route?.route_title||""})
+    }
 
-    if (data.length) res.json({ success: true, result: data });
+    if (data.length) res.json({ success: true, result });
     else res.json({ success: false, message: "Counters Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
