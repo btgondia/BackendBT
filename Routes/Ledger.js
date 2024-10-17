@@ -1072,6 +1072,16 @@ const createAccountingVoucher = async ({
   //check is gst starts with 27
   let isGst = gst?.startsWith("27") || !gst ? false : true;
   let arr = [];
+  const css_percentage = 0;
+  for (let item of order.item_details) {
+    if (item.css_percentage)
+      css_percentage = item.css_percentage + css_percentage;
+  }
+  if (css_percentage)
+  arr.push({
+    amount: css_percentage,
+    ledger_uuid: "cf1c57e8-72cf-4d00-af57-e40b7f5d14c7",
+  });
   const gst_value = Array.from(
     new Set(order.item_details.map((a) => +a.gst_percentage))
   );
@@ -1248,7 +1258,7 @@ const createAutoCreditNote = async (
     (order.shortage ? " Shortage: " + order.shortage : "") +
     (order.adjustment ? " Adjustment: " + order.adjustment : "");
   console.log({ narration });
-  let item = await Item.findOne({ item_uuid },{conversion:1, item_gst: 1,item_title:1, item_hsn:1,item_uuid :1});
+  let item = await Item.findOne({ item_uuid },{conversion:1, item_gst: 1,item_title:1, item_hsn:1,item_uuid :1,item_css:1});
   item = JSON.parse(JSON.stringify(item));
   item = { ...item, item_total: 0 };
 

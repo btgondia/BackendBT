@@ -49,7 +49,7 @@ router.get("/getHSNCode", async (req, res) => {
   try {
     const hsnCode = await HSNCode.find(
       { hsn_code_uuid: { $ne: null } },
-      { hsn_code_uuid: 1, hsn_code: 1, title: 1, gst_percentage: 1 }
+      { hsn_code_uuid: 1, hsn_code: 1, title: 1, gst_percentage: 1,css_percentage:1 }
     );
     res.json({ success: true, result: hsnCode });
   } catch (err) {

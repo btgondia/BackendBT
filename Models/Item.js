@@ -61,6 +61,10 @@ const ItemSchema = new mongoose.Schema({
 	item_gst: {
 		type: String
 	},
+	item_css: {
+		type: String
+	},
+
 	conversion: {
 		type: String
 	},

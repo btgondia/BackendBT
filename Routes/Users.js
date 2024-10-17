@@ -179,6 +179,7 @@ router.get("/getDetails", async (req, res) => {
         mrp: 1,
         item_price: 1,
         item_gst: 1,
+        item_css: 1,
         conversion: 1,
         barcode: 1,
         item_group_uuid: 1,

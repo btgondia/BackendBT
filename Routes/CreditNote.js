@@ -78,6 +78,16 @@ const createAccountingVoucher = async (order, type) => {
   let isGst = gst?.startsWith("27") || !gst ? false : true;
 
   let arr = [];
+  const css_percentage = 0;
+  for (let item of order.item_details) {
+    if (item.css_percentage)
+      css_percentage = item.css_percentage + css_percentage;
+  }
+  if (css_percentage)
+  arr.push({
+    amount: css_percentage,
+    ledger_uuid: "cf1c57e8-72cf-4d00-af57-e40b7f5d14c7",
+  });
   const gst_value = Array.from(
     new Set(order.item_details.map((a) => +a.gst_percentage))
   );
@@ -156,7 +166,7 @@ const createAccountingVoucher = async (order, type) => {
       ledger_uuid: item.ledger_uuid,
     });
   }
-  
+
   const voucher = {
     accounting_voucher_uuid: uuid(),
     type: type,
@@ -168,7 +178,7 @@ const createAccountingVoucher = async (order, type) => {
     amount: order.order_grandtotal,
     voucher_verification: voucher_difference ? 1 : 0,
     voucher_difference,
-    details:arr,
+    details: arr,
     created_at: new Date().getTime(),
   };
   console.log({ voucher });
@@ -229,7 +239,8 @@ router.put("/putCreditNote", async (req, res) => {
       res.json({ success: false, message: "Invalid Data" });
     //delete _id
     delete value._id;
-    if(value?.credit_note_order_uuid) updateAccountingVoucher(value, "CREDIT_NOTE");
+    if (value?.credit_note_order_uuid)
+      updateAccountingVoucher(value, "CREDIT_NOTE");
     let response = await CreditNotes.findOneAndUpdate(
       { credit_note_order_uuid: value.credit_note_order_uuid },
       req.body

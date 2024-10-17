@@ -9,6 +9,7 @@ const hsnCodeSchema = new mongoose.Schema({
     created_at: { type: Number , default: new Date().getTime()},
     created_by: { type: String },
     gst_percentage: { type: String },
+    css_percentage: { type: String },
     });
 
 const HSNCode = mongoose.model("hsn_code", hsnCodeSchema);

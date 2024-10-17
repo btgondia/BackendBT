@@ -36,6 +36,7 @@ const OrdersSchema = new mongoose.Schema({
       edit_price: { type: Number },
       price_approval: { type: String },
       gst_percentage: { type: Number },
+      css_percentage: { type: Number },
       item_total: { type: Number },
       free: { type: Number },
       charges_discount: [

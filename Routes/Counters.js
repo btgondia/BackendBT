@@ -542,6 +542,7 @@ router.post("/GetCounterByLink", async (req, res) => {
             mrp: 1,
             item_price: 1,
             item_gst: 1,
+            item_css: 1,
             conversion: 1,
             img_status: 1,
           }
@@ -623,6 +624,7 @@ router.post("/GetCounterByCategory", async (req, res) => {
           mrp: 1,
           item_price: 1,
           item_gst: 1,
+          item_css: 1,
           conversion: 1,
           img_status: 1,
         }
