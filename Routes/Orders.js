@@ -152,7 +152,7 @@ const createCreditNotAccountingVoucher = async (order, type, narration) => {
     if (item.css_percentage)
       css_percentage = item.css_percentage + css_percentage;
   }
-  if (css_percentage)
+  
   arr.push({
     amount: css_percentage,
     ledger_uuid: "cf1c57e8-72cf-4d00-af57-e40b7f5d14c7",
