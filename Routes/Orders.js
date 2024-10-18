@@ -813,15 +813,15 @@ router.put("/putOrders", async (req, res) => {
 
     let old_stage = prevData
       ? +Math.max.apply(
-          null,
+          0,
           prevData?.status?.map((a) => +a.stage)
         )
       : 0;
 
     let new_stage = +Math.max.apply(
-      null,
-      status?.map((a) => +a.stage)
-    );
+      0,
+      status?.map((a) => +a.stage||0)
+    )||0;
 
     let tripData = {};
     if (value.trip_uuid) {
