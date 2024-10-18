@@ -777,6 +777,36 @@ router.get("/GetItemsPurchaseData", async (req, res) => {
 	}
 }
 )
-
+router.put("/putItems/sortOrder", async (req, res) => {
+	try {
+	  const items = await req.body;
+	  if (!items?.[0])
+		return res.status(204).json({ message: "Empty Payload" });
+	  const result = { succeed: [], failed: [] };
+	  let count = 0;
+	  const respond = () =>
+		++count === items?.length ? res.json(result) : "";
+  
+	  items?.forEach(async (item) => {
+		try {
+		  const res = await Item.updateOne(
+			{ item_uuid: item.item_uuid },
+			item
+		  );
+		  if (res) result.succeed.push(item.item_uuid);
+		  else result.failed.push({ failed: item.item_uuid });
+		  respond();
+		} catch (error) {
+		  result.failed.push({
+			failed: item.item_uuid,
+			error: error.message,
+		  });
+		  respond();
+		}
+	  });
+	} catch (err) {
+	  res.status(500).json({ success: false, message: err.message });
+	}
+  });
 
 module.exports = router
