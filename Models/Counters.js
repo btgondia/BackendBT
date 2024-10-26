@@ -180,6 +180,18 @@ const CounterSchema = new mongoose.Schema({
   closing_balance: {
     type: Number,
   },
+  dms_buyer_id: {
+    type: String,
+  },
+  dms_beat_name:{
+    type: String,
+  },
+  dms_buyer_address:{
+    type: String,
+  },
+  dms_buyer_name:{
+    type: String,
+  },
 });
 
 module.exports = mongoose.model("counters", CounterSchema);

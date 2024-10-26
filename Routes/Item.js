@@ -154,7 +154,9 @@ router.post("/GetItemList", async (req, res) => {
 			item_price_a: 1,
 			item_price_b: 1,
 			item_price_c: 1,
-			hsn:1
+			hsn:1,
+			dms_erp_id:1,
+			dms_item_name:1,
 		})
 
 		if (data.length)
@@ -197,7 +199,9 @@ router.get("/GetItemData", async (req, res) => {
 				item_price_a: 1,
 				item_price_b: 1,
 				item_price_c: 1,
-				hsn:1
+				hsn:1,
+				dms_erp_id:1,
+				dms_item_name:1,
 			}
 		)
 
