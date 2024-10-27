@@ -127,6 +127,10 @@ router.get("/GetCounterList", async (req, res) => {
         credit_rating: 1,
         opening_balance: 1,
         closing_balance: 1,
+        dms_beat_name: 1,
+        dms_buyer_id: 1,
+        dms_buyer_address: 1,
+        dms_buyer_name: 1,
       }
     );
     data = JSON.parse(JSON.stringify(data));
@@ -230,6 +234,10 @@ router.post("/GetCounterList", async (req, res) => {
         payment_modes: 1,
         opening_balance: 1,
         closing_balance: 1,
+        dms_beat_name: 1,
+        dms_buyer_id: 1,
+        dms_buyer_address: 1,
+        dms_buyer_name: 1,
       }
     );
     data = JSON.parse(JSON.stringify(data));

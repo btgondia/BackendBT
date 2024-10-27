@@ -99,7 +99,14 @@ const createAutoCreditNote = async (
   console.log({ narration });
   let item = await Item.findOne(
     { item_uuid },
-    { conversion: 1, item_gst: 1, item_title: 1, item_hsn: 1, item_uuid: 1,item_css:1 }
+    {
+      conversion: 1,
+      item_gst: 1,
+      item_title: 1,
+      item_hsn: 1,
+      item_uuid: 1,
+      item_css: 1,
+    }
   );
   item = JSON.parse(JSON.stringify(item));
   item = { ...item, item_total: 0 };
@@ -152,7 +159,7 @@ const createCreditNotAccountingVoucher = async (order, type, narration) => {
     if (item.css_percentage)
       css_percentage = item.css_percentage + css_percentage;
   }
-  
+
   arr.push({
     amount: css_percentage,
     ledger_uuid: "cf1c57e8-72cf-4d00-af57-e40b7f5d14c7",
@@ -818,10 +825,11 @@ router.put("/putOrders", async (req, res) => {
         )
       : 0;
 
-    let new_stage = +Math.max.apply(
-      0,
-      status?.map((a) => +a.stage||0)
-    )||0;
+    let new_stage =
+      +Math.max.apply(
+        0,
+        status?.map((a) => +a.stage || 0)
+      ) || 0;
 
     let tripData = {};
     if (value.trip_uuid) {
@@ -919,7 +927,13 @@ router.put("/putOrders", async (req, res) => {
             ...value,
             entry: value?.order_type === "E" ? 2 : +new_stage === 5 ? 1 : 0,
           });
-          await createAccountingVoucher({ order: value, type: "SALE_ORDER" ,voucher_date: value?.status?.length ? value.status[0].time : new Date().getTime()});
+          await createAccountingVoucher({
+            order: value,
+            type: "SALE_ORDER",
+            voucher_date: value?.status?.length
+              ? value.status[0].time
+              : new Date().getTime(),
+          });
         }
 
         await Orders.deleteOne({ order_uuid: value.order_uuid });
@@ -1649,7 +1663,6 @@ router.get("/getPendingEntry", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-
 
 router.put("/putCompleteSignedBills", async (req, res) => {
   try {
@@ -2620,5 +2633,64 @@ router.put("/putOrderComments", async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
+});
+
+//update dms invoice number
+router.put("/updateDMSInvoiceNumber", async (req, res) => {
+  // try {
+    let { invoice_number, dms_invoice_number, order_uuid } = req.body;
+    let orderData = await Orders.findOne({
+      $or: [{ invoice_number: invoice_number }, { order_uuid: order_uuid }],
+    },{invoice_number:1,order_uuid:1});
+    if (orderData) {
+      console.log("order",{orderData});
+      let data = await Orders.updateOne(
+        {
+          $or:[{invoice_number:orderData.invoice_number},{order_uuid:orderData.order_uuid}]
+        },
+        { dms_invoice_number: dms_invoice_number }
+      );
+      if (data.acknowledged) {
+        return res.json({
+          success: true,
+          result: data,
+        });
+      } else
+        return res.status(404).json({
+          success: false,
+          result: data,
+        });
+    }
+
+    orderData = await OrderCompleted.findOne({
+      $or: [{ invoice_number: invoice_number }, { order_uuid: order_uuid }],
+    },{invoice_number:1,order_uuid:1});
+    if (orderData) {
+      console.log("completeOrder",{orderData});
+      let data = await OrderCompleted.updateOne(
+        {
+          $or:[{invoice_number:orderData.invoice_number},{order_uuid:orderData.order_uuid}]
+        
+        },
+        { dms_invoice_number: dms_invoice_number }
+      );
+      if (data.acknowledged) {
+        return res.json({
+          success: true,
+          result: data,
+        });
+      } else
+        return res.status(404).json({
+          success: false,
+          result: data,
+        });
+    }
+    return res.json({
+      success: false,
+      message: "No Data Found",
+    });
+  // } catch (err) {
+  //   res.status(500).json({ success: false, message: err });
+  // }
 });
 module.exports = router;

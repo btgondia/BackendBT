@@ -74,7 +74,34 @@ router.delete("/deleteItem", async (req, res) => {
 })
 router.get("/GetItemList", async (req, res) => {
 	try {
-		let data = await Item.find({})
+		let data = await Item.find({},{
+			item_title: 1,
+			company_uuid: 1,
+			category_uuid: 1,
+			item_discount: 1,
+			exclude_discount: 1,
+			status: 1,
+			sort_order: 1,
+			item_code: 1,
+			free_issue: 1,
+			item_uuid: 1,
+			one_pack: 1,
+			pronounce: 1,
+			mrp: 1,
+			item_price: 1,
+			item_gst: 1,
+			conversion: 1,
+			item_css: 1,
+			item_group_uuid: 1,
+			// stock: 1,
+			created_at: 1,
+			item_price_a: 1,
+			item_price_b: 1,
+			item_price_c: 1,
+			hsn:1,
+			dms_erp_id:1,
+			dms_item_name:1,
+		})
 
 		if (data.length)
 			res.json({

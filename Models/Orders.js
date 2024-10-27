@@ -99,6 +99,9 @@ const OrdersSchema = new mongoose.Schema({
   order_grandtotal: {
     type: Number,
   },
+  dms_invoice_number: {
+    type: String,
+  },
   comments: [
     {
       uuid: {
