@@ -2664,11 +2664,11 @@ const checkDMSDetails = async (orderData) => {
         item_uuid: item.item_uuid,
       },
       {
-        dms_item_code: 1,
+        dms_erp_id: 1,
         dms_item_name: 1,
       }
     );
-    if (!itemData?.dms_item_code || !itemData?.dms_item_name) {
+    if (!itemData?.dms_erp_id || !itemData?.dms_item_name) {
       return {
         isNotOkay: true,
         message: "Item DMS details are missing",
