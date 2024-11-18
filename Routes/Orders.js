@@ -714,7 +714,7 @@ router.post("/postOrder", async (req, res) => {
     } else
       response = await Orders.create({
         ...value,
-        invoice_number:(value?.order_type?.toUpperCase() === "E"?"E":"")+ _invoice_number || 0,
+        invoice_number:(value?.order_type?.toUpperCase() === "E"?"E-":"")+ _invoice_number || 0,
       });
 
     if (response) {
