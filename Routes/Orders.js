@@ -2634,61 +2634,133 @@ router.put("/putOrderComments", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
+const checkDMSDetails = async (orderData) => {
+  let { counter_uuid, item_details } = orderData;
+  let counterData = await Counters.findOne(
+    {
+      counter_uuid: counter_uuid,
+    },
+    {
+      dms_buyer_id: 1,
+      dms_beat_name: 1,
+      dms_buyer_address: 1,
+      dms_buyer_name: 1,
+    }
+  );
+  if (
+    !counterData?.dms_beat_name ||
+    !counterData?.dms_buyer_address ||
+    !counterData?.dms_buyer_name ||
+    !counterData?.dms_buyer_id
+  ) {
+    return {
+      isNotOkay: true,
+      message: "Counter DMS details are missing",
+    };
+  }
+  for (let item of item_details) {
+    let itemData = await Item.findOne(
+      {
+        item_uuid: item.item_uuid,
+      },
+      {
+        dms_item_code: 1,
+        dms_item_name: 1,
+      }
+    );
+    if (!itemData?.dms_item_code || !itemData?.dms_item_name) {
+      return {
+        isNotOkay: true,
+        message: "Item DMS details are missing",
+      };
+    }
+  }
+  return {
+    isNotOkay: false,
+  };
+};
 
 //update dms invoice number
 router.put("/updateDMSInvoiceNumber", async (req, res) => {
   // try {
-    let { invoice_number, dms_invoice_number, order_uuid } = req.body;
-    let orderData = await Orders.findOne({
+  let { invoice_number, dms_invoice_number, order_uuid } = req.body;
+  let orderData = await Orders.findOne(
+    {
       $or: [{ invoice_number: invoice_number }, { order_uuid: order_uuid }],
-    },{invoice_number:1,order_uuid:1});
-    if (orderData) {
-      console.log("order",{orderData});
-      let data = await Orders.updateOne(
-        {
-          $or:[{invoice_number:orderData.invoice_number},{order_uuid:orderData.order_uuid}]
-        },
-        { dms_invoice_number: dms_invoice_number }
-      );
-      if (data.acknowledged) {
-        return res.json({
-          success: true,
-          result: data,
-        });
-      } else
-        return res.status(404).json({
-          success: false,
-          result: data,
-        });
-    }
+    },
+    { invoice_number: 1, order_uuid: 1, counter_uuid: 1, item_details: 1 }
+  );
 
-    orderData = await OrderCompleted.findOne({
-      $or: [{ invoice_number: invoice_number }, { order_uuid: order_uuid }],
-    },{invoice_number:1,order_uuid:1});
-    if (orderData) {
-      console.log("completeOrder",{orderData});
-      let data = await OrderCompleted.updateOne(
-        {
-          $or:[{invoice_number:orderData.invoice_number},{order_uuid:orderData.order_uuid}]
-        
-        },
-        { dms_invoice_number: dms_invoice_number }
-      );
-      if (data.acknowledged) {
-        return res.json({
-          success: true,
-          result: data,
-        });
-      } else
-        return res.status(404).json({
-          success: false,
-          result: data,
-        });
-    }
+  let validation = await checkDMSDetails(orderData);
+  if (validation.isNotOkay) {
     return res.json({
       success: false,
-      message: "No Data Found",
+      message: validation.message,
     });
+  }
+
+  if (orderData) {
+    console.log("order", { orderData });
+    let data = await Orders.updateOne(
+      {
+        $or: [
+          { invoice_number: orderData.invoice_number },
+          { order_uuid: orderData.order_uuid },
+        ],
+      },
+      { dms_invoice_number: dms_invoice_number }
+    );
+    if (data.acknowledged) {
+      return res.json({
+        success: true,
+        result: data,
+      });
+    } else
+      return res.status(404).json({
+        success: false,
+        result: data,
+      });
+  }
+
+  orderData = await OrderCompleted.findOne(
+    {
+      $or: [{ invoice_number: invoice_number }, { order_uuid: order_uuid }],
+    },
+    { invoice_number: 1, order_uuid: 1 }
+  );
+  validation = await checkDMSDetails(orderData);
+  if (validation.isNotOkay) {
+    return res.json({
+      success: false,
+      message: validation.message,
+    });
+  }
+  if (orderData) {
+    console.log("completeOrder", { orderData });
+    let data = await OrderCompleted.updateOne(
+      {
+        $or: [
+          { invoice_number: orderData.invoice_number },
+          { order_uuid: orderData.order_uuid },
+        ],
+      },
+      { dms_invoice_number: dms_invoice_number }
+    );
+    if (data.acknowledged) {
+      return res.json({
+        success: true,
+        result: data,
+      });
+    } else
+      return res.status(404).json({
+        success: false,
+        result: data,
+      });
+  }
+  return res.json({
+    success: false,
+    message: "No Data Found",
+  });
   // } catch (err) {
   //   res.status(500).json({ success: false, message: err });
   // }
