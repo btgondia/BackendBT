@@ -188,6 +188,7 @@ router.get("/getDetails", async (req, res) => {
         item_price_a:1,
         item_price_b:1,
         item_price_c:1,
+        billing_type:1
       }
     );
     items = items.filter(
