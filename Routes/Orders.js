@@ -1696,6 +1696,7 @@ router.post("/GetOrderProcessingList", async (req, res) => {
 		let data = []
 		let { trip_uuid } = req.body
 
+		const mobileOrderSequence = (await Details.findOne({}, { mobile_order_sequence: 1 }))?.mobile_order_sequence
 		data = await Orders.find({
 			status: { $elemMatch: { stage: 1 } },
 			trip_uuid: +trip_uuid === 0 ? { $exists: false } : trip_uuid
@@ -1739,10 +1740,36 @@ router.post("/GetOrderProcessingList", async (req, res) => {
 
 		res.json({
 			success: true,
-			result
+			result,
+			mobileOrderSequence
 		})
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
+	}
+})
+
+router.patch("/order_type", async (req, res, next) => {
+	try {
+		const { order_uuid, invoice_number, order_type } = req.body
+		const { next_estimate_number, next_invoice_number } = await Details.findOne({})
+		const new_invoice_number = order_type === "E" ? next_estimate_number : next_invoice_number
+		const query = {
+			$or: [{ invoice_number: invoice_number }, { order_uuid: order_uuid }]
+		}
+
+		let result
+		const payload = {
+			invoice_number: new_invoice_number,
+			order_type
+		}
+
+		if (await Orders.exists(query)) result = await Orders.updateOne(query, payload)
+		else if (await OrderCompleted.exists(query)) result = await OrderCompleted.updateOne(query, payload)
+
+		if (result.acknowledged) return res.json({ success: true, result: payload })
+		return res.status(404).json({ success: false, result: result })
+	} catch (error) {
+		next(error)
 	}
 })
 
