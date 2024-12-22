@@ -1751,22 +1751,28 @@ router.post("/GetOrderProcessingList", async (req, res) => {
 router.put("/updateOrderType", async (req, res) => {
 	try {
 		const { order_uuid, invoice_number, order_type } = req.body
-		const { next_estimate_number, next_invoice_number } = await Details.findOne({})
-		const new_invoice_number = order_type === "E" ? next_estimate_number : next_invoice_number
+		const { _id: detailsId, next_estimate_number, next_invoice_number } = await Details.findOne({})
 		const query = {
 			$or: [{ invoice_number: invoice_number }, { order_uuid: order_uuid }]
 		}
 
 		let result
 		const payload = {
-			invoice_number: new_invoice_number,
+			invoice_number: order_type === "E" ? next_estimate_number : next_invoice_number,
 			order_type
 		}
 
 		if (await Orders.exists(query)) result = await Orders.updateOne(query, payload)
 		else if (await OrderCompleted.exists(query)) result = await OrderCompleted.updateOne(query, payload)
 
-		if (result.acknowledged) return res.json({ success: true, result: payload })
+		if (result.acknowledged) {
+			const update = {}
+			if (order_type === "E") update.next_estimate_number = increaseNumericString(payload.invoice_number)
+			else update.next_invoice_number = increaseNumericString(payload.invoice_number)
+			await Details.findByIdAndUpdate(detailsId, update)
+
+			return res.json({ success: true, result: payload })
+		}
 		res.status(500).json({ success: false, result: result })
 	} catch (error) {
 		res.status(500).json({ success: false, error: error.message })
