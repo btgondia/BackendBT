@@ -1766,7 +1766,7 @@ router.put("/updateOrderType", async (req, res) => {
 		if (await Orders.exists(query)) result = await Orders.updateOne(query, payload)
 		else if (await OrderCompleted.exists(query)) result = await OrderCompleted.updateOne(query, payload)
 
-		if (result.acknowledged) res.json({ success: true, result: payload })
+		if (result.acknowledged) return res.json({ success: true, result: payload })
 		res.status(500).json({ success: false, result: result })
 	} catch (error) {
 		res.status(500).json({ success: false, error: error.message })
