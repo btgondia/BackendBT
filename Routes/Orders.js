@@ -1748,7 +1748,7 @@ router.post("/GetOrderProcessingList", async (req, res) => {
 	}
 })
 
-router.patch("/order_type", async (req, res, next) => {
+router.put("/updateOrderType", async (req, res) => {
 	try {
 		const { order_uuid, invoice_number, order_type } = req.body
 		const { next_estimate_number, next_invoice_number } = await Details.findOne({})
@@ -1766,10 +1766,10 @@ router.patch("/order_type", async (req, res, next) => {
 		if (await Orders.exists(query)) result = await Orders.updateOne(query, payload)
 		else if (await OrderCompleted.exists(query)) result = await OrderCompleted.updateOne(query, payload)
 
-		if (result.acknowledged) return res.json({ success: true, result: payload })
-		return res.status(404).json({ success: false, result: result })
+		if (result.acknowledged) res.json({ success: true, result: payload })
+		res.status(500).json({ success: false, result: result })
 	} catch (error) {
-		next(error)
+		res.status(500).json({ success: false, error: error.message })
 	}
 })
 
