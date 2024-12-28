@@ -1824,9 +1824,12 @@ router.post("/GetOrderCheckingList", async (req, res) => {
 			}
 		})
 
+		const mobileOrderSequence = (await Details.findOne({}, { mobile_order_sequence: 1 }))?.mobile_order_sequence
+
 		res.json({
 			success: true,
-			result
+			result,
+			mobileOrderSequence
 		})
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
@@ -1880,9 +1883,12 @@ router.post("/GetOrderDeliveryList", async (req, res) => {
 			}
 		})
 
+		const mobileOrderSequence = (await Details.findOne({}, { mobile_order_sequence: 1 }))?.mobile_order_sequence
+
 		res.json({
 			success: true,
-			result
+			result,
+			mobileOrderSequence
 		})
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
