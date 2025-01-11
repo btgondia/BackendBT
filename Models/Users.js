@@ -29,6 +29,7 @@ const UserSchema = new mongoose.Schema({
 	login_password: {
 		type: String
 	},
+	dms_erp_id: { type: String },
 	user_role: [{ type: String }],
 	routes: [{ type: String }],
 	warehouse: [{ type: String }],

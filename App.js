@@ -14,7 +14,6 @@ const WarehouseModel = require("./Models/Warehouse");
 const ItemModel = require("./Models/Item");
 const DetailsModel = require("./Models/Details");
 const OrderCompleted = require("./Models/OrderCompleted");
-const CancelOrdersModel = require("./Models/CancelOrders");
 const Vochers = require("./Models/Vochers");
 
 const Routes = require("./Routes/Routes");
@@ -60,6 +59,7 @@ const CreditNotes = require("./Routes/CreditNote");
 const loggerMiddleware = require("./loggerMiddleware");
 const GSTReturns = require("./Routes/GSTReturns");
 const HSNCode = require("./Routes/hsn_code");
+const baseRouter = require("./Routes/_base");
 
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
@@ -139,6 +139,7 @@ app.use("/purchaseInvoice", PurchaseINvoice);
 app.use("/creditNote",CreditNotes)
 app.use("/gstReturns", GSTReturns);
 app.use("/hsn_code",HSNCode)
+app.use("/", baseRouter)
 app.get("/MinLevelUpdate", async (req, res, next) => {
   const response = await MinLevelUpdateAutomation();
   res.json({ success: true, message: "Updated", result: response });

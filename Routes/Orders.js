@@ -464,7 +464,7 @@ router.get("/paymentPending/:counter_uuid", async (req, res) => {
 
 router.post("/postOrder", async (req, res) => {
 	try {
-		let value = req.body
+		let value = req.body	
 		if (!value) res.json({ success: false, message: "Invalid Data" })
 
 		value = { ...value, order_uuid: uuid() }
@@ -697,7 +697,7 @@ router.post("/postOrder", async (req, res) => {
 			res.json({ success: true, result: response, incentives })
 		} else res.json({ success: false, message: "Order Not created" })
 	} catch (err) {
-		res.status(500).json({ success: false, message: err })
+		res.status(500).json({ success: false, message: err?.message })
 	}
 })
 
