@@ -51,7 +51,6 @@ const contactsProcessHandler = async (contacts, messagesCollection, counterData,
 			if (options?.orderPDF) doc.message = value.caption || ""
 			else doc.message = value.invoice_number || ""
 
-			console.log("sending message:", doc)
 			messages.push(doc)
 			await messageEnque(doc)
 		}

@@ -25,7 +25,7 @@ router.post("/CreateCampaigns", async (req, res) => {
 			}
 			value = { ...value, campaign_short_link }
 		}
-		console.log(value)
+		
 		let response = await Campaigns.create(value)
 		if (response) {
 			res.json({ success: true, result: response })
@@ -93,7 +93,7 @@ router.delete("/DeleteCampaigns", async (req, res) => {
 		let value = req.body
 		if (!value.campaign_uuid) res.json({ success: false, message: "Invalid Data" })
 
-		console.log(value)
+		
 		let data = await Campaigns.findOne({
 			campaign_uuid: value.campaign_uuid,
 		})
@@ -135,7 +135,7 @@ router.put("/UpdateCampaigns", async (req, res) => {
 				obj[key] = value[key]
 				return obj
 			}, {})
-		console.log(value)
+		
 		for (let item of value.message.filter(a => a.delete)) {
 			fs.access("uploads/" + (item.uuid || "") + ".png", err => {
 				if (err) {

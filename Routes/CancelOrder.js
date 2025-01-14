@@ -10,7 +10,7 @@ router.post("/postCancelOrder", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
 
-    console.log(value);
+    
     let response = await CancelOrders.create( value );
     if (response) {
       res.json({ success: true, result: response });
@@ -42,7 +42,7 @@ router.get("/GetCancelOrdersList", async (req, res) => {
 //         obj[key] = value[key];
 //         return obj;
 //       }, {})
-//       console.log(value);
+//       
 //       let response = await Item.updateOne({item_uuid:value.item_uuid}, value );
 //       if (response.acknowledged) {
 //         result.push({ success: true, result: value });

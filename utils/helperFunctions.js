@@ -29,7 +29,6 @@ const updateCounterClosingBalance = async (
   accounting_voucher_uuid,
   ledger_uuid
 ) => {
-  // console.log("details", details);
   switch (type) {
     case "add":
       for (let counter of details) {
@@ -43,12 +42,6 @@ const updateCounterClosingBalance = async (
               +(counter_data.closing_balance || 0) + +(counter.amount || 0)
             ) || 0
           ).toFixed(2);
-          console.log(
-            "closing_balance",
-            closing_balance,
-            counter.amount,
-            counter_data.closing_balance
-          );
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
             {
@@ -69,13 +62,6 @@ const updateCounterClosingBalance = async (
               +(counter_data.closing_balance || 0) + +(counter.amount || 0)
             ) || 0
           ).toFixed(2);
-          console.log(
-            "closing_balance",
-            closing_balance,
-            counter.amount,
-            counter_data.closing_balance,
-            counter.ledger_uuid
-          );
           await Ledger.updateOne(
             { ledger_uuid: counter.ledger_uuid },
             {
@@ -192,7 +178,6 @@ const updateCounterClosingBalance = async (
         );
 
         if (counter_data) {
-          console.log("counter_data", counter.amount);
           await Counters.updateOne(
             { counter_uuid: counter.ledger_uuid },
             {
@@ -303,7 +288,6 @@ const updateItemStock = async (warehouse_uuid, items, order_uuid, isEdit) => {
               qty: qty,
             },
           ];
-      console.log("stockUpdate", qty);
 
       await Item.updateOne({ item_uuid: item.item_uuid }, { stock });
     }

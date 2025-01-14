@@ -137,7 +137,6 @@ router.get("/statement/:register_uuid", async (req, res) => {
         { expense_uuid: i.expense_uuid },
         { expense_title: 1 }
       );
-      console.log(i.expense_uuid, expense_data);
       if (expense_data) {
         result.push({ ...i, expense_title: expense_data.expense_title });
       } else {

@@ -61,7 +61,6 @@ const generatePDFs = async data => {
 
 const checkPDFs = async data => {
 	try {
-		console.log(data.length)
 		const _data = data
 			?.filter(order => order.order_uuid && !fs.existsSync(`uploads/${getFileName(order)}`))
 			?.map(order => ({

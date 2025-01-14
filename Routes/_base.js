@@ -22,10 +22,10 @@ baseRouter.post("/invoice-import-prerequisite", async (req, res) => {
 
 		if (dms_items?.length > 0)
 			result.items = await Item.find(
-				{ dms_erp_id: { $in: dms_items } },
+				{ dms_erp_ids: { $in: dms_items } },
 				{
 					item_uuid: 1,
-					dms_erp_id: 1,
+					dms_erp_ids: 1,
 					conversion: 1,
 					item_price: 1
 				}

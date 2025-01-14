@@ -8,7 +8,7 @@ router.post("/postOutstanding", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     value = { outstanding_uuid: uuid(), ...value, status: 1 };
-    console.log(value);
+    
     let time = new Date();
     let response = await Outstanding.create(value);
     let result = await SignedBills.create({
@@ -18,7 +18,6 @@ router.post("/postOutstanding", async (req, res) => {
       status: 0,
       amount: value.amount,
     });
-    console.log(result);
     if (response) {
       res.json({ success: true, result: response });
     } else res.json({ success: false, message: "Outstanding Not created" });
@@ -31,7 +30,7 @@ router.post("/postMenualOutstanding", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     value = { ...value, outstanding_uuid: uuid() };
-    console.log(value);
+    
     let time = new Date();
     let response = await Outstanding.create({
       ...value,
@@ -94,7 +93,7 @@ router.put("/putOutstanding", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
     let { order_uuid, counter_uuid, amount, outstanding_uuid } = value;
     let data = await Outstanding.findOne({ order_uuid, counter_uuid });
-    console.log(data);
+    
     if (!amount) {
       await SignedBills.deleteMany({
         order_uuid,
@@ -127,7 +126,7 @@ router.put("/putOutstanding", async (req, res) => {
         );
       }
     } else {
-      console.log(value);
+      
       let time = new Date();
       value = { ...value, outstanding_uuid: uuid(), status: 1 };
       response = await Outstanding.create(value);
@@ -184,7 +183,6 @@ router.put("/putOutstandingTag", async (req, res) => {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
     let { selectedOrders, collection_tag_uuid } = value;
-    console.log(collection_tag_uuid, selectedOrders);
     let response = await Outstanding.updateMany(
       {
         outstanding_uuid: {

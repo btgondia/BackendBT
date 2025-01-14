@@ -21,7 +21,7 @@ router.put("/putHSNCode", async (req, res) => {
     delete value._id;
     delete value.created_at;
     delete value.__v;
-    console.log(value);
+    
     const updatedHSNCode = await HSNCode.updateMany(
       { hsn_code_uuid: value.hsn_code_uuid },
       value

@@ -25,7 +25,7 @@ router.post("/postTrip", async (req, res) => {
       created_at: new Date().getTime(),
       status: 1,
     };
-    // console.log(value);
+    // 
     let response = await Trips.create(value);
     if (response) {
       res.json({ success: true, result: response });
@@ -44,7 +44,7 @@ router.put("/putTrip", async (req, res) => {
         obj[key] = value[key];
         return obj;
       }, {});
-    // console.log(value);
+    // 
     let response = await Trips.updateOne({ trip_uuid: value.trip_uuid }, value);
     if (response.acknowledged) {
       res.json({ success: true, result: response });
@@ -69,7 +69,6 @@ router.get("/GetTripList/:user_uuid", async (req, res) => {
     // let ordersData = await Orders.find({});
     // ordersData = JSON.parse(JSON.stringify(ordersData));
     if (data.length) {
-      // // console.log(result);
       res.json({
         success: true,
         result: data,
@@ -142,7 +141,6 @@ router.get("/GetTripListSummary/:user_uuid", async (req, res) => {
 
         ordersData = JSON.parse(JSON.stringify(ordersData));
         let orderLength = ordersData.length;
-        console.log(orderLength);
         result.push({
           ...a,
           orderLength,
@@ -192,7 +190,6 @@ router.get("/GetTripSummaryDetails/:trip_uuid", async (req, res) => {
   try {
     let a = await Trips.findOne({ trip_uuid: req.params.trip_uuid });
     a = JSON.parse(JSON.stringify(a));
-    console.log("tripsData", a);
 
     let CounterData = await Counters.find(
       {},
@@ -424,7 +421,6 @@ router.post("/GetTripItemSummary", async (req, res) => {
         [],
         receiptItems.map((b) => b?.delivery_return || [])
       );
-      // console.log(sales_return);
       sales_return =
         sales_return.length > 1
           ? sales_return.reduce((acc, curr) => {
@@ -525,11 +521,10 @@ router.post("/GetCompletedTripList", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    // console.log(value);
+    // 
     let ordersData = await CompleteOrder.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
     let endDate = +value.endDate + 86400000;
-    // console.log(endDate, value.startDate);
     let response = await Trips.find({
       created_at: { $gt: value.startDate, $lt: endDate },
       status: 0,
@@ -561,7 +556,6 @@ router.post("/GetProcessingTripList", async (req, res) => {
   try {
     let orderData = await Orders.find({ status: { $elemMatch: { stage: 1 } } });
     orderData = orderData.filter((a) => getOrderStage(a.status) === 1);
-    console.log(orderData.map((a) => getOrderStage(a.status)).length);
     let nonTripOrders = await Orders.find({ trip_uuid: { $exists: 0 } });
     nonTripOrders = nonTripOrders.filter((a) => getOrderStage(a.status) === 1);
     let trips = await Trips.find({
@@ -602,12 +596,10 @@ router.post("/GetProcessingTripList", async (req, res) => {
 
 router.post("/GetCheckingTripList", async (req, res) => {
   try {
-    // console.log(req.body);
     let data = await Trips.find({});
     data = JSON.parse(JSON.stringify(data));
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
-    // console.log(ordersData);
     let result = [
       {
         trip_uuid: 0,
@@ -632,7 +624,6 @@ router.post("/GetCheckingTripList", async (req, res) => {
       })),
     ].filter((a) => a.orderLength);
 
-    // console.log(result);
     res.json({
       success: true,
       result,
@@ -660,7 +651,6 @@ router.post("/GetDeliveryTripList", async (req, res) => {
           ).length,
       })),
     ].filter((a) => a.orderLength);
-    // console.log(result);
     res.json({
       success: true,
       result: result,

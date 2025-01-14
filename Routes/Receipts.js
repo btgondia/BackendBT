@@ -16,7 +16,6 @@ const {
 const Counters = require("../Models/Counters");
 
 const createAccountingVoucher = async (order, type, recept_number) => {
-  console.log(type, recept_number);
   for (let [i, a] of (order.modes || []).entries()) {
     const arr = [];
     const data = await PaymentModes.findOne(
@@ -59,7 +58,6 @@ const createAccountingVoucher = async (order, type, recept_number) => {
         voucher_difference = +item.amount + +voucher_difference;
         voucher_difference = voucher_difference.toFixed(2);
       }
-      console.log(a.amt);
       const voucher = {
         accounting_voucher_uuid: uuid(),
         type: type,
@@ -84,7 +82,6 @@ const createAccountingVoucher = async (order, type, recept_number) => {
   }
 };
 const deleteAccountingVoucher = async (recept_number, type, order_uuid) => {
-  console.log(recept_number, type, order_uuid);
   let voucherData = await AccountingVoucher.find({
     $or: [
       {
@@ -100,7 +97,6 @@ const deleteAccountingVoucher = async (recept_number, type, order_uuid) => {
     ],
     type,
   });
-  console.log(voucherData);
   if (voucherData.length) {
     for (let voucher of voucherData)
       await updateCounterClosingBalance(voucher.details, "delete");
@@ -125,7 +121,6 @@ router.get("/getPendingEntry", async (req, res) => {
       .limit(limit);
 
     receiptData = JSON.parse(JSON.stringify(receiptData));
-    console.log(receiptData);
     res.json({
       success: true,
       result: receiptData,
@@ -188,7 +183,6 @@ router.post("/postReceipt", async (req, res) => {
         resciptJson.modes.find(
           (b) => b.mode_uuid === "c67b54ba-d2b6-11ec-9d64-0242ac120002" && b.amt
         )?.amt || 0;
-      console.log(cashAmountTwo);
       if (cashAmount && cash_register) {
         await CashRegister.updateMany(
           {
@@ -360,7 +354,7 @@ router.put("/putReceipt", async (req, res) => {
       counter_uuid: counter_uuid,
       modes,
     };
-    console.log(data);
+    
     let response = await Receipts.create(data);
     await createAccountingVoucher(value, "RECEIPT_ORDER", next_receipt_number);
     next_receipt_number = increaseNumericString(next_receipt_number);
@@ -394,7 +388,7 @@ router.put("/putSingleReceipt", async (req, res) => {
 router.put("/putCompleteOrder", async (req, res) => {
   try {
     let value = req.body;
-    console.log(value);
+    
     let receiptData = await Receipts.findOne(
       { receipt_number: value.receipt_number },
       { modes: 1 }
@@ -431,13 +425,11 @@ router.put("/putReceiptUPIStatus", async (req, res) => {
         { order_uuid: value.order_uuid },
       ],
     });
-    console.log(response);
 
     response = JSON.parse(JSON.stringify(response));
     response = response.modes.map((a) =>
       a.mode_uuid === value.mode_uuid ? { ...a, status: value.status } : a
     );
-    console.log(response);
     let pending = response.find((b) => b.status === 0 && b.amt) ? 0 : 1;
     let data = await Receipts.updateMany(
       { order_uuid: value.order_uuid },
@@ -492,7 +484,6 @@ router.put("/putBulkReceiptUPIStatus", async (req, res) => {
 //       { modes }
 //     );
 //   }
-//   console.log("done");
 // };
 // updateStetus()
 router.get("/getReceipt", async (req, res) => {
@@ -507,7 +498,7 @@ router.get("/getReceipt", async (req, res) => {
 router.put("/putRemarks", async (req, res) => {
   try {
     let value = req.body;
-    console.log(value);
+    
     let orderData = await Receipts.findOne({
       invoice_number: value.invoice_number,
     });
@@ -516,7 +507,6 @@ router.put("/putRemarks", async (req, res) => {
       a.mode_uuid === value.mode_uuid ? { ...a, remarks: value.remarks } : a
     );
 
-    console.log(modes);
     let data = await Receipts.updateOne(
       {
         invoice_number: value.invoice_number,

@@ -56,7 +56,7 @@ router.put("/UpdateExpense", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-      console.log(value);
+      
       let response = await Expense.updateOne(
         { expense_uuid: value.expense_uuid },
         value

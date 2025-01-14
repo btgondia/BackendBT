@@ -25,7 +25,6 @@ router.get("/getMessageTemplate", async (req, res) => {
 router.post("/postOrderCancelMessageTemplate", async (req, res) => {
 	try {
 		let message = req.body
-		console.log(message)
 		let data = await Details.updateOne({}, { $push: { order_cancel_message_template: message } })
 		if (data?.acknowledged) {
 			let details = await Details.findOne({})
@@ -41,7 +40,6 @@ router.post("/postOrderCancelMessageTemplate", async (req, res) => {
 router.post("/postSkipStages", async (req, res) => {
 	try {
 		let { skip_stages } = req.body
-		console.log(skip_stages)
 		let data = await Details.updateOne({}, { skip_stages })
 		if (data?.acknowledged) {
 			let details = await Details.findOne({})
@@ -94,7 +92,7 @@ router.put("/putBankStatementItem", async (req, res) => {
 	try {
 		let value = req.body
 		if (!value) res.json({ success: false, message: "Invalid Data" })
-		console.log(value)
+		
 		let response = await Details.updateOne({}, { bank_statement_item: value })
 		if (response) {
 			res.json({ success: true, result: response, message: "Details Updated" })
@@ -120,7 +118,7 @@ router.put("/putOpeningBalanceDate", async (req, res) => {
 	try {
 		let value = req.body
 		if (!value) res.json({ success: false, message: "Invalid Data" })
-		console.log(value)
+		
 		let response = await Details.updateOne({}, { default_opening_balance_date: value.date })
 		if (response) {
 			res.json({ success: true, result: response, message: "Details Updated" })

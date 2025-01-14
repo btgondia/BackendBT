@@ -18,7 +18,7 @@ router.post("/postItem", async (req, res) => {
 			value.sort_order = Math.max(...response.map(o => o?.sort_order || 0)) + 1 || 0
 			value.created_at = new Date().getTime()
 		}
-		console.log(value)
+
 		let response = await Item.create(value)
 		if (response) {
 			res.json({ success: true, result: response })
@@ -74,34 +74,37 @@ router.delete("/deleteItem", async (req, res) => {
 })
 router.get("/GetItemList", async (req, res) => {
 	try {
-		let data = await Item.find({},{
-			item_title: 1,
-			company_uuid: 1,
-			category_uuid: 1,
-			item_discount: 1,
-			exclude_discount: 1,
-			status: 1,
-			sort_order: 1,
-			item_code: 1,
-			free_issue: 1,
-			item_uuid: 1,
-			one_pack: 1,
-			pronounce: 1,
-			mrp: 1,
-			item_price: 1,
-			item_gst: 1,
-			conversion: 1,
-			item_css: 1,
-			item_group_uuid: 1,
-			// stock: 1,
-			created_at: 1,
-			item_price_a: 1,
-			item_price_b: 1,
-			item_price_c: 1,
-			hsn:1,
-			dms_erp_id:1,
-			dms_item_name:1,
-		})
+		let data = await Item.find(
+			{},
+			{
+				item_title: 1,
+				company_uuid: 1,
+				category_uuid: 1,
+				item_discount: 1,
+				exclude_discount: 1,
+				status: 1,
+				sort_order: 1,
+				item_code: 1,
+				free_issue: 1,
+				item_uuid: 1,
+				one_pack: 1,
+				pronounce: 1,
+				mrp: 1,
+				item_price: 1,
+				item_gst: 1,
+				conversion: 1,
+				item_css: 1,
+				item_group_uuid: 1,
+				// stock: 1,
+				created_at: 1,
+				item_price_a: 1,
+				item_price_b: 1,
+				item_price_c: 1,
+				hsn: 1,
+				dms_erp_id: 1,
+				dms_item_name: 1
+			}
+		)
 
 		if (data.length)
 			res.json({
@@ -181,9 +184,9 @@ router.post("/GetItemList", async (req, res) => {
 			item_price_a: 1,
 			item_price_b: 1,
 			item_price_c: 1,
-			hsn:1,
-			dms_erp_id:1,
-			dms_item_name:1,
+			hsn: 1,
+			dms_erp_id: 1,
+			dms_item_name: 1
 		})
 
 		if (data.length)
@@ -226,9 +229,9 @@ router.get("/GetItemData", async (req, res) => {
 				item_price_a: 1,
 				item_price_b: 1,
 				item_price_c: 1,
-				hsn:1,
-				dms_erp_id:1,
-				dms_item_name:1,
+				hsn: 1,
+				dms_erp_id: 1,
+				dms_item_name: 1
 			}
 		)
 
@@ -242,19 +245,57 @@ router.get("/GetItemData", async (req, res) => {
 		res.status(500).json({ success: false, message: err })
 	}
 })
-router.post("/GetItemData", async (req, res) => {
+router.get("/company-wise/basic", async (req, res) => {
 	try {
-		let value = req.body
-		let json = {}
+		const data = await Item.aggregate([
+			{
+				$group: {
+					_id: "$company_uuid",
+					items: {
+						$push: {
+							item_title: "$item_title",
+							item_uuid: "$item_uuid"
+						}
+					}
+				}
+			},
+			{
+				$lookup: {
+					from: "companies",
+					localField: "_id",
+					foreignField: "company_uuid",
+					as: "company"
+				}
+			},
+			{
+				$project: {
+					_id: 0,
+					company_uuid: "$_id",
+					company_title: {
+						$first: "$company.company_title"
+					},
+					items: 1
+				}
+			}
+		])
 
-		for (let i of value) {
-			json = { ...json, [i]: 1 }
-		}
-		console.log(json)
-		let data = await Item.find({}, json)
+		res.json({ success: true, result: data })
+	} catch (err) {
+		res.status(500).json({ success: false, message: err })
+	}
+})
+router.patch("/map-item", async (req, res) => {
+	try {
+		const { item_uuid, dms_item_code } = req.body
+		const item = await Item.findOne({ item_uuid }, { dms_erp_ids: 1 })
+		if (!item) return res.json({ success: false, error: "Item not found" })
+		if (!item.dms_erp_ids?.includes(dms_item_code))
+			await Item.updateOne(
+				{ item_uuid },
+				{ $push: { dms_erp_ids: dms_item_code } }
+			)
 
-		if (data.length) res.json({ success: true, result: data })
-		else res.json({ success: false, message: "Counters Not found" })
+		res.json({ success: true })
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
 	}
@@ -280,10 +321,9 @@ router.get("/minValue/:warhouse_uuid/:item_uuid", async (req, res) => {
 			"item_details.item_uuid": req.params.item_uuid,
 			"warehouse_uuid": req.params.warhouse_uuid
 		})
-		ordersData=JSON.parse(JSON.stringify(ordersData))
-	
+		ordersData = JSON.parse(JSON.stringify(ordersData))
 
-		ordersData = ordersData.filter(order=>+order.status[order.status.length-1].stage===2)
+		ordersData = ordersData.filter(order => +order.status[order.status.length - 1].stage === 2)
 
 		let allItems = [].concat
 			.apply(
@@ -293,7 +333,6 @@ router.get("/minValue/:warhouse_uuid/:item_uuid", async (req, res) => {
 			.filter(a => a.item_uuid === req.params.item_uuid)
 			.map(a => +a.b * Itemdata.conversion + +a.p)
 		allItems = allItems.length > 1 ? allItems.reduce((a, b) => +a + b) : allItems.length ? allItems[0] : 0
-		console.log(allItems)
 		if (allItems)
 			res.json({
 				success: true,
@@ -306,7 +345,6 @@ router.get("/minValue/:warhouse_uuid/:item_uuid", async (req, res) => {
 })
 router.get("/GetItemStockList/:warhouse_uuid", async (req, res) => {
 	try {
-		console.log(req.params.warhouse_uuid)
 		let data = await Item.find({ status: 1 })
 		data = JSON.parse(JSON.stringify(data))
 		if (req.params.warhouse_uuid)
@@ -336,7 +374,7 @@ router.put("/putItem", async (req, res) => {
 					obj[key] = value[key]
 					return obj
 				}, {})
-			console.log(value)
+
 			let response = await Item.updateMany({ item_uuid: value.item_uuid }, value)
 			if (response.acknowledged) {
 				result.push({ success: true, result: value })
@@ -778,7 +816,7 @@ router.post("/report", async (req, res) => {
 })
 
 router.get("/GetItemsPurchaseData", async (req, res) => {
-	const {category_uuid="", company_uuid=""} = req.query
+	const { category_uuid = "", company_uuid = "" } = req.query
 	try {
 		let data = await Item.find(
 			{
@@ -792,9 +830,7 @@ router.get("/GetItemsPurchaseData", async (req, res) => {
 				company_uuid: 1,
 				category_uuid: 1,
 				last_purchase_price: 1,
-				status: 1,
-				
-				
+				status: 1
 			}
 		)
 		if (data.length)
@@ -806,38 +842,32 @@ router.get("/GetItemsPurchaseData", async (req, res) => {
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
 	}
-}
-)
+})
 router.put("/putItems/sortOrder", async (req, res) => {
 	try {
-	  const items = await req.body;
-	  if (!items?.[0])
-		return res.status(204).json({ message: "Empty Payload" });
-	  const result = { succeed: [], failed: [] };
-	  let count = 0;
-	  const respond = () =>
-		++count === items?.length ? res.json(result) : "";
-  
-	  items?.forEach(async (item) => {
-		try {
-		  const res = await Item.updateOne(
-			{ item_uuid: item.item_uuid },
-			item
-		  );
-		  if (res) result.succeed.push(item.item_uuid);
-		  else result.failed.push({ failed: item.item_uuid });
-		  respond();
-		} catch (error) {
-		  result.failed.push({
-			failed: item.item_uuid,
-			error: error.message,
-		  });
-		  respond();
-		}
-	  });
+		const items = await req.body
+		if (!items?.[0]) return res.status(204).json({ message: "Empty Payload" })
+		const result = { succeed: [], failed: [] }
+		let count = 0
+		const respond = () => (++count === items?.length ? res.json(result) : "")
+
+		items?.forEach(async item => {
+			try {
+				const res = await Item.updateOne({ item_uuid: item.item_uuid }, item)
+				if (res) result.succeed.push(item.item_uuid)
+				else result.failed.push({ failed: item.item_uuid })
+				respond()
+			} catch (error) {
+				result.failed.push({
+					failed: item.item_uuid,
+					error: error.message
+				})
+				respond()
+			}
+		})
 	} catch (err) {
-	  res.status(500).json({ success: false, message: err.message });
+		res.status(500).json({ success: false, message: err.message })
 	}
-  });
+})
 
 module.exports = router

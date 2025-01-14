@@ -59,7 +59,6 @@ const deleteAccountingVoucher = async (order_uuid) => {
   let voucher = await AccountingVouchers.findOne({
     order_uuid,
   });
-  console.log({ voucher });
   if (voucher) {
     await updateCounterClosingBalance(voucher.details, "delete");
     await AccountingVouchers.deleteOne({
@@ -101,7 +100,6 @@ const createAccountingVoucher = async (order, type) => {
     }
 
     const value = (+amt - (+amt * 100) / (100 + a)).toFixed(2);
-    console.log({ value, amt });
     if (amt && value) {
       let ledger = ledger_list.find((b) => b.value === a) || {};
       arr.push({
@@ -160,11 +158,6 @@ const createAccountingVoucher = async (order, type) => {
   for (let item of arr) {
     voucher_difference = +voucher_difference + +item.amount;
     voucher_difference = +voucher_difference.toFixed(2);
-    console.log({
-      voucher_difference,
-      amount: item.amount,
-      ledger_uuid: item.ledger_uuid,
-    });
   }
 
   const voucher = {
@@ -181,7 +174,6 @@ const createAccountingVoucher = async (order, type) => {
     details: arr,
     created_at: new Date().getTime(),
   };
-  console.log({ voucher });
   await AccountingVouchers.create(voucher);
   await updateCounterClosingBalance(arr, "add");
 };

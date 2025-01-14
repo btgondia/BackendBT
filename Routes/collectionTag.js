@@ -23,7 +23,7 @@ router.post("/postTag", async (req, res) => {
       created_at: new Date().getTime(),
     };
 
-    console.log(value);
+    
     let response = await collectionTags.create(value);
     if (response) {
       await Details.updateMany(
@@ -63,10 +63,8 @@ router.get("/getUserActiveTag/:user_uuid", async (req, res) => {
           collection_tag_uuid: a.collection_tag_uuid,
           status: 1,
         });
-        console.log(ordersData);
         ordersData = JSON.parse(JSON.stringify(ordersData));
         let orderLength = ordersData.length;
-        // console.log(warehouseData, a);
         if (orderLength) result.push(a);
       }
 
@@ -92,10 +90,8 @@ router.get("/getTag", async (req, res) => {
           collection_tag_uuid: a.collection_tag_uuid,
           status: 1,
         });
-        console.log(ordersData);
         ordersData = JSON.parse(JSON.stringify(ordersData));
         let orderLength = ordersData.length;
-        // console.log(warehouseData, a);
         result.push({
           ...a,
           outstandings: ordersData,
@@ -122,7 +118,7 @@ router.put("/putTags", async (req, res) => {
         obj[key] = value[key];
         return obj;
       }, {});
-    // console.log(value);
+    // 
     let response = await collectionTags.updateOne(
       { collection_tag_uuid: value.collection_tag_uuid },
       value

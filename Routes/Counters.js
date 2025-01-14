@@ -597,7 +597,6 @@ router.put("/putCounter", async (req, res) => {
 				obj[key] = value[key]
 				return obj
 			}, {})
-		console.log({ value })
 		let response = await Counter.updateOne({ counter_uuid: value.counter_uuid }, value)
 		if (response.acknowledged) {
 			result.push({ success: true, result: value })

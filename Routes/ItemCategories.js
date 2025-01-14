@@ -12,11 +12,10 @@ router.post("/postItemCategories", async (req, res) => {
     if (!value.sort_order) {
       let response = await ItemCategories.find({});
       response = JSON.parse(JSON.stringify(response));
-      //   console.log(response)
       value.sort_order =
         Math.max(...response.map((o) => o?.sort_order || 0)) + 1 || 0;
     }
-    console.log(value);
+    
     let response = await ItemCategories.create(value);
     if (response) {
       res.json({ success: true, result: response });
@@ -35,7 +34,7 @@ router.put("/putItemCategories", async (req, res) => {
         obj[key] = value[key];
         return obj;
       }, {});
-    console.log(value);
+    
     let response = await ItemCategories.updateOne(
       { category_uuid: value.category_uuid },
       value

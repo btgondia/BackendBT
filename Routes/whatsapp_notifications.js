@@ -15,7 +15,7 @@ router.post("/CreateWhatsapp_notifications", async (req, res) => {
 		if (!value) res.json({ success: false, message: "Invalid Data" })
 		value = { ...value, notification_uuid: uuid(), status: 1 }
 
-		console.log(value)
+		
 		let response = await Whatsapp_notifications.create(value)
 		if (response) {
 			res.json({ success: true, result: response })
@@ -35,7 +35,7 @@ router.delete("/DeleteWhatsapp_notifications", async (req, res) => {
 		let data = await Whatsapp_notifications.findOne({
 			notification_uuid: value.notification_uuid,
 		})
-		console.log(value)
+		
 		for (let item of data.message) {
 			fs.access("uploads/" + (item.uuid || "") + ".png", err => {
 				if (err) {
@@ -89,7 +89,7 @@ router.put("/UpdateWhatsapp_notifications", async (req, res) => {
 			})
 		}
 		value = { ...value, message: value.message.filter(a => !a.delete) }
-		console.log(value)
+		
 		let response = await Whatsapp_notifications.updateMany({ notification_uuid: value.notification_uuid }, value)
 		if (response.acknowledged) {
 			res.json({ success: true, result: value })

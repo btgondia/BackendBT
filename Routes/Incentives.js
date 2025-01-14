@@ -11,7 +11,7 @@ router.post("/CreateIncentive", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
     value = {...value,incentive_uuid:uuid(),status:1};
     
-    console.log(value);
+    
     let response = await Incentive.create( value );
     if (response) {
       res.json({ success: true, result: response });
@@ -26,7 +26,7 @@ router.delete("/DeleteIncentive", async (req, res) => {
     if (!value.incentive_uuid) res.json({ success: false, message: "Invalid Data" });
 
     
-    console.log(value);
+    
     let response = await Incentive.deleteMany( {incentive_uuid:value.incentive_uuid} );
     if (response) {
       res.json({ success: true, result: response });
@@ -45,7 +45,7 @@ router.put("/UpdateIncentive", async (req, res) => {
       obj[key] = value[key];
       return obj;
     }, {})
-    console.log(value);
+    
     let response = await Incentive.updateMany( {incentive_uuid:value.incentive_uuid},value );
     if (response.acknowledged) {
       res.json({ success: true, result: value });

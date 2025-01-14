@@ -18,11 +18,10 @@ router.post("/postCounter", async (req, res) => {
     if (!value.sort_order) {
       let response = await Counter.find({});
       response = JSON.parse(JSON.stringify(response));
-      //   console.log(response)
       value.sort_order =
         Math.max(...response.map((o) => o?.sort_order || 0)) + 1 || 0;
     }
-    console.log(value);
+    
     let response = await Counter.create(value);
     if (response) {
       res.json({ success: true, result: response });
@@ -88,7 +87,6 @@ router.get("/getCounterSales/:days", async (req, res) => {
     time.setHours(12);
     time = new Date(time.setDate(time.getDate() - +days)).getTime();
     // time= time.getTime()
-    console.log(time);
     let orderData = await OrderCompleted.find(
       !req.body.counter_uuid ? {} : { counter_uuid: req.body.counter_uuid }
     );
@@ -189,13 +187,12 @@ router.put("/putCounter", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-      console.log(value);
+      
       let response = await Counter.updateOne(
         { counter_uuid: value.counter_uuid },
         value
       );
       if (response.acknowledged) {
-        console.log(response);
         result.push({ success: true, result: value });
       } else result.push({ success: false, message: "Counter Not created" });
     }
@@ -297,10 +294,8 @@ router.put("/CalculateLines", async (req, res) => {
         );
       }
       if (counter.counter_code === "5043.2") {
-        console.log(counterorder.length);
       }
       index = index + 1;
-      console.log(index, counterData.length);
       if (index === counterData.length) {
         res.json({ success: true, result: "" });
       }

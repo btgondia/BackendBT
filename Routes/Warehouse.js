@@ -13,7 +13,7 @@ router.post("/postWarehouse", async (req, res) => {
 		if (!value) res.json({ success: false, message: "Invalid Data" })
 		value = { ...value, warehouse_uuid: uuid() }
 
-		console.log(value)
+		
 		let response = await Warehouse.create(value)
 		if (response) {
 			res.json({ success: true, result: response })
@@ -68,7 +68,6 @@ router.get("/GetWarehouseAllList", async (req, res) => {
 // 		itemsData = JSON.parse(JSON.stringify(itemsData))
 // 		let allItemsData = [...(items || []), ...(itemsData || [])]
 // 		let result = []
-// 		console.log("allItems", allItemsData.length)
 
 // 		for (let item of allItemsData) {
 // 			let itemData = itemsData.find(a => a.item_uuid === item.item_uuid)
@@ -224,7 +223,7 @@ router.put("/putWarehouse", async (req, res) => {
 					obj[key] = value[key]
 					return obj
 				}, {})
-			console.log(value)
+			
 			let response = await Warehouse.updateOne({ warehouse_uuid: value.warehouse_uuid }, value)
 			if (response.acknowledged) {
 				result.push({ success: true, result: value })

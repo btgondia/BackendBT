@@ -23,7 +23,7 @@ router.post("/postUser", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
     value = { ...value, user_uuid: uuid() };
 
-    console.log(value);
+    
     let response = await User.create(value);
     if (response) {
       res.json({ success: true, result: response });
@@ -100,7 +100,6 @@ router.get("/GetUser/:user_uuid", async (req, res) => {
       user_uuid: req.params.user_uuid,
       status: 1,
     });
-    console.log(req.params.user_uuid.data);
     if (data) res.json({ success: true, result: data });
     else res.json({ success: false, message: "Not Authorized to Log-in" });
   } catch (err) {
@@ -226,12 +225,6 @@ router.post("/performance-summary", async (req, res) => {
   try {
     const { from_date, to_date,to,from } = req.body;
    
-    console.log({
-      from_date,
-      to_date,
-      from_date_Data: from,
-      to_date_Data: to,
-    });
     let allUsers = await Users.find({});
     let runningOrders = await Orders.find({
       "status.time": { $gte: from_date, $lte: to_date },

@@ -11,7 +11,7 @@ router.post("/postItemGroup", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
     value = { ...value, item_group_uuid: uuid() };
 
-    console.log(value);
+    
     let response = await ItemGroup.create(value);
     if (response) {
       res.json({ success: true, result: response });
@@ -30,7 +30,7 @@ router.put("/putItemGroup", async (req, res) => {
         obj[key] = value[key];
         return obj;
       }, {});
-    console.log(value);
+    
     let response = await ItemGroup.updateOne(
       { item_group_uuid: value.item_group_uuid },
       value

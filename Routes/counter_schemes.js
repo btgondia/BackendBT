@@ -11,7 +11,7 @@ router.post("/CreateCounter_scheme", async (req, res) => {
     if (!value) res.json({ success: false, message: "Invalid Data" });
     value = { ...value, counter_scheme_uuid: uuid(), status: 1 };
 
-    console.log(value);
+    
     let response = await Counter_schemes.create(value);
     if (response) {
       res.json({ success: true, result: response });
@@ -26,7 +26,7 @@ router.delete("/DeleteCounter_scheme", async (req, res) => {
     if (!value.counter_scheme_uuid)
       res.json({ success: false, message: "Invalid Data" });
 
-    console.log(value);
+    
     let response = await Counter_schemes.deleteMany({
       counter_scheme_uuid: value.counter_scheme_uuid,
     });
@@ -47,7 +47,7 @@ router.put("/UpdateCounter_scheme", async (req, res) => {
         obj[key] = value[key];
         return obj;
       }, {});
-    console.log(value);
+    
     let response = await Counter_schemes.updateMany(
       { counter_scheme_uuid: value.counter_scheme_uuid },
       value

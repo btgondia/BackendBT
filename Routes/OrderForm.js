@@ -21,7 +21,7 @@ router.post("/postForm", async (req, res) => {
 
     value = { ...value, form_uuid: uuid(), form_short_link };
 
-    console.log(value);
+    
     let response = await OrderForm.create(value);
     if (response) {
       res.json({ success: true, result: response });
@@ -68,7 +68,6 @@ router.post("/GetFormList", async (req, res) => {
     for (let i of value) {
       json = { ...json, [i]: 1 };
     }
-    console.log(json);
     let data = await OrderForm.find({}, json);
 
     if (data.length) res.json({ success: true, result: data });
@@ -89,7 +88,7 @@ router.put("/putForm", async (req, res) => {
           obj[key] = value[key];
           return obj;
         }, {});
-      console.log(value);
+      
       let response = await OrderForm.updateOne(
         { form_uuid: value.form_uuid },
         value

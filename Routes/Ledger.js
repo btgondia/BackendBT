@@ -337,7 +337,6 @@ router.post("/getExcelDetailsData", async (req, res) => {
         ...zeroStartedArray,
       ]);
       narrationArray = Array.from(new Set(narrationArray));
-      console.log({ narrationArray });
       // find counter or ledger includs transaction_tags matches with narration
       let countersData = await Counters.find(
         { transaction_tags: { $in: narrationArray } },
@@ -380,7 +379,6 @@ router.post("/getExcelDetailsData", async (req, res) => {
         );
         countersData = countersData[0];
       }
-      console.log({ countersData });
       let reciptsData = await Receipts.find(
         {
           pending: 0,
@@ -564,7 +562,6 @@ router.post("/getExcelDetailsData", async (req, res) => {
           narration: item[getAlphabetIndex(bankStatementItem.narration_column)],
           existVoucher: multipleNarration ? true : existVoucher ? true : false,
         };
-        console.log({ multipleNarration, existVoucher });
       } else if (otherReciptsData.length) {
         otherReciptsData = JSON.parse(JSON.stringify(otherReciptsData));
         value = {
@@ -909,12 +906,6 @@ router.get("/getDebitCreditAccountingBalanceDetails", async (req, res) => {
           credit = +credit.toFixed(4);
         }
       }
-      if (+credit === 3786.4) {
-        item.details.map((a) => {
-          console.log(a.amount);
-        });
-      }
-      // console.log({ debit, credit });
       if (Math.abs(debit) !== Math.abs(credit)) {
         vouchers.push({
           voucher_date: item.voucher_date,
@@ -1063,7 +1054,6 @@ const createAccountingVoucher = async ({
   voucher_date = new Date().getTime(),
   created_at = new Date().getTime(),
 }) => {
-  console.log({ order });
   let counterData = await Counters.findOne(
     { counter_uuid: order.counter_uuid },
     { gst: 1 }
@@ -1094,7 +1084,6 @@ const createAccountingVoucher = async ({
       amt = amt.toFixed(2);
     }
     const value = (+amt - (+amt * 100) / (100 + a)).toFixed(2);
-    console.log({ value, amt });
 
     if (amt && value) {
       let ledger = sale_ledger_list.find((b) => b.value === a) || {};
@@ -1219,13 +1208,7 @@ const createAccountingVoucher = async ({
   for (let item of arr) {
     voucher_difference = +voucher_difference + +item.amount;
     voucher_difference = +voucher_difference.toFixed(2);
-    console.log({
-      voucher_difference,
-      amount: item.amount,
-      ledger_uuid: item.ledger_uuid,
-    });
   }
-  // console.log({ arr, voucher_difference });
   const voucher = {
     accounting_voucher_uuid: uuid(),
     type: type,
@@ -1252,12 +1235,10 @@ const createAutoCreditNote = async (
     +(order.replacement || 0) +
     +(order.shortage || 0) +
     +(order.adjustment || 0);
-  console.log({ price });
   let narration =
     (order.replacement ? "Replacement: " + order.replacement : "") +
     (order.shortage ? " Shortage: " + order.shortage : "") +
     (order.adjustment ? " Adjustment: " + order.adjustment : "");
-  console.log({ narration });
   let item = await Item.findOne({ item_uuid },{conversion:1, item_gst: 1,item_title:1, item_hsn:1,item_uuid :1,item_css:1});
   item = JSON.parse(JSON.stringify(item));
   item = { ...item, item_total: 0 };
@@ -1314,7 +1295,6 @@ const createCreditNotAccountingVoucher = async (order, type, narration) => {
   let amt = order.item_details[0]?.item_total || 0;
 
   const value = (+amt - (+amt * 100) / (100 + data)).toFixed(2);
-  console.log({ value, amt });
   if (amt && value) {
     let ledger = sale_ledger_list.find((b) => b.value === data) || {};
     arr.push({
@@ -1380,11 +1360,6 @@ const createCreditNotAccountingVoucher = async (order, type, narration) => {
   for (let item of arr) {
     voucher_difference = +voucher_difference + +item.amount;
     voucher_difference = +voucher_difference.toFixed(2);
-    console.log({
-      voucher_difference,
-      amount: item.amount,
-      ledger_uuid: item.ledger_uuid,
-    });
   }
 
   const voucher = {
@@ -1803,7 +1778,7 @@ router.put("/fixeBalance", async (req, res) => {
     let success = 0;
     let failed = 0;
     for (let value of req.body) {
-      console.log(value);
+      
       let ledgerData = await Ledger.findOne(
         { ledger_uuid: value.ledger_uuid },
         { opening_balance: 1 }

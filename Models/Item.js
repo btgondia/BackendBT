@@ -96,6 +96,7 @@ const ItemSchema = new mongoose.Schema({
   created_at: { type: Number },
   hsn_code_uuid: { type: String },
   dms_erp_id: { type: String },
+  dms_erp_ids: [{ type: String }],
   dms_item_name: { type: String },
 });
 

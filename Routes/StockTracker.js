@@ -10,9 +10,8 @@ router.post("/getStockTracking", async (req, res) => {
 //   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
-    console.log(value);
+    
     let endDate = +value.endDate + 86400000;
-    console.log(endDate, value.startDate);
     let response = await StockTracker.find({});
 let result=[]
     for (let i = 0; i < response.length; i++) {

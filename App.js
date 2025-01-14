@@ -68,7 +68,6 @@ const storage = multer.diskStorage({
     cb(null, "uploads");
   },
   filename: function (req, file, cb) {
-    console.log(file);
     cb(null, file.originalname);
   },
 });
@@ -162,7 +161,6 @@ app.get('/DeleteMyData-2/:anystring', (req, res) => {
 
 const MinLevelUpdateAutomation = async () => {
   let itemsList = [];
-  console.log("Fuction");
 
   let warehouseData = await WarehouseModel.find({});
   warehouseData = JSON.parse(JSON.stringify(warehouseData));
@@ -197,7 +195,6 @@ const MinLevelUpdateAutomation = async () => {
     // cancelOrdersData = cancelOrdersData.filter(
     // 	a => a.status.filter(b => +b.stage === 1 && b.time > FiteenDaysTime).length
     // );
-    console.log(warehouseItem);
     let items = [
       ...([].concat.apply(
         [],
@@ -306,13 +303,11 @@ const MinLevelUpdateAutomation = async () => {
   return itemsList;
 };
 
-// MinLevelUpdateAutomation().then(i => console.log(i.find(i => i.item_uuid === "70715926-1762-4eef-a890-d9ee70494329").stock))
 // setTimeout(MinLevelUpdateAutomation, 5000);
 setInterval(function () {
   // Set interval for checking
   var date = new Date(); // Create a Date object to find out what time it is
   if (date.getHours() === 2) {
-    console.log(date.getHours());
     // Check the time
     MinLevelUpdateAutomation();
   }
@@ -324,21 +319,16 @@ app.use("/soundApp/getFile", express.static(path.join(__dirname, "files")));
   // const topic = 'soundApp'
 
   // client.on('connect', () => {
-  //   console.log('Connected')
   //   client.subscribe([topic], () => {
-  //     console.log(`Subscribe to topic '${topic}'`)
   //   })
   // })
   // client.on('message', (topic, payload) => {
-  //   console.log('Received Message:', topic, payload.toString())
   // })
 
 
   //   client.on("reconnect", () => {
-  //     console.log("Reconnect");
   //   });
   // client.on("error", (error) => {
-  //   console.log("Error", error);
   // });
 // }
 

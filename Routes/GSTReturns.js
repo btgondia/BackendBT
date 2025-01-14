@@ -3,7 +3,6 @@ const GSTReturns = require("../Models/GSTReturns");
 
 router.post("/postGSTReturns", async (req, res) => {
   const value = req.body;
-console.log(value.json_data);
   try {
     const savedGSTReturns = await GSTReturns.create(value);
     res.json({success: true,result: savedGSTReturns});
