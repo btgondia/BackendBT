@@ -290,12 +290,20 @@ router.patch("/map-item", async (req, res) => {
 		const item = await Item.findOne({ item_uuid }, { dms_erp_ids: 1 })
 		if (!item) return res.json({ success: false, error: "Item not found" })
 		if (!item.dms_erp_ids?.includes(dms_item_code))
-			await Item.updateOne(
-				{ item_uuid },
-				{ $push: { dms_erp_ids: dms_item_code } }
-			)
+			await Item.updateOne({ item_uuid }, { $push: { dms_erp_ids: dms_item_code } })
 
 		res.json({ success: true })
+	} catch (err) {
+		res.status(500).json({ success: false, message: err })
+	}
+})
+router.put("/flush-dms-ids", async (req, res) => {
+	try {
+		const { item_uuid } = req.body
+		const item = await Item.updateOne({ item_uuid }, { dms_erp_ids: [] })
+
+		if (item.acknowledged) res.json({ success: true })
+		else res.json({ success: false, error: "Item not found" })
 	} catch (err) {
 		res.status(500).json({ success: false, message: err })
 	}
