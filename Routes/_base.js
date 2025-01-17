@@ -27,6 +27,8 @@ baseRouter.post("/invoice-import-prerequisite", async (req, res) => {
 					item_uuid: 1,
 					dms_erp_ids: 1,
 					conversion: 1,
+					item_gst: 1,
+					item_css: 1,
 					item_price: 1,
 					status: 1
 				}
