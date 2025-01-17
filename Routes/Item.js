@@ -249,6 +249,11 @@ router.get("/company-wise/basic", async (req, res) => {
 	try {
 		const data = await Item.aggregate([
 			{
+				$match: {
+					status: 1
+				}
+			},
+			{
 				$group: {
 					_id: "$company_uuid",
 					items: {

@@ -1,6 +1,5 @@
 const Counters = require("../Models/Counters")
 const Item = require("../Models/Item")
-const OrderCompleted = require("../Models/OrderCompleted")
 const Orders = require("../Models/Orders")
 const Users = require("../Models/Users")
 const baseRouter = require("express").Router()
@@ -23,12 +22,13 @@ baseRouter.post("/invoice-import-prerequisite", async (req, res) => {
 
 		if (dms_items?.length > 0)
 			result.items = await Item.find(
-				{ dms_erp_ids: { $in: dms_items }, status: 1 },
+				{ $and: [{ dms_erp_ids: { $in: dms_items } }, { status: 1 }] },
 				{
 					item_uuid: 1,
 					dms_erp_ids: 1,
 					conversion: 1,
-					item_price: 1
+					item_price: 1,
+					status: 1
 				}
 			)
 
