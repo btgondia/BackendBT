@@ -46,14 +46,33 @@ baseRouter.post("/invoice-import-prerequisite", async (req, res) => {
 			)
 
 		if (dms_invoice_numbers?.length > 0)
-			result.existing_invoice_orders = await Orders.find(
-				{ dms_invoice_number: { $in: dms_invoice_numbers } },
+			result.existing_invoice_orders = await Orders.aggregate([
 				{
-					_id: 0,
-					dms_invoice_number: 1,
-					order_uuid: 1
+					$match: {
+						dms_invoice_number: { $in: dms_invoice_numbers }
+					}
+				},
+				{
+					$lookup: {
+						from: "counters",
+						localField: "counter_uuid",
+						foreignField: "counter_uuid",
+						pipeline: [{ $project: { counter_title: 1 } }],
+						as: "counter"
+					}
+				},
+				{
+					$project: {
+						_id: 0,
+						dms_invoice_number: 1,
+						order_uuid: 1,
+						invoice_number: 1,
+						counter_title: {
+							$first: "$counter.counter_title"
+						}
+					}
 				}
-			)
+			])
 
 		res.json(result)
 	} catch (error) {
