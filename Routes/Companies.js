@@ -2,6 +2,19 @@ const express = require("express")
 const router = express.Router()
 const Companies = require("../Models/Companies")
 
+router.get("/list", async (req, res) => {
+	try {
+		const data = await Companies.find({ status: 1 }, { company_uuid: 1, company_title: 1 }).sort({
+			sort_order: 1
+		})
+
+		if (data.length) res.json({ success: true, result: data })
+		else res.json({ success: false, message: "Companies Not found" })
+	} catch (err) {
+		res.status(500).json({ message: err?.message })
+	}
+})
+
 router.get("/getCompanies", async (req, res) => {
 	try {
 		const data = await Companies.find({})
@@ -16,7 +29,10 @@ router.put("/", async (req, res) => {
 	try {
 		const payload = req.body
 		delete payload?._id
-		const result = await Companies.findOneAndUpdate({ company_uuid: payload?.company_uuid }, payload)
+		const result = await Companies.findOneAndUpdate(
+			{ company_uuid: payload?.company_uuid },
+			payload
+		)
 		if (result) res.json({ success: true })
 		else res.status(409).json({ message: "Failed to update." })
 	} catch (err) {
