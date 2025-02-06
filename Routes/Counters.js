@@ -84,8 +84,9 @@ router.delete("/deleteCounter", async (req, res) => {
 
 router.get("/GetCounterList", async (req, res) => {
 	try {
+		const {filterHidden}=req.query
 		let data = await Counter.find(
-			{},
+			filterHidden ? {status:{$ne:0}} : {},
 			{
 				counter_title: 1,
 				counter_code: 1,
