@@ -4,7 +4,6 @@ const Orders = require("../Models/Orders")
 const Receipts = require("../Models/Receipts")
 const Routes = require("../Models/Routes")
 const Users = require("../Models/Users")
-// const { checkPDFs } = require("./puppeteerUtilities")
 
 const getReceipts = async () => {
 	let response = await Receipts.find({ pending: 0 })
@@ -57,44 +56,6 @@ const getReceipts = async () => {
 	return { success: true, result: data }
 }
 
-// const getRunningOrders = async ({ user_uuid, doCheckPDF, condition = {}, getCounters }) => {
-// 	let userData = await Users.findOne({ user_uuid }, { routes: 1 })
-// 	let data = []
-// 	let counterData = []
-
-// 	if (userData?.routes?.filter(i => +i !== 1)?.length) {
-// 		counterData = await Counters.find(
-// 			userData.routes.includes("none") ? {} : { route_uuid: { $in: userData.routes } },
-// 			{ counter_title: 1, counter_uuid: 1, route_uuid: 1 }
-// 		)
-
-// 		data = await Orders.find({
-// 			counter_uuid: { $in: counterData.filter(i => i.counter_uuid).map(i => i.counter_uuid) },
-// 			...condition,
-// 		})
-// 	} else {
-// 		data = await Orders.find({ ...condition })
-// 		counterData = await Counters.find(
-// 			{ counter_uuid: { $in: data.filter(i => i.counter_uuid).map(i => i.counter_uuid) } },
-// 			{ counter_title: 1, counter_uuid: 1 }
-// 		)
-// 	}
-
-// 	if (getCounters)
-// 		return { counterData: counterData?.filter(i => data?.find(_i => _i?.counter_uuid === i.counter_uuid)) }
-// 	data = JSON.parse(JSON.stringify(data))
-// 	data = await data
-// 		.filter(i => i.order_uuid && i.hold !== "Y" && i.item_details.length)
-// 		.map(i => ({
-// 			...i,
-// 			counter_title: i.counter_uuid ? counterData.find(_i => _i.counter_uuid === i.counter_uuid)?.counter_title : "",
-// 		}))
-
-// 	// if (doCheckPDF) checkPDFs(data)
-// 	// return { success: true, result: data }
-// }
-
-
 const getRunningOrders = async ({ user_uuid, condition = {}, getCounters }) => {
 	try {
 		let userData = await Users.findOne({ user_uuid }, { routes: 1 });
@@ -140,8 +101,6 @@ data=JSON.parse(JSON.stringify(data))
 				counter_title: i.counter_uuid ? counterData.find(_i => _i.counter_uuid === i.counter_uuid)?.counter_title : "",
 			}));
 
-		// if (doCheckPDF) checkPDFs(data)
-		// return { success: true, result: data }
 		return { success: true, result: data };
 	} catch (error) {
 		throw new Error(error.message);

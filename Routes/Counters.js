@@ -11,8 +11,6 @@ const Otp = require("../Models/otp")
 const ItemCategories = require("../Models/ItemCategories")
 const notification_log = require("../Models/notification_log")
 const orderForms = require("../Models/orderForms")
-const Campaigns = require("../Models/Campaigns")
-const { messageEnque } = require("../queues/messageQueue")
 const Counters = require("../Models/Counters")
 const Details = require("../Models/Details")
 const { getMidnightTimestamp, getDDMMYYDate } = require("../utils/helperFunctions")
@@ -427,15 +425,6 @@ router.post("/GetCounterByLink", async (req, res) => {
 		)
 		let form_uuid = counterData.form_uuid
 
-		if (campaign_short_link) {
-			let compainData = await Campaigns.findOne({ campaign_short_link }, { form_uuid: 1 })
-
-			if (compainData?.form_uuid) {
-				if (compainData.form_uuid !== "d") {
-					form_uuid = compainData.form_uuid
-				}
-			}
-		}
 		if (form_short_link) {
 			let compainData = await orderForms.findOne({ form_short_link }, { form_uuid: 1 })
 
@@ -750,45 +739,6 @@ router.put("/putCounter/sortOrder", async (req, res) => {
 		})
 	} catch (err) {
 		res.status(500).json({ success: false, message: err.message })
-	}
-})
-
-router.post("/sendWhatsappOtp", async (req, res) => {
-	try {
-		let value = req.body
-		if (!value) res.json({ success: false, message: "Invalid Data" })
-		const generatedOTP = +Math.ceil(Math.random() * Math.pow(10, 10))
-			.toString()
-			.slice(0, 6)
-		let otp = await generatedOTP
-		let message = "Your OTP for Mobile Number Verification is " + otp
-		if (value?.mobile) {
-			const number = `${value.mobile}`.length === 10 ? `91${value.mobile}` : `${value.mobile}`
-
-			let data = { number, type: "text", message }
-
-			await Otp.create({
-				mobile: value.mobile,
-				counter_uuid: value.counter_uuid,
-				otp
-			})
-
-			await messageEnque(data)
-
-			await notification_log.create({
-				contact: value.mobile,
-				notification_uuid: "Whatsapp Otp",
-				message: [{ text: message }],
-				// invoice_number: value.invoice_number,
-				created_at: new Date().getTime()
-			})
-
-			res.json({ success: true, message: "Message Sent Successfully" })
-		} else {
-			res.json({ success: false, message: "Mobile Number Missing " })
-		}
-	} catch (err) {
-		res.status(500).json({ success: false, message: err })
 	}
 })
 

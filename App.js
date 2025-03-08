@@ -7,7 +7,6 @@ const gTTS = require("gtts");
 const multer = require("multer");
 const fs = require("fs");
 const bodyParser = require("body-parser");
-const mqtt = require("mqtt");
 const path = require("path");
 
 const WarehouseModel = require("./Models/Warehouse");
@@ -41,17 +40,13 @@ const IncentiveStatment = require("./Routes/IncentiveStatment");
 const CancelOrders = require("./Routes/CancelOrder");
 const CollectionTags = require("./Routes/collectionTag");
 const Counter_scheme = require("./Routes/counter_schemes");
-const whatsapp_notifications = require("./Routes/whatsapp_notifications");
-const campaigns = require("./Routes/campaigns");
 const OrderForm = require("./Routes/OrderForm");
 const CashRegister = require("./Routes/cash_regiterations");
-const xpressRoutes = require("./Routes/xpress");
 const CounterCharges = require("./Routes/counterCharges");
 const CounterStock = require("./Routes/counter_stock");
 const Expense = require("./Routes/Expense");
 const StockTracker = require("./Routes/StockTracker");
 const SoundApp = require("./Routes/SoundApp");
-const client = require("./config/mqtt");
 const Ledger = require("./Routes/Ledger");
 const LedgerGroup = require("./Routes/LedgerGroups");
 const PurchaseINvoice = require("./Routes/PurchaseInvoice");
@@ -97,7 +92,6 @@ app.post("/uploadImage", upload.single("file"), (req, res) => {
   res.json({ success: true });
 });
 
-app.use("/xpress", xpressRoutes);
 app.use("/routes", Routes);
 app.use("/itemCategories", ItemCategories);
 app.use("/companies", Companies);
@@ -124,8 +118,6 @@ app.use("/incentiveStatment", IncentiveStatment);
 app.use("/cancelOrders", CancelOrders);
 app.use("/collectionTags", CollectionTags);
 app.use("/counter_scheme", Counter_scheme);
-app.use("/whatsapp_notifications", whatsapp_notifications);
-app.use("/campaigns", campaigns);
 app.use("/orderForm", OrderForm);
 app.use("/cashRegistrations", CashRegister);
 app.use("/counterStock", CounterStock);
@@ -314,22 +306,5 @@ setInterval(function () {
 }, 360000);
 app.use(express.static("uploads"));
 app.use("/soundApp/getFile", express.static(path.join(__dirname, "files")));
-
-// if (process.env.NODE_ENV != "development") {
-  // const topic = 'soundApp'
-
-  // client.on('connect', () => {
-  //   client.subscribe([topic], () => {
-  //   })
-  // })
-  // client.on('message', (topic, payload) => {
-  // })
-
-
-  //   client.on("reconnect", () => {
-  //   });
-  // client.on("error", (error) => {
-  // });
-// }
 
 module.exports = app;

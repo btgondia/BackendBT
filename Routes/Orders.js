@@ -1,7 +1,6 @@
 const express = require("express")
 const router = express.Router()
-const fs = require("fs")
-const { v4: uuid, v4 } = require("uuid")
+const { v4: uuid } = require("uuid")
 const Orders = require("../Models/Orders")
 const Details = require("../Models/Details")
 const Counters = require("../Models/Counters")
@@ -18,12 +17,8 @@ const Routes = require("../Models/Routes")
 const CancelOrders = require("../Models/CancelOrders")
 const WarehouseModel = require("../Models/Warehouse")
 const Vochers = require("../Models/Vochers")
-const whatsapp_notifications = require("../Models/whatsapp_notifications")
-const Campaigns = require("../Models/Campaigns")
 const ItemCategories = require("../Models/ItemCategories")
-const { getReceipts, getRunningOrders, getDate } = require("../modules/index")
-const { sendMessages, compaignShooter } = require("../modules/messagesHandler")
-const { generatePDFs, getFileName } = require("../modules/puppeteerUtilities")
+const { getRunningOrders } = require("../modules/index")
 const CounterCharges = require("../Models/CounterCharges")
 const {
 	getOrderStage,
@@ -628,47 +623,6 @@ router.post("/postOrder", async (req, res) => {
 				if (+orderStage === 4) updated_data.completed_at = Date.now()
 				await CounterCharges.updateMany({ charge_uuid: { $in: value?.counter_charges } }, updated_data)
 			}
-
-			if (+orderStage === 2) {
-				let WhatsappNotification = await whatsapp_notifications.findOne({
-					notification_uuid: "out-for-delivery"
-				})
-				let counterData = await Counters.findOne(
-					{
-						counter_uuid: value.counter_uuid
-					},
-					{ mobile: 1, counter_title: 1, short_link: 1 }
-				)
-
-				if (WhatsappNotification?.status && counterData?.mobile?.length) {
-					sendMessages({ counterData, WhatsappNotification, value })
-				}
-			}
-			if (value?.campaign_short_link) {
-				let campaignData = await Campaigns.findOne(
-					{
-						campaign_short_link: value.campaign_short_link
-					},
-					{
-						campaign_uuid: 1,
-						counter_status: 1
-					}
-				)
-				campaignData = JSON.parse(JSON.stringify(campaignData))
-				if (campaignData?.counter_status?.length) {
-					let counter_status = campaignData.counter_status.map(a =>
-						a.counter_uuid === value.counter_uuid ? { ...a, status: 1 } : a
-					)
-					await Campaigns.updateOne(
-						{
-							campaign_uuid: campaignData.campaign_uuid
-						},
-						{
-							counter_status
-						}
-					)
-				}
-			}
 			res.json({ success: true, result: response, incentives })
 		} else res.json({ success: false, message: "Order Not created" })
 	} catch (err) {
@@ -756,9 +710,6 @@ router.put("/putOrders", async (req, res) => {
 				await Orders.deleteOne({ order_uuid: value.order_uuid })
 				await OrderCompleted.deleteOne({ order_uuid: value.order_uuid })
 				deleteAccountingVoucher(value.order_uuid, value.invoice_number, "SALE_ORDER", true)
-
-				const filepath = `uploads/${getFileName(value)}`
-				if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
 			} else if (data) {
 				await updateItemStock(value?.warehouse_uuid, value?.item_details, value?.order_uuid, true)
 				await OrderCompleted.updateOne({ order_uuid: value.order_uuid }, value)
@@ -779,11 +730,6 @@ router.put("/putOrders", async (req, res) => {
 				}
 
 				await Orders.deleteOne({ order_uuid: value.order_uuid })
-				const filepath = `uploads/${getFileName(value)}`
-				fs.access(filepath, err => {
-					if (err) return console.log(err)
-					fs.unlink(filepath, err => err && console.log(err))
-				})
 			}
 
 			if (+new_stage === 4) {
@@ -984,53 +930,6 @@ router.put("/putOrders", async (req, res) => {
 			else if (+new_stage === 5) updated_data.invoice_number = null
 			await CounterCharges.updateMany({ charge_uuid: { $in: value?.counter_charges } }, updated_data)
 		}
-
-		if (+new_stage === 2 && old_stage === 1) {
-			const WhatsappNotification = await whatsapp_notifications.findOne({
-				notification_uuid: "out-for-delivery"
-			})
-			const counterData = await Counters.findOne(
-				{ counter_uuid: value.counter_uuid },
-				{
-					mobile: 1,
-					counter_title: 1,
-					short_link: 1
-				}
-			)
-
-			if (WhatsappNotification?.status && counterData?.mobile?.length) {
-				sendMessages({ value, WhatsappNotification, counterData })
-			}
-		}
-
-		if (value.accept_notification || value.notifyCancellation) {
-			const WhatsappNotification = await whatsapp_notifications.findOne({
-				notification_uuid: value.notifyCancellation
-					? "order_cancellation"
-					: +value.accept_notification
-					? "order-accept-notification"
-					: "order-decline-notification"
-			})
-
-			if (WhatsappNotification?.status) {
-				const counterData = await Counters.findOne(
-					{ counter_uuid: value.counter_uuid },
-					{ mobile: 1, counter_title: 1, short_link: 1 }
-				)
-
-				if (counterData?.mobile?.length) {
-					sendMessages({ value, WhatsappNotification, counterData })
-				}
-			}
-		}
-
-		try {
-			const filename = getFileName(value)
-			if (fs.existsSync(`uploads/${filename}`)) fs.unlinkSync(`uploads/${filename}`)
-			await generatePDFs([{ filename, order_id: value.order_uuid }])
-		} catch (err) {
-			console.log(err)
-		}
 	}
 	if (response.length) {
 		res.json({ success: true, result: response })
@@ -1038,153 +937,6 @@ router.put("/putOrders", async (req, res) => {
 	// } catch (err) {
 	//   res.status(500).json({ success: false, message: err?.message });
 	// }
-})
-
-router.post("/sendMsg", async (req, res) => {
-	try {
-		let value = req.body
-		if (!value) return res.json({ success: false, message: "Invalid Data" })
-		let WhatsappNotification = await whatsapp_notifications.findOne({
-			notification_uuid: value.notification_uuid
-		})
-		let counterData = await Counters.findOne(
-			{ counter_uuid: value.counter_uuid },
-			{ mobile: 1, counter_title: 1, short_link: 1 }
-		)
-
-		if (value?.consolidated_payment_reminder) {
-			const unpaid_receipts = (await getReceipts())?.result?.filter(i => i.counter_uuid === value.counter_uuid)
-			const orders = await Orders.find(
-				{ order_uuid: { $in: unpaid_receipts?.map(i => i.order_uuid) } },
-				{ order_type: 1 }
-			)
-
-			WhatsappNotification.message = WhatsappNotification.message?.map(i => ({
-				...i,
-				text: i?.text
-					?.replace(
-						/{details}/g,
-						unpaid_receipts
-							?.sort((a, b) => +a.order_date - +b.order_date)
-							?.map(
-								_i =>
-									`\n${getDate(+_i?.order_date)}       ${
-										orders?.find(o => o.order_uuid === _i.order_uuid)?.order_type === "E" ? "E" : "N"
-									}${_i?.invoice_number}       Rs.${_i?.amt}`
-							)
-							?.join("") + `\n*TOTAL: Rs.${unpaid_receipts?.reduce((sum, _i) => sum + +_i?.amt, 0)}*`
-					)
-					.replace(/{counter_title}/g, counterData?.counter_title)
-			}))
-		}
-
-		let mobile = counterData.mobile.filter(a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification))
-		if (WhatsappNotification?.status && mobile?.length) {
-			sendMessages({ value, WhatsappNotification, counterData })
-			res.json({ success: true, message: "Message Sent Successfully" })
-		} else {
-			res.json({
-				success: false,
-				message: "No Verified Number for this Counter "
-			})
-		}
-	} catch (err) {
-		console.error(err)
-		res.status(500).json({ success: false, message: err?.message })
-	}
-})
-router.post("/copySendMessage", async (req, res) => {
-	try {
-		let value = req.body
-		if (!value) return res.json({ success: false, message: "Invalid Data" })
-		let WhatsappNotification = await whatsapp_notifications.findOne({
-			notification_uuid: value.notification_uuid
-		})
-		let counterData = await Counters.findOne(
-			{ counter_uuid: value.counter_uuid },
-			{ mobile: 1, counter_title: 1, short_link: 1 }
-		)
-
-		if (value?.consolidated_payment_reminder) {
-			const unpaid_receipts = (await getReceipts())?.result?.filter(i => i.counter_uuid === value.counter_uuid)
-			const orders = await Orders.find(
-				{ order_uuid: { $in: unpaid_receipts?.map(i => i.order_uuid) } },
-				{ order_type: 1 }
-			)
-
-			WhatsappNotification.message = WhatsappNotification.message?.map(i => ({
-				...i,
-				text: i?.text
-					?.replace(
-						/{details}/g,
-						unpaid_receipts
-							?.sort((a, b) => +a.order_date - +b.order_date)
-							?.map(
-								_i =>
-									`\n${getDate(+_i?.order_date)}       ${
-										orders?.find(o => o.order_uuid === _i.order_uuid)?.order_type === "E" ? "E" : "N"
-									}${_i?.invoice_number}       Rs.${_i?.amt}`
-							)
-							?.join("") + `\n*TOTAL: Rs.${unpaid_receipts?.reduce((sum, _i) => sum + +_i?.amt, 0)}*`
-					)
-					.replace(/{counter_title}/g, counterData?.counter_title)
-			}))
-		}
-
-		if (WhatsappNotification?.status) {
-			res.json({
-				success: true,
-				message: "Message Sent Successfully",
-				result: { value, WhatsappNotification, counterData }
-			})
-		} else {
-			res.json({
-				success: false,
-				message: "No Verified Number for this Counter "
-			})
-		}
-	} catch (err) {
-		console.error(err)
-		res.status(500).json({ success: false, message: err?.message })
-	}
-})
-
-router.post("/sendPdf", async (req, res) => {
-	try {
-		let value = req.body
-		if (!value) res.json({ success: false, message: "Invalid Data" })
-
-		let { additional_users, additional_numbers = [], sendCounter = true } = await value
-		if (additional_users?.length) {
-			additional_users = await Users.find({ user_uuid: { $in: additional_users } }, { user_mobile: 1 })
-			additional_numbers = await additional_numbers
-				?.concat(additional_users?.map(_i => _i?.user_mobile))
-				?.filter(_i => _i?.toString()?.length === 10 || _i?.toString()?.includes("92"))
-				?.map(_i => +_i)
-		}
-
-		let counterData = await Counters.findOne(
-			{ counter_uuid: value.counter_uuid },
-			{ mobile: 1, counter_title: 1, short_link: 1 }
-		)
-
-		let mobile = counterData.mobile.filter(a => a.mobile && a.lable.find(b => b.type === "wa" && +b.varification))
-		if (!mobile?.length) {
-			return res.json({
-				success: false,
-				message: "No Verified Number for this Counter "
-			})
-		}
-
-		await compaignShooter({
-			counterData: sendCounter ? counterData : {},
-			value: { ...value, additional_numbers },
-			options: { orderPDF: true }
-		})
-		res.json({ success: true, message: "Message Sent Successfully" })
-	} catch (err) {
-		res.status(500).json({ success: false, message: err.message })
-	}
 })
 
 router.put("/order_datetime", async (req, res) => {
