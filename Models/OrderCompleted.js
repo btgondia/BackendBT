@@ -90,9 +90,17 @@ const OrdersSchema = new mongoose.Schema({
   order_grandtotal: {
     type: Number,
   },
-  dms_invoice_number: {
-    type: String,
-  },
+  dms_details: {
+		beat_name: { type: String },
+		date: { type: String },
+		buyer_id: { type: String },
+		buyer_name: { type: String },
+		seller_address: { type: String },
+		erp_user_name: { type: String },
+		erp_user: { type: String },
+		invoice_number: { type: String },
+	},
+  dms_invoice_number: { type: String },
   comments: [
     {
       uuid: {

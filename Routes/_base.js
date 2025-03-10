@@ -49,7 +49,7 @@ baseRouter.post("/invoice-import-prerequisite", async (req, res) => {
 			result.existing_invoice_orders = await Orders.aggregate([
 				{
 					$match: {
-						dms_invoice_number: { $in: dms_invoice_numbers }
+						"dms_details.invoice_number": { $in: dms_invoice_numbers }
 					}
 				},
 				{
@@ -64,7 +64,7 @@ baseRouter.post("/invoice-import-prerequisite", async (req, res) => {
 				{
 					$project: {
 						_id: 0,
-						dms_invoice_number: 1,
+						dms_details: 1,
 						order_uuid: 1,
 						invoice_number: 1,
 						counter_title: {
