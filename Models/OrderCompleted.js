@@ -9,7 +9,7 @@ const OrdersSchema = new mongoose.Schema({
     },
   ],
   replacement: { type: Number },
-  entry: { type: Number },
+  entry: { type: Number, defualt: 0 },
   replacement_mrp: { type: Number },
   shortage: { type: Number },
   adjustment: { type: Number },
