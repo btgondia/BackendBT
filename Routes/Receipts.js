@@ -234,6 +234,7 @@ router.get("/counter/:counter_uuid", async (req, res) => {
         $project: {
           modes: 1,
           order_uuid: 1,
+          invoice_number: 1,
         },
       },
       ...receiptPipelines.list.slice(1),
