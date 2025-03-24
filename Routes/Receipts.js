@@ -5,15 +5,15 @@ const Receipts = require("../Models/Receipts");
 const Details = require("../Models/Details");
 const CashRegister = require("../Models/cash_register");
 const cash_register_transections = require("../Models/cash_register_transections");
-const { getReceipts } = require("../modules/index");
 const PaymentModes = require("../Models/PaymentModes");
 const AccountingVoucher = require("../Models/AccountingVoucher");
 const {
   updateCounterClosingBalance,
   increaseNumericString,
-  truncateDecimals,
 } = require("../utils/helperFunctions");
 const Counters = require("../Models/Counters");
+const { paymentModeIDs } = require("../utils/constants")
+const { receiptPipelines } = require("../pipelines")
 
 const createAccountingVoucher = async (order, type, recept_number) => {
   for (let [i, a] of (order.modes || []).entries()) {
@@ -110,6 +110,148 @@ const updateAccountingVoucher = async (order, type, recept_number) => {
   await deleteAccountingVoucher(recept_number, type, order.order_uuid);
   await createAccountingVoucher(order, type, recept_number);
 };
+
+router.get("/list", async (req, res) => {
+  try {
+    const { pageIndex, pageSize, mode } = req.query
+
+    const pipeline = [
+      receiptPipelines.list[0],
+      {
+        $sort: { _id: 1 }
+      },
+      {
+        $skip: +pageIndex * +pageSize
+      },
+      {
+        $limit: +pageSize
+      },
+      ...receiptPipelines.list.slice(1),
+      {
+        $lookup: {
+          from: "counters",
+          localField: "counter_uuid",
+          foreignField: "counter_uuid",
+          pipeline: [
+            {
+              $project: {
+                counter_title: 1,
+                route_uuid: 1,
+                payment_reminder_days: 1
+              }
+            }
+          ],
+          as: "counter_title"
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_uuid",
+          foreignField: "user_uuid",
+          pipeline: [
+            {
+              $project: {
+                user_title: 1
+              }
+            }
+          ],
+          as: "user_title"
+        }
+      },
+      {
+        $lookup: {
+          from: "routes",
+          localField: "counter_title.route_uuid",
+          foreignField: "route_uuid",
+          as: "route_title"
+        }
+      },
+      {
+        $project: {
+          counter_uuid: 1,
+          counter_title: {
+            $concat: [
+              {
+                $first: "$route_title.route_title"
+              },
+              ", ",
+              {
+                $first: "$counter_title.counter_title"
+              }
+            ]
+          },
+          payment_reminder_days: {
+            $first:
+              "$counter_title.payment_reminder_days"
+          },
+          invoice_number: 1,
+          order_date: 1,
+          payment_date: "$time",
+          order_uuid: 1,
+          modes: 1,
+          user_title: {
+            $first: "$user_title.user_title"
+          }
+        }
+      }
+    ]
+
+    if (mode?.length > 0) {
+      pipeline[0]["$match"].modes["$elemMatch"].mode_uuid = mode
+      pipeline[pipeline.length - 1]["$project"].modes = {
+				$filter: {
+					input: "$modes",
+					as: "mode",
+					cond: {
+						$eq: ["$$mode.mode_uuid", mode],
+					},
+				},
+			}
+    }
+
+    const [ data, totalDocuments ] = await Promise.all([
+      Receipts.aggregate(pipeline),
+      +pageIndex === 0 ? await Receipts.countDocuments(pipeline[0]["$match"]) : null
+    ])
+
+    res.json({
+      data,
+      paymentModeIDs: Object.values(paymentModeIDs),
+      totalDocuments
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err?.message });
+  }
+});
+router.get("/counter/:counter_uuid", async (req, res) => {
+  try {
+    const { counter_uuid } = req.params
+    const pipeline = [
+      ...receiptPipelines.list.slice(0, 1),
+      {
+        $project: {
+          modes: 1,
+          order_uuid: 1,
+        },
+      },
+      ...receiptPipelines.list.slice(1),
+      {
+        $sort: {
+          order_date: 1
+        }
+      },
+    ]
+
+    pipeline[0]["$match"].counter_uuid = counter_uuid
+    const receipts = await Receipts.aggregate(pipeline)
+
+    res.json({ success: true, receipts });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err });
+  }
+});
 router.get("/getPendingEntry", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // Default to page 1
@@ -129,7 +271,6 @@ router.get("/getPendingEntry", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-
 router.post("/postReceipt", async (req, res) => {
   try {
     let value = req.body;
@@ -270,7 +411,7 @@ router.post("/postReceipt", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-router.post("/getRecipt", async (req, res) => {
+router.post("/getReceipt", async (req, res) => {
   try {
     let value = req.body;
     if (!value) res.json({ success: false, message: "Invalid Data" });
@@ -473,28 +614,6 @@ router.put("/putBulkReceiptUPIStatus", async (req, res) => {
   }
 
 });
-// const updateStetus = async () => {
-//   let response = await Receipts.find({});
-
-//   response = JSON.parse(JSON.stringify(response));
-//   for (let item of response) {
-//     let modes = item.modes.map((a) => ({ ...a, status: 1 }));
-//     let data = await Receipts.updateMany(
-//       { order_uuid: item.order_uuid },
-//       { modes }
-//     );
-//   }
-// };
-// updateStetus()
-router.get("/getReceipt", async (req, res) => {
-  try {
-    const result = await getReceipts();
-    res.json(result);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: err?.message });
-  }
-});
 router.put("/putRemarks", async (req, res) => {
   try {
     let value = req.body;
@@ -561,6 +680,5 @@ router.post("/getComments", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 })
-
 
 module.exports = router;

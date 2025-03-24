@@ -48,7 +48,6 @@ router.put("/putRoute", async (req, res) => {
     res.status(500).json({ success: false, message: err });
   }
 });
-
 router.get("/GetRouteList", async (req, res) => {
   try {
     let data = await Routes.find({});
