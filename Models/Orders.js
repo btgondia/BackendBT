@@ -27,6 +27,7 @@ const OrdersSchema = new mongoose.Schema({
 	item_details: [
 		{
 			item_uuid: { type: String },
+			dms_code: { type: String },
 			dms_erp_id: { type: String },
 			dms_item_name: { type: String },
 			b: { type: Number },
