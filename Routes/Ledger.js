@@ -19,7 +19,6 @@ const {
   updateCounterClosingBalance,
 } = require("../utils/helperFunctions");
 const PurchaseInvoice = require("../Models/PurchaseInvoice");
-const { all } = require("./Orders");
 const CreditNotes = require("../Models/CreditNotes");
 
 router.get("/getLedgerClosingBalance", async (req, res) => {
@@ -132,26 +131,26 @@ router.get("/getLedgerCounterTagsList", async (req, res) => {
         transaction_tags: 1,
       }
     );
+
     counterData = JSON.parse(JSON.stringify(counterData));
-    let default_opening_balance_date = await Details.findOne(
-      {},
-      { default_opening_balance_date: 1 }
-    );
-    default_opening_balance_date =
-      default_opening_balance_date.default_opening_balance_date;
+
+    let default_opening_balance_date = await Details.findOne({}, { default_opening_balance_date: 1 });
+    default_opening_balance_date = default_opening_balance_date.default_opening_balance_date;
+
     let response = [];
     let ledgerGroupData = await LedgerGroup.find(
-      {
-        ledger_group_uuid: { $in: ledgerData.map((a) => a.ledger_group_uuid) },
-      },
+      { ledger_group_uuid: { $in: ledgerData.map((a) => a.ledger_group_uuid) } },
       { ledger_group_title: 1, ledger_group_uuid: 1 }
     );
+
     for (let item of ledgerData) {
       if (!item.ledger_uuid || !item.transaction_tags?.length) continue;
+
       let ledger_group_title =
         ledgerGroupData.find(
           (a) => a.ledger_group_uuid === item.ledger_group_uuid
         )?.ledger_group_title || "";
+
       response.push({
         ledger_uuid: item.ledger_uuid,
         closing_balance: item.closing_balance,
@@ -165,12 +164,15 @@ router.get("/getLedgerCounterTagsList", async (req, res) => {
           )?.amount || 0,
       });
     }
+    
     let routeData = await Routes.find(
       { route_uuid: { $in: counterData.map((a) => a.route_uuid) } },
       { route_title: 1, route_uuid: 1 }
     );
+
     for (let item of counterData) {
       if (!item.counter_uuid || !item.transaction_tags?.length) continue;
+
       let route_title =
         routeData.find((a) => a.route_uuid === item.route_uuid)?.route_title ||
         "";
@@ -189,9 +191,9 @@ router.get("/getLedgerCounterTagsList", async (req, res) => {
           )?.amount || 0,
       });
     }
-    if (response.length) {
-      res.json({ success: true, result: response });
-    } else res.json({ success: false, message: "Ledger Not Found" });
+
+    if (response.length) res.json({ success: true, result: response });
+    else res.json({ success: false, message: "Ledger Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
