@@ -7,13 +7,11 @@ const CashRegister = require("../Models/cash_register");
 const cash_register_transections = require("../Models/cash_register_transections");
 const PaymentModes = require("../Models/PaymentModes");
 const AccountingVoucher = require("../Models/AccountingVoucher");
-const {
-  updateCounterClosingBalance,
-  increaseNumericString,
-} = require("../utils/helperFunctions");
+const { updateCounterClosingBalance, increaseNumericString, getMidnightTimestamp } = require("../utils/helperFunctions");
 const Counters = require("../Models/Counters");
 const { paymentModeIDs } = require("../utils/constants")
-const { receiptPipelines } = require("../pipelines")
+const { receiptPipelines } = require("../pipelines");
+const Routes = require("../Models/Routes");
 
 const createAccountingVoucher = async (order, type, recept_number) => {
   for (let [i, a] of (order.modes || []).entries()) {
@@ -110,10 +108,80 @@ const updateAccountingVoucher = async (order, type, recept_number) => {
   await deleteAccountingVoucher(recept_number, type, order.order_uuid);
   await createAccountingVoucher(order, type, recept_number);
 };
+const getCounterTagsList = async (query) => {
+  const counterData = await Counters.aggregate([
+    {
+      $match: query
+    },
+    {
+      $lookup: {
+        from: 'receipts',
+        localField: 'counter_uuid',
+        foreignField: 'counter_uuid',
+        pipeline: [receiptPipelines.list[0]],
+        as: 'receipts'
+      }
+    },
+    {
+      $match: {
+        "receipts._id": {
+          $exists: false
+        }
+      }
+    },
+    {
+      $project: {
+        closing_balance: 1,
+        counter_uuid: 1,
+        route_uuid: 1,
+        counter_title: 1,
+        opening_balance: 1,
+        transaction_tags: 1,
+      }
+    }
+  ]);
+
+  const default_opening_balance_date = (await Details.findOne({}, { default_opening_balance_date: 1 })).default_opening_balance_date;
+  const routeData = await Routes.find(
+    { route_uuid: { $in: counterData.map((a) => a.route_uuid) } },
+    { route_title: 1, route_uuid: 1 }
+  );
+  
+  const response = [];
+  for (const counter of counterData) {
+    if (!counter.counter_uuid || !counter.transaction_tags?.length) continue;
+    const route_title = routeData.find((a) => a.route_uuid === counter.route_uuid)?.route_title || "";
+
+    response.push({
+      counter_uuid: counter.counter_uuid,
+      closing_balance: counter.closing_balance,
+      transaction_tags: counter.transaction_tags,
+      route_title,
+      title: counter.counter_title,
+      ledger_group_title: "Sundry Debtors",
+      opening_balance: counter?.opening_balance?.find((a) => getMidnightTimestamp(+a.date) === default_opening_balance_date)?.amount || 0
+    });
+  }
+
+  return response
+}
 
 router.get("/list", async (req, res) => {
   try {
-    const { pageIndex, pageSize, mode } = req.query
+    const { pageIndex, pageSize, mode, tagSearch } = req.query
+
+    const counterMatchQuery = {
+      status: { $ne: 0 },
+      transaction_tags: {
+        $elemMatch: { $regex: new RegExp(tagSearch, 'i') }
+      },
+    }
+    const counters = await Counters.find(counterMatchQuery, { counter_uuid: 1 })
+
+    if (tagSearch) {
+      if (counters.length > 0) receiptPipelines.list[0]["$match"].counter_uuid = { $in: counters.map(i => i.counter_uuid) }
+      else return res.status(204).json({ data: [], totalDocuments: 0 })
+    }
 
     const pipeline = [
       receiptPipelines.list[0],
@@ -210,13 +278,15 @@ router.get("/list", async (req, res) => {
 			}
     }
 
-    const [ data, totalDocuments ] = await Promise.all([
+    const [ data, totalDocuments, counterTagsList ] = await Promise.all([
       Receipts.aggregate(pipeline),
-      +pageIndex === 0 ? await Receipts.countDocuments(pipeline[0]["$match"]) : null
+      +pageIndex === 0 ? await Receipts.countDocuments(pipeline[0]["$match"]) : null,
+      +pageIndex === 0 && tagSearch ? await getCounterTagsList(counterMatchQuery) : null
     ])
 
     res.json({
       data,
+      counterTagsList,
       paymentModeIDs: Object.values(paymentModeIDs),
       totalDocuments
     });

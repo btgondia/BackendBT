@@ -99,9 +99,8 @@ router.get("/getLedgerClosingBalance", async (req, res) => {
           )?.amount || 0,
       });
     }
-    if (response.length) {
-      res.json({ success: true, result: response });
-    } else res.json({ success: false, message: "Ledger Not Found" });
+    if (response.length) res.json({ success: true, result: response });
+    else res.json({ success: false, message: "Ledger Not Found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
