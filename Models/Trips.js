@@ -4,6 +4,9 @@ const TripsSchema = new mongoose.Schema({
   trip_title: {
     type: String,
   },
+  sort_order: {
+    type: Number,
+  },
   status: {
     type: Number,
   },

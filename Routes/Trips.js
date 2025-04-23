@@ -15,6 +15,22 @@ const Warehouse = require("../Models/Warehouse");
 const { getOrderStage } = require("../utils/helperFunctions");
 const { get } = require("mongoose");
 
+router.post("/update_sort_order", async (req, res) => {
+  try {
+    const data = req.body;
+    await Promise.all(
+      data.map(i =>
+        Trips.findOneAndUpdate(
+          { trip_uuid: i.trip_uuid },
+          { sort_order: i.sort_order }
+        )
+      )
+    )
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 router.post("/postTrip", async (req, res) => {
   try {
     let value = req.body;
@@ -58,22 +74,11 @@ router.get("/GetTripList/:user_uuid", async (req, res) => {
   try {
     let userData = await Users.findOne({ user_uuid: req.params.user_uuid });
     userData = JSON.parse(JSON.stringify(userData));
-    let data = await Trips.find(
-      // +userData?.warehouse[0] === 1
-      //   ?
-      {}
-      // : { warehouse_uuid: { $in: userData.warehouse } }
-    );
+    let data = await Trips.find({}).sort({ sort_order: 1 });
     data = JSON.parse(JSON.stringify(data));
 
-    // let ordersData = await Orders.find({});
-    // ordersData = JSON.parse(JSON.stringify(ordersData));
-    if (data.length) {
-      res.json({
-        success: true,
-        result: data,
-      });
-    } else res.json({ success: false, message: "Trips Not found" });
+    if (data.length) res.json({ success: true, result: data });
+    else res.json({ success: false, message: "Trips Not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err });
   }
