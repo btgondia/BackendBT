@@ -1,7 +1,5 @@
 require("dotenv").config()
 const App = require("./App.js")
-const cluster = require("node:cluster")
-const os = require("os")
 
 let getTime = () => {
 	let offset = 330
@@ -27,17 +25,4 @@ const colors = {
 for (const key in colors) console[key] = str => console.log(colors[key], str, colors.white)
 
 const PORT = process.env.PORT || 9000
-const totalCPUs = os.cpus().length
-if (cluster.isPrimary) {
-	console.green(`Primary ${process.pid} is running`)
-	for (let i = 0; i < totalCPUs; i++) {
-		cluster.fork()
-	}
-	cluster.on("exit", (worker, code, signal) => {
-		console.red(`Worker ${worker.process.pid} died with code: ${code}, and signal: ${signal}`)
-		console.green("Starting a new worker")
-		cluster.fork()
-	})
-} else {
-	App.listen(PORT, () => console.green(`Server running on port ${PORT} with ${process.pid}`))
-}
+App.listen(PORT, () => console.green(`Server running on port ${PORT} with ${process.pid}`))

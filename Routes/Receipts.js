@@ -166,25 +166,29 @@ const getCounterTagsList = async (query) => {
   return response
 }
 
-router.get("/list", async (req, res) => {
+router.post("/list", async (req, res) => {
   try {
-    const { pageIndex, pageSize, mode, tagSearch } = req.query
+    const { pageIndex, pageSize, mode, tagSearch } = req.body
 
+    const matchQuery = JSON.parse(JSON.stringify(receiptPipelines.list[0]))
     const counterMatchQuery = {
       status: { $ne: 0 },
       transaction_tags: {
         $elemMatch: { $regex: new RegExp(tagSearch, 'i') }
       },
     }
+
     const counters = await Counters.find(counterMatchQuery, { counter_uuid: 1 })
 
-    if (tagSearch) {
-      if (counters.length > 0) receiptPipelines.list[0]["$match"].counter_uuid = { $in: counters.map(i => i.counter_uuid) }
+    if (tagSearch?.length > 0) {
+      if (counters.length > 0) matchQuery["$match"].counter_uuid = {
+        $in: counters.map(i => i.counter_uuid)
+      }
       else return res.status(204).json({ data: [], totalDocuments: 0 })
     }
 
     const pipeline = [
-      receiptPipelines.list[0],
+      matchQuery,
       {
         $sort: { _id: 1 }
       },
@@ -278,17 +282,18 @@ router.get("/list", async (req, res) => {
 			}
     }
 
-    const [ data, totalDocuments, counterTagsList ] = await Promise.all([
-      Receipts.aggregate(pipeline),
-      +pageIndex === 0 ? await Receipts.countDocuments(pipeline[0]["$match"]) : null,
-      +pageIndex === 0 && tagSearch ? await getCounterTagsList(counterMatchQuery) : null
-    ])
+    const data = await Receipts.aggregate(pipeline)
+    const totalDocuments = +pageIndex === 0 ? await Receipts.countDocuments(pipeline[0]["$match"]) : null
+    const counterTagsList = +pageIndex === 0 && await tagSearch?.length > 0 ? getCounterTagsList(counterMatchQuery) : null
 
+    res.setHeader("Cache-Control", 'no-store')
     res.json({
-      data,
+      totalDocuments,
+      dataLength: data.length,
+      counterTagsListLength: counterTagsList?.length,
       counterTagsList,
+      data,
       paymentModeIDs: Object.values(paymentModeIDs),
-      totalDocuments
     });
   } catch (err) {
     console.error(err);
