@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const {OrderDMSDetailsSchema,DMSItemSchema} = require("./OrderDMSDetails");
 
 const OrdersSchema = new mongoose.Schema({
   status: [
@@ -17,6 +18,7 @@ const OrdersSchema = new mongoose.Schema({
   adjustment_remarks: { type: String },
   item_details: [
     {
+      ...DMSItemSchema,
       item_uuid: { type: String },
       b: { type: Number },
       price: { type: Number },
@@ -90,16 +92,7 @@ const OrdersSchema = new mongoose.Schema({
   order_grandtotal: {
     type: Number,
   },
-  dms_details: {
-		beat_name: { type: String },
-		date: { type: String },
-		buyer_id: { type: String },
-		buyer_name: { type: String },
-		seller_address: { type: String },
-		erp_user_name: { type: String },
-		erp_user: { type: String },
-		invoice_number: { type: String },
-	},
+  dms_details: OrderDMSDetailsSchema,
   dms_invoice_number: { type: String },
   comments: [
     {
