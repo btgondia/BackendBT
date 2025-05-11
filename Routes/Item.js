@@ -7,6 +7,7 @@ const Item = require("../Models/Item")
 const OrderCompleted = require("../Models/OrderCompleted")
 const Orders = require("../Models/Orders")
 const fs = require("fs")
+const { reportTotalPipeline, reportPipeline } = require("../pipelines/items.pipeline")
 router.post("/postItem", async (req, res) => {
 	try {
 		let value = req.body
@@ -15,7 +16,7 @@ router.post("/postItem", async (req, res) => {
 		if (!value.sort_order) {
 			let response = await Item.find({}, { sort_order: 1 })
 			response = JSON.parse(JSON.stringify(response))
-			value.sort_order = Math.max(...response.map(o => o?.sort_order || 0)) + 1 || 0
+			value.sort_order = Math.max(...response.map((o) => o?.sort_order || 0)) + 1 || 0
 			value.created_at = new Date().getTime()
 		}
 
@@ -39,24 +40,24 @@ router.delete("/deleteItem", async (req, res) => {
 			"item_details.item_uuid": item_uuid
 		})
 		if (!(orderData.length || CompleteOrderData.length)) {
-			fs.access("uploads/" + (item_uuid || "") + ".png", err => {
+			fs.access("uploads/" + (item_uuid || "") + ".png", (err) => {
 				if (err) {
 					console.log(err)
 					return
 				}
-				fs.unlink("uploads/" + (item_uuid || "") + ".png", err => {
+				fs.unlink("uploads/" + (item_uuid || "") + ".png", (err) => {
 					if (err) {
 						console.log(err)
 						return
 					}
 				})
 			})
-			fs.access("uploads/" + (item_uuid || "") + "thumbnail.png", err => {
+			fs.access("uploads/" + (item_uuid || "") + "thumbnail.png", (err) => {
 				if (err) {
 					console.log(err)
 					return
 				}
-				fs.unlink("uploads/" + (item_uuid || "") + "thumbnail.png", err => {
+				fs.unlink("uploads/" + (item_uuid || "") + "thumbnail.png", (err) => {
 					if (err) {
 						console.log(err)
 						return
@@ -109,7 +110,7 @@ router.get("/GetItemList", async (req, res) => {
 		if (data.length)
 			res.json({
 				success: true,
-				result: data.filter(a => a.item_uuid && a.item_title)
+				result: data.filter((a) => a.item_uuid && a.item_title)
 			})
 		else res.json({ success: false, message: "Item Not found" })
 	} catch (err) {
@@ -149,7 +150,7 @@ router.get("/GetActiveItemList", async (req, res) => {
 		if (data.length)
 			res.json({
 				success: true,
-				result: data.filter(a => a.item_uuid && a.item_title)
+				result: data.filter((a) => a.item_uuid && a.item_title)
 			})
 		else res.json({ success: false, message: "Item Not found" })
 	} catch (err) {
@@ -192,7 +193,7 @@ router.post("/GetItemList", async (req, res) => {
 		if (data.length)
 			res.json({
 				success: true,
-				result: data.filter(a => a.item_uuid && a.item_title)
+				result: data.filter((a) => a.item_uuid && a.item_title)
 			})
 		else res.json({ success: false, message: "Item Not found" })
 	} catch (err) {
@@ -238,7 +239,7 @@ router.get("/GetItemData", async (req, res) => {
 		if (data.length)
 			res.json({
 				success: true,
-				result: data.filter(a => a.item_uuid && a.item_title)
+				result: data.filter((a) => a.item_uuid && a.item_title)
 			})
 		else res.json({ success: false, message: "Item Not found" })
 	} catch (err) {
@@ -332,19 +333,19 @@ router.get("/minValue/:warhouse_uuid/:item_uuid", async (req, res) => {
 		let Itemdata = await Item.findOne({ item_uuid: req.params.item_uuid })
 		let ordersData = await Orders.find({
 			"item_details.item_uuid": req.params.item_uuid,
-			"warehouse_uuid": req.params.warhouse_uuid
+			warehouse_uuid: req.params.warhouse_uuid
 		})
 		ordersData = JSON.parse(JSON.stringify(ordersData))
 
-		ordersData = ordersData.filter(order => +order.status[order.status.length - 1].stage === 2)
+		ordersData = ordersData.filter((order) => +order.status[order.status.length - 1].stage === 2)
 
 		let allItems = [].concat
 			.apply(
 				[],
-				ordersData.map(b => b?.item_details || [])
+				ordersData.map((b) => b?.item_details || [])
 			)
-			.filter(a => a.item_uuid === req.params.item_uuid)
-			.map(a => +a.b * Itemdata.conversion + +a.p)
+			.filter((a) => a.item_uuid === req.params.item_uuid)
+			.map((a) => +a.b * Itemdata.conversion + +a.p)
 		allItems = allItems.length > 1 ? allItems.reduce((a, b) => +a + b) : allItems.length ? allItems[0] : 0
 		if (allItems)
 			res.json({
@@ -361,15 +362,15 @@ router.get("/GetItemStockList/:warhouse_uuid", async (req, res) => {
 		let data = await Item.find({ status: 1 })
 		data = JSON.parse(JSON.stringify(data))
 		if (req.params.warhouse_uuid)
-			data = data.map(a => ({
+			data = data.map((a) => ({
 				...a,
-				qty: a.stock.find(b => b.warehouse_uuid === req.params.warhouse_uuid)?.qty || 0
+				qty: a.stock.find((b) => b.warehouse_uuid === req.params.warhouse_uuid)?.qty || 0
 			}))
 
 		if (data.length)
 			res.json({
 				success: true,
-				result: data.filter(a => a.item_uuid && a.item_title)
+				result: data.filter((a) => a.item_uuid && a.item_title)
 			})
 		else res.json({ success: false, message: "Item Not found" })
 	} catch (err) {
@@ -382,7 +383,7 @@ router.put("/putItem", async (req, res) => {
 		for (let value of req.body) {
 			if (!value) res.json({ success: false, message: "Invalid Data" })
 			value = Object.keys(value)
-				.filter(key => key !== "_id")
+				.filter((key) => key !== "_id")
 				.reduce((obj, key) => {
 					obj[key] = value[key]
 					return obj
@@ -407,8 +408,8 @@ router.put("/flushWarehouse", async (req, res) => {
 
 		for (let item of itemsData) {
 			let stock = item.stock
-			if (stock.filter(a => a.qty && value?.find(b => b === a.warehouse_uuid)).length) {
-				stock = stock.map(b => (value.find(c => c === b.warehouse_uuid) ? { ...b, qty: 0 } : b))
+			if (stock.filter((a) => a.qty && value?.find((b) => b === a.warehouse_uuid)).length) {
+				stock = stock.map((b) => (value.find((c) => c === b.warehouse_uuid) ? { ...b, qty: 0 } : b))
 				let response = await Item.updateOne({ item_uuid: item.item_uuid }, { stock })
 				if (response.acknowledged) {
 					result.push({ item_uuid: item?.item_uuid, success: true })
@@ -425,405 +426,126 @@ router.put("/flushWarehouse", async (req, res) => {
 })
 router.post("/report", async (req, res) => {
 	try {
-		let { startDate, endDate, counter_uuid, counter_group_uuid, item_group_uuid, company_uuid, last_item } =
+		const { startDate, endDate, counter_uuid, counter_group_uuid, item_group_uuid, company_uuid, last_item } =
 			req.body
 		if (!endDate) return res.json({ success: false, message: "No date range provided" })
 
-		const aggregate = [
-			...(last_item
-				? [
+		const matchQueries = []
+
+		if (item_group_uuid && company_uuid) matchQueries.push({ $or: [{ company_uuid }, { item_group_uuid }] })
+		else if (item_group_uuid) matchQueries.push({ item_group_uuid })
+		else if (company_uuid) matchQueries.push({ company_uuid })
+
+		if (last_item?.company_uuid)
+			matchQueries.push({
+				$expr: {
+					$or: [
 						{
-							$match: {
-								$or: [
-									{
-										$and: [
-											{
-												$expr: {
-													$eq: ["$company_uuid", last_item.company_uuid]
-												}
-											},
-											{
-												$expr: {
-													$gt: [
-														{
-															$toLower: "$item_title"
-														},
-														{
-															$toLower: last_item.item_title
-														}
-													]
-												}
-											}
-										]
-									},
-									{
-										company_uuid: {
-											$gt: last_item.company_uuid
-										}
-									}
-								]
-							}
-						}
-				  ]
-				: []),
-			...(item_group_uuid || company_uuid
-				? [
-						{
-							$match: {
-								...(item_group_uuid && company_uuid
-									? {
-											$or: [{ company_uuid }, { item_group_uuid }]
-									  }
-									: item_group_uuid
-									? { item_group_uuid }
-									: { company_uuid })
-							}
-						}
-				  ]
-				: []),
-			...(!last_item
-				? [
-						{
-							$sort: {
-								company_uuid: 1,
-								item_title: 1
-							}
-						},
-						{ $limit: 200 }
-				  ]
-				: []),
-			{
-				$lookup: {
-					from: "completed_orders",
-					let: {
-						this_item: "$item_uuid",
-						conversion: {
-							$convert: {
-								input: "$conversion",
-								to: "int",
-								onError: 1
-							}
-						}
-					},
-					pipeline: [
-						{
-							$match: {
-								...(!counter_group_uuid && counter_uuid
-									? {
-											counter_uuid
-									  }
-									: {}),
-								"status": {
-									$elemMatch: {
-										stage: "1",
-										time: {
-											$gte: new Date(startDate).setHours(0, 0, 0, 0),
-											$lt: new Date(endDate).setHours(23, 59, 59, 99)
-										}
-									}
-								},
-								"item_details.item_uuid": {
-									$exists: true
+							$and: [
+								{ $eq: ["$company_uuid", last_item.company_uuid] },
+								{
+									$gt: [{ $toLower: "$item_title" }, { $toLower: last_item.item_title }]
 								}
-							}
+							]
 						},
-						...(counter_group_uuid
-							? [
-									{
-										$lookup: {
-											from: "counters",
-											localField: "counter_uuid",
-											foreignField: "counter_uuid",
-											pipeline: [
-												{
-													$match:
-														counter_uuid && counter_group_uuid
-															? {
-																	$or: [
-																		{
-																			counter_group_uuid
-																		},
-																		{
-																			counter_uuid
-																		}
-																	]
-															  }
-															: { counter_group_uuid }
-												},
-												{
-													$replaceRoot: {
-														newRoot: {}
-													}
-												}
-											],
-											as: "counter"
-										}
-									},
-									{
-										$unwind: {
-											path: "$counter",
-											preserveNullAndEmptyArrays: false
-										}
-									}
-							  ]
-							: []),
-						{
-							$unwind: {
-								path: "$item_details",
-								preserveNullAndEmptyArrays: false
-							}
-						},
-						{
-							$match: {
-								$expr: {
-									$eq: ["$item_details.item_uuid", "$$this_item"]
-								}
-							}
-						},
-						{
-							$replaceRoot: {
-								newRoot: {
-									item: {
-										p: {
-											$add: [
-												"$item_details.p",
-												{
-													$multiply: ["$item_details.b", "$$conversion"]
-												}
-											]
-										},
-										price: "$item_details.price"
-									},
-									added: {
-										$arrayElemAt: [
-											{
-												$filter: {
-													input: "$auto_added",
-													as: "elem",
-													cond: {
-														$eq: ["$$elem.item_uuid", "$$this_item"]
-													}
-												}
-											},
-											0
-										]
-									},
-									cancelled: {
-										$arrayElemAt: [
-											{
-												$filter: {
-													input: "$processing_canceled",
-													as: "elem",
-													cond: {
-														$eq: ["$$elem.item_uuid", "$$this_item"]
-													}
-												}
-											},
-											0
-										]
-									},
-									returned: {
-										$arrayElemAt: [
-											{
-												$filter: {
-													input: "$delivery_return",
-													as: "elem",
-													cond: {
-														$eq: ["$$elem.item_uuid", "$$this_item"]
-													}
-												}
-											},
-											0
-										]
-									}
-								}
-							}
-						}
-					],
-					as: "orders"
+						{ $gt: ["$company_uuid", last_item.company_uuid] }
+					]
 				}
+			})
+
+		const conditions = [
+			{
+				stage: "1",
+				itemField: "sales",
+				collection: "completed_orders"
 			},
 			{
-				$match: {
-					"orders.item": {
-						$exists: 1
-					}
-				}
-			},
-			{
-				$project: {
-					item_uuid: 1,
-					item_title: 1,
-					company_uuid: 1,
-					mrp: 1,
-					conversion: 1,
-					sales: {
-						$reduce: {
-							input: "$orders",
-							initialValue: {},
-							in: {
-								p: {
-									$add: [
-										{
-											$ifNull: ["$$value.p", 0]
-										},
-										{
-											$ifNull: ["$$this.item.p", 0]
-										}
-									]
-								},
-								price: {
-									$add: [
-										{
-											$ifNull: ["$$value.price", 0]
-										},
-										{
-											$multiply: [
-												{
-													$ifNull: ["$$this.item.p", 0]
-												},
-												{
-													$ifNull: ["$$this.item.price", 0]
-												}
-											]
-										}
-									]
-								}
-							}
-						}
-					},
-					added: {
-						$reduce: {
-							input: "$orders",
-							initialValue: { p: 0, price: 0 },
-							in: {
-								p: {
-									$add: [
-										"$$value.p",
-										{
-											$ifNull: ["$$this.added.p", 0]
-										}
-									]
-								},
-								price: {
-									$add: [
-										"$$value.price",
-										{
-											$multiply: [
-												{
-													$ifNull: ["$$this.added.p", 0]
-												},
-												"$$this.item.price"
-											]
-										}
-									]
-								}
-							}
-						}
-					},
-					returned: {
-						$reduce: {
-							input: "$orders",
-							initialValue: { p: 0, price: 0 },
-							in: {
-								p: {
-									$add: [
-										"$$value.p",
-										{
-											$ifNull: ["$$this.returned.p", 0]
-										}
-									]
-								},
-								price: {
-									$add: [
-										"$$value.price",
-										{
-											$multiply: [
-												{
-													$ifNull: ["$$this.returned.p", 0]
-												},
-												"$$this.item.price"
-											]
-										}
-									]
-								}
-							}
-						}
-					},
-					cancelled: {
-						$reduce: {
-							input: "$orders",
-							initialValue: { p: 0, price: 0 },
-							in: {
-								p: {
-									$add: [
-										"$$value.p",
-										{
-											$ifNull: ["$$this.cancelled.p", 0]
-										}
-									]
-								},
-								price: {
-									$add: [
-										"$$value.price",
-										{
-											$multiply: [
-												{
-													$ifNull: ["$$this.cancelled.p", 0]
-												},
-												"$$this.item.price"
-											]
-										}
-									]
-								}
-							}
-						}
-					}
-				}
-			},
-			{
-				$sort: {
-					company_uuid: 1,
-					item_title: 1
-				}
-			},
-			{
-				$limit: 100
+				stage: "3.5",
+				itemField: "delivered",
+				collection: "orders"
 			}
 		]
 
-		const data = await Item.aggregate(aggregate)
-		let result = data.map(({ _id, ...value }) => {
-			const sumResult = Object.keys(value)
-				.filter(key => typeof value[key] !== "string")
-				.reduce((_, key) => ({ ..._, [key]: value[key] }), {})
+		const pipeline = reportPipeline({
+			...req.body,
+			matchQueries,
+			conditions
+		})
 
-			sumResult.sales.price = +sumResult.sales.price.toFixed(2)
+		// console.log(JSON.stringify(pipeline))
 
-			const wholeQty = Object.values(sumResult).reduce((qty, { p }) => qty + p, 0)
-			const pctResult = Object.keys(sumResult)
-				.filter(key => key !== "sales")
-				.reduce(
-					(_result, key) => ({
-						..._result,
-						[key]: {
-							...value[key],
-							price: +sumResult[key].price.toFixed(2),
-							pct: +((sumResult[key].p * 100) / wholeQty).toFixed(2)
-						}
-					}),
-					{}
-				)
+		let result = await Item.aggregate(pipeline)
 
-			const remaining = Object.keys(value)
-				.filter(key => typeof value[key] !== "object")
-				.reduce((obj, key) => ({ ...obj, [key]: value[key] }), {})
+		result = result.map(({ _id, ...value }) => {
+			const sumResult = {}
+			const pctResult = {}
+			const remaining = {}
+
+			let wholeQty = 0
+
+			for (const [key, val] of Object.entries(value)) {
+				if (typeof val === "string") remaining[key] = val
+				else if (typeof val === "object" && val !== null) {
+					sumResult[key] = {
+						p: val.p,
+						price: +val.price?.toFixed(2)
+					}
+					wholeQty += val.p
+				}
+			}
+
+			for (const [key, { p, price }] of Object.entries(sumResult)) {
+				if (key !== "sales") {
+					pctResult[key] = {
+						...value[key],
+						price,
+						pct: +(wholeQty ? (p * 100) / wholeQty : 0).toFixed(2)
+					}
+				}
+			}
 
 			return { ...remaining, ...sumResult, ...pctResult }
 		})
 
-		res.json({ success: true, length: result.length, result, aggregate })
+		res.json({ success: true, length: result.length, result })
 	} catch (err) {
+		console.error(err)
+		res.status(500).json({ success: false, message: err.message })
+	}
+})
+router.post("/report-total", async (req, res) => {
+	try {
+		if (!req.body?.endDate) return res.json({ success: false, message: "No date range provided" })
+
+		const conditions = [
+			{
+				stage: "1",
+				itemField: "sales",
+				collection: OrderCompleted
+			},
+			{
+				stage: "3.5",
+				itemField: "delivered",
+				collection: Orders
+			}
+		]
+
+		let result = await Promise.all(
+			conditions.map(({ collection, ...i }) => {
+				const pipeline = reportTotalPipeline({ ...req.body, ...i })
+				// console.log(JSON.stringify(pipeline))
+				return collection.aggregate(pipeline)
+			})
+		)
+
+		result = {
+			...result[0][0],
+			...result[1][0]
+		}
+
+		res.json({ success: true, result })
+	} catch (err) {
+		console.error(err)
 		res.status(500).json({ success: false, message: err.message })
 	}
 })
@@ -864,7 +586,7 @@ router.put("/putItems/sortOrder", async (req, res) => {
 		let count = 0
 		const respond = () => (++count === items?.length ? res.json(result) : "")
 
-		items?.forEach(async item => {
+		items?.forEach(async (item) => {
 			try {
 				const res = await Item.updateOne({ item_uuid: item.item_uuid }, item)
 				if (res) result.succeed.push(item.item_uuid)
