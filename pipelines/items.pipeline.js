@@ -106,7 +106,8 @@ module.exports.reportPipeline = ({
 											$multiply: ["$item_details.b", "$$conversion"]
 										}
 									]
-								}
+								},
+								price: ["$item_details.edit_price", "$item_details.price", "$item_details.unit_price"]
 							}
 						},
 						{
@@ -114,7 +115,22 @@ module.exports.reportPipeline = ({
 								newRoot: {
 									item: {
 										p: "$p",
-										price: { $multiply: ["$item_details.price", "$p"] }
+										price: {
+											$multiply: [
+												{
+													$first: {
+														$filter: {
+															input: "$price",
+															as: "prc",
+															cond: {
+																$and: [{ $ne: ["$$prc", null] }, { $gt: ["$$prc", 0] }]
+															}
+														}
+													}
+												},
+												"$p"
+											]
+										}
 									}
 								}
 							}
@@ -125,8 +141,15 @@ module.exports.reportPipeline = ({
 			}
 		}),
 		{
+			$set: {
+				sales: {
+					$concatArrays: conditions.map((i) => `$${i.collection}`)
+				}
+			}
+		},
+		{
 			$match: {
-				$or: conditions.map((i) => ({ [`${i.collection}.item`]: { $exists: 1 } }))
+				"sales.item": { $exists: 1 }
 			}
 		},
 		{
@@ -136,26 +159,20 @@ module.exports.reportPipeline = ({
 				company_uuid: 1,
 				mrp: 1,
 				conversion: 1,
-				...conditions.reduce(
-					(obj, i) => ({
-						...obj,
-						[i.itemField]: {
-							$reduce: {
-								input: `$${i.collection}`,
-								initialValue: { p: 0, b: [0, 0], price: 0 },
-								in: {
-									p: {
-										$add: ["$$value.p", "$$this.item.p"]
-									},
-									price: {
-										$add: ["$$value.price", "$$this.item.price"]
-									}
-								}
+				sales: {
+					$reduce: {
+						input: "$sales",
+						initialValue: { p: 0, b: [0, 0], price: 0 },
+						in: {
+							p: {
+								$add: ["$$value.p", "$$this.item.p"]
+							},
+							price: {
+								$add: ["$$value.price", "$$this.item.price"]
 							}
 						}
-					}),
-					{}
-				)
+					}
+				}
 			}
 		},
 		{
@@ -172,8 +189,7 @@ module.exports.reportTotalPipeline = ({
 	user_uuid,
 	company_uuid,
 	item_group_uuid,
-	stage,
-	itemField
+	stage
 }) => {
 	const statusCheck = {
 		status: {
@@ -273,7 +289,8 @@ module.exports.reportTotalPipeline = ({
 						}
 					]
 				},
-				b: ["$item_details.b", "$item_details.p"]
+				b: ["$item_details.b", "$item_details.p"],
+				price: ["$item_details.edit_price", "$item_details.price", "$item_details.unit_price"]
 			}
 		},
 		{
@@ -281,7 +298,22 @@ module.exports.reportTotalPipeline = ({
 				newRoot: {
 					p: "$p",
 					b: "$b",
-					price: { $multiply: ["$item_details.price", "$p"] }
+					price: {
+						$multiply: [
+							{
+								$first: {
+									$filter: {
+										input: "$price",
+										as: "prc",
+										cond: {
+											$and: [{ $ne: ["$$prc", null] }, { $gt: ["$$prc", 0] }]
+										}
+									}
+								}
+							},
+							"$p"
+						]
+					}
 				}
 			}
 		},
@@ -297,7 +329,7 @@ module.exports.reportTotalPipeline = ({
 		{
 			$project: {
 				_id: 0,
-				[itemField]: {
+				sales: {
 					p: "$p",
 					b: ["$b0", "$b1"],
 					price: "$price"

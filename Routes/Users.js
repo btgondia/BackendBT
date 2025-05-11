@@ -34,7 +34,7 @@ router.post("/postUser", async (req, res) => {
 });
 router.get("/getUsers", async (req, res) => {
   try {
-    const users = await User.find({}, {user_uuid:1,user_title:1,_id:0});
+    const users = await User.find({status: 1}, {user_uuid:1,user_title:1,_id:0});
     res.json({ success: true, result: users });
   } catch (err) {
     res.status(500).json({ success: false, message: err?.message });

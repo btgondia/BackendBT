@@ -474,38 +474,7 @@ router.post("/report", async (req, res) => {
 
 		// console.log(JSON.stringify(pipeline))
 
-		let result = await Item.aggregate(pipeline)
-
-		result = result.map(({ _id, ...value }) => {
-			const sumResult = {}
-			const pctResult = {}
-			const remaining = {}
-
-			let wholeQty = 0
-
-			for (const [key, val] of Object.entries(value)) {
-				if (typeof val === "string") remaining[key] = val
-				else if (typeof val === "object" && val !== null) {
-					sumResult[key] = {
-						p: val.p,
-						price: +val.price?.toFixed(2)
-					}
-					wholeQty += val.p
-				}
-			}
-
-			for (const [key, { p, price }] of Object.entries(sumResult)) {
-				if (key !== "sales") {
-					pctResult[key] = {
-						...value[key],
-						price,
-						pct: +(wholeQty ? (p * 100) / wholeQty : 0).toFixed(2)
-					}
-				}
-			}
-
-			return { ...remaining, ...sumResult, ...pctResult }
-		})
+		const result = await Item.aggregate(pipeline)
 
 		res.json({ success: true, length: result.length, result })
 	} catch (err) {
@@ -520,12 +489,10 @@ router.post("/report-total", async (req, res) => {
 		const conditions = [
 			{
 				stage: "1",
-				itemField: "sales",
 				collection: OrderCompleted
 			},
 			{
 				stage: "3.5",
-				itemField: "delivered",
 				collection: Orders
 			}
 		]
@@ -538,12 +505,21 @@ router.post("/report-total", async (req, res) => {
 			})
 		)
 
-		result = {
-			...result[0][0],
-			...result[1][0]
+		const sales = {
+			p: 0,
+			b: [0, 0],
+			price: 0
 		}
 
-		res.json({ success: true, result })
+		for (const [doc] of result) {
+			if (!doc?.sales) continue
+			sales.p += doc.sales.p
+			sales.b[0] += doc.sales.b[0]
+			sales.b[1] += doc.sales.b[1]
+			sales.price += doc.sales.price
+		}
+
+		res.json({ success: true, result: { sales } })
 	} catch (err) {
 		console.error(err)
 		res.status(500).json({ success: false, message: err.message })
