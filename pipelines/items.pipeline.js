@@ -114,7 +114,6 @@ module.exports.reportPipeline = ({
 							$replaceRoot: {
 								newRoot: {
 									item: {
-										p: "$p",
 										price: {
 											$multiply: [
 												{
@@ -130,7 +129,8 @@ module.exports.reportPipeline = ({
 												},
 												"$p"
 											]
-										}
+										},
+										p: { $add: [{ $ifNull: ["$item_details.free", 0] }, "$p"] },
 									}
 								}
 							}
@@ -289,14 +289,14 @@ module.exports.reportTotalPipeline = ({
 						}
 					]
 				},
-				b: ["$item_details.b", "$item_details.p"],
+				b: ["$item_details.b", { $add: [{ $ifNull: ["$item_details.free", 0] }, "$item_details.p"] }],
 				price: ["$item_details.edit_price", "$item_details.price", "$item_details.unit_price"]
 			}
 		},
 		{
 			$replaceRoot: {
 				newRoot: {
-					p: "$p",
+					p: { $add: [{ $ifNull: ["$item_details.free", 0] }, "$p"] },
 					b: "$b",
 					price: {
 						$multiply: [
