@@ -80,6 +80,9 @@ const OrdersSchema = new mongoose.Schema({
 	order_uuid: {
 		type: String,
 	},
+	last_invoice_number: {
+		type: String
+	},
 	invoice_number: {
 		type: String,
 	},

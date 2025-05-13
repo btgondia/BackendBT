@@ -1520,6 +1520,7 @@ router.put("/updateOrderType", async (req, res) => {
 		const payload = {
 			invoice_number: order_type === "E" ? next_estimate_number : next_invoice_number,
 			order_type,
+			last_invoice_number: invoice_number
 		}
 
 		if (await Orders.exists(query)) result = await Orders.updateOne(query, payload)
