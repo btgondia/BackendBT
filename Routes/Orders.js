@@ -693,7 +693,7 @@ router.put("/putOrders", async (req, res) => {
 				0,
 				status?.map((a) => +a.stage || 0)
 			) || 0
-
+			
 		let tripData = {}
 		if (value.trip_uuid) {
 			tripData = (await Trips.findOne({ trip_uuid: value.trip_uuid }))?.toObject()

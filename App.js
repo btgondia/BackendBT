@@ -296,3 +296,39 @@ app.use(express.static("uploads"));
 app.use("/soundApp/getFile", express.static(path.join(__dirname, "files")));
 
 module.exports = app;
+
+// let count = 0
+
+// const main = async () => {
+// 	try {
+// 		const Stages = [1, 2, 3, 3.5, 4]
+// 		console.log("starting")
+// 		const collection = Orders
+
+// 		const cursor = collection.find()
+
+// 		for await (const doc of cursor) {
+// 			console.log(count++)
+
+// 			let stages = doc.status.map((s) => parseInt(s.stage)).sort((a, b) => a - b)
+// 			if (stages.includes(5)) continue
+
+// 			let filledStages = []
+
+// 			for (let i = Stages.indexOf(stages[0]); i <= Stages.indexOf(stages.at(-1)); i++) {
+// 				filledStages.push({
+// 					stage: Stages[i].toString(),
+// 					user_uuid: doc.status.at(-1).user_uuid,
+// 					time: doc.status.at(-1).time
+// 				})
+// 			}
+
+// 			if (JSON.stringify(filledStages) !== JSON.stringify(doc.status)) {
+// 				await collection.updateOne({ _id: doc._id }, { $set: { status: filledStages } })
+// 			}
+// 		}
+// 		console.log("ended")
+// 	} catch (error) {
+// 		console.error(error)
+// 	}
+// }
