@@ -7,6 +7,9 @@ const CounterSchema = new mongoose.Schema({
 	credit_rating: {
 		type: String
 	},
+	odoo_counter_id: {
+		type: String,
+	},
 	counter_code: {
 		type: String
 	},

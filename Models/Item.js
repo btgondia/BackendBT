@@ -7,6 +7,9 @@ const ItemSchema = new mongoose.Schema({
   item_discount: {
     type: Number,
   },
+  odoo_item_id: {
+    type: String,
+  },
   exclude_discount: {
     type: Number,
   },

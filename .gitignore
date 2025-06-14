@@ -11,6 +11,7 @@ remote-test.json
 
 # production
 deploy.txt
+db.pem
 /build
 
 # misc
