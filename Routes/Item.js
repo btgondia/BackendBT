@@ -81,8 +81,9 @@ router.get("/GetItemList", async (req, res) => {
 				item_title: 1,
 				company_uuid: 1,
 				category_uuid: 1,
-				item_discount: 1,
-				exclude_discount: 1,
+                                item_discount: 1,
+                                odoo_item_id: 1,
+                                exclude_discount: 1,
 				status: 1,
 				sort_order: 1,
 				item_code: 1,
@@ -126,8 +127,9 @@ router.get("/GetActiveItemList", async (req, res) => {
 				company_uuid: 1,
 				category_uuid: 1,
 
-				item_discount: 1,
-				exclude_discount: 1,
+                                item_discount: 1,
+                                odoo_item_id: 1,
+                                exclude_discount: 1,
 				status: 1,
 				sort_order: 1,
 				item_code: 1,
@@ -161,9 +163,10 @@ router.post("/GetItemList", async (req, res) => {
 	try {
 		let { items = [] } = req.body
 		let data = await Item.find(items?.length ? { item_uuid: { $in: items } } : {}, {
-			item_title: 1,
-			item_discount: 1,
-			exclude_discount: 1,
+                        item_title: 1,
+                        item_discount: 1,
+                        odoo_item_id: 1,
+                        exclude_discount: 1,
 			status: 1,
 			sort_order: 1,
 			item_code: 1,
@@ -207,8 +210,9 @@ router.get("/GetItemData", async (req, res) => {
 			{
 				item_title: 1,
 				img_status: 1,
-				item_discount: 1,
-				exclude_discount: 1,
+                                item_discount: 1,
+                                odoo_item_id: 1,
+                                exclude_discount: 1,
 				status: 1,
 				sort_order: 1,
 				item_code: 1,
@@ -537,8 +541,9 @@ router.get("/GetItemsPurchaseData", async (req, res) => {
 			{
 				item_title: 1,
 				item_uuid: 1,
-				item_code: 1,
-				company_uuid: 1,
+                                item_code: 1,
+                                odoo_item_id: 1,
+                                company_uuid: 1,
 				category_uuid: 1,
 				last_purchase_price: 1,
 				status: 1
