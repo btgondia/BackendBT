@@ -247,8 +247,9 @@ router.get("/GetCounterData", async (req, res) => {
 			{},
 			{
 				counter_title: 1,
-				trip_uuid: 1,
-				counter_code: 1,
+                                trip_uuid: 1,
+                                counter_code: 1,
+                                odoo_counter_id: 1,
 				sort_order: 1,
 				notes: 1,
 				payment_reminder_days: 1,
@@ -287,7 +288,11 @@ router.get("/GetCounterData", async (req, res) => {
 		let result = []
 		for (let i of data) {
 			let route = routesData.find(a => a.route_uuid === i.route_uuid)
-			result.push({ ...i, route_title: route?.route_title || "" })
+                        result.push({
+                                ...i,
+                                odoo_counter_id: i?.odoo_counter_id || "",
+                                route_title: route?.route_title || ""
+                        })
 		}
 
 		if (data.length) res.json({ success: true, result })
