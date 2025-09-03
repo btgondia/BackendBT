@@ -56,6 +56,9 @@ const GSTReturns = require("./Routes/GSTReturns");
 const HSNCode = require("./Routes/hsn_code");
 const baseRouter = require("./Routes/_base");
 
+// ✅ NEW (1/2): add AssemblyDevices route import
+const AssemblyDevices = require("./Routes/assemblyDevices.routes");
+
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
 const storage = multer.diskStorage({
@@ -118,6 +121,10 @@ app.use("/purchaseInvoice", PurchaseINvoice);
 app.use("/creditNote",CreditNotes)
 app.use("/gstReturns", GSTReturns);
 app.use("/hsn_code",HSNCode)
+
+// ✅ NEW (2/2): mount AssemblyDevices API (fetch-all / save-all)
+app.use("/api/assembly-devices", AssemblyDevices);
+
 app.use("/", baseRouter)
 app.get("/MinLevelUpdate", async (req, res, next) => {
   const response = await MinLevelUpdateAutomation();
