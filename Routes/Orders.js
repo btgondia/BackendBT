@@ -1421,30 +1421,56 @@ router.get("/GetOrder/:order_uuid", async (req, res) => {
 
 router.post("/getOrderData", async (req, res) => {
 	try {
-		let { invoice_number } = req.body
-		invoice_number = invoice_number.toString() || ""
-		let data = await Orders.find({
-			invoice_number: { $regex: new RegExp(invoice_number) },
-		})
+		const { fromDate, toDate, invoiceNumber="", grandTotalFrom, grandTotalTo } = req.body
 
-		let completedData = await OrderCompleted.find({
-			invoice_number: { $regex: new RegExp(invoice_number) },
-		})
+		const matchQuery = {}
 
-		let CaceledData = await CancelOrders.find({
-			invoice_number: { $regex: new RegExp(invoice_number) },
-		})
+		if (fromDate || toDate) {
+			matchQuery['status.0.time'] = {}
+			if (fromDate) matchQuery['status.0.time'].$gte = new Date(fromDate).setHours(0, 0, 0, 0)
+			if (toDate) matchQuery['status.0.time'].$lt = new Date(toDate).setHours(24, 0, 0, 0)
+		}
 
-		data = JSON.parse(JSON.stringify(data))
-		completedData = JSON.parse(JSON.stringify(completedData))
-		CaceledData = JSON.parse(JSON.stringify(CaceledData))
-		let result = [...data, ...completedData, ...CaceledData]
+		if (invoiceNumber) matchQuery.invoice_number = { $regex: new RegExp(invoiceNumber) }
+		if (grandTotalFrom || grandTotalTo) {
+			matchQuery.order_grandtotal = {}
+			if (grandTotalFrom) matchQuery.order_grandtotal.$gte = +grandTotalFrom
+			if (grandTotalTo) matchQuery.order_grandtotal.$lte = +grandTotalTo
+		}
+
+		const pipeline = [
+			{
+				$match: matchQuery
+			},
+			{
+				$lookup: {
+					from: 'counters',
+					foreignField: 'counter_uuid',
+					localField: 'counter_uuid',
+					as: 'counter_title'
+				}
+			},
+			{
+				$set: {
+					counter_title: {
+						$first: "$counter_title.counter_title"
+					}
+				}
+			}
+		]
+
+		const response = await Promise.all([
+			Orders.aggregate(pipeline),
+			OrderCompleted.aggregate(pipeline),
+			CancelOrders.aggregate(pipeline)
+		])
 
 		res.json({
 			success: true,
-			result,
+			result: response.flat(),
 		})
 	} catch (err) {
+		console.error(err.stack)
 		res.status(500).json({ success: false, message: err })
 	}
 })
