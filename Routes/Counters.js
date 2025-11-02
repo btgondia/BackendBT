@@ -18,6 +18,7 @@ const AccountingVoucher = require("../Models/AccountingVoucher")
 const Ledger = require("../Models/Ledger")
 const CreditNotes = require("../Models/CreditNotes")
 const HSNCode = require("../Models/hsn_code")
+const chunkifyDBCall = require("../utils/chunkifyDBCall")
 const msg91 = require("msg91-templateid")("312759AUCbnlpoZeD61714959P1", "foodDo", "4")
 
 router.post("/getFilteredList", async (req, res) => {
@@ -243,56 +244,53 @@ router.post("/GetCounterList", async (req, res) => {
 
 router.get("/GetCounterData", async (req, res) => {
 	try {
-		let data = await Counter.find(
-			{},
-			{
-				counter_title: 1,
-                                trip_uuid: 1,
-                                counter_code: 1,
-                                odoo_counter_id: 1,
-				sort_order: 1,
-				notes: 1,
-				payment_reminder_days: 1,
-				outstanding_type: 1,
-				credit_allowed: 1,
-				gst: 1,
-				food_license: 1,
-				counter_uuid: 1,
-				short_link: 1,
-				remarks: 1,
-				status: 1,
-				route_uuid: 1,
-				address: 1,
-				mobile: 1,
-				company_discount: 1,
-				form_uuid: 1,
-				// average_lines_company: 1,
-				// average_lines_category: 1,
-				item_special_price: 1,
-				item_special_discount: 1,
-				counter_group_uuid: 1,
-				payment_modes: 1,
-				credit_rating: 1,
-				transaction_tags: 1,
-				opening_balance: 1,
-				closing_balance: 1,
-				dms_beat_name: 1,
-				dms_buyer_id: 1,
-				dms_buyer_address: 1,
-				dms_buyer_name: 1,
-				estimatedLedgerName: 1
-			}
-		)
+		let data = await chunkifyDBCall(Counter, 200, {}, {
+			counter_title: 1,
+			trip_uuid: 1,
+			counter_code: 1,
+			odoo_counter_id: 1,
+			sort_order: 1,
+			notes: 1,
+			payment_reminder_days: 1,
+			outstanding_type: 1,
+			credit_allowed: 1,
+			gst: 1,
+			food_license: 1,
+			counter_uuid: 1,
+			short_link: 1,
+			remarks: 1,
+			status: 1,
+			route_uuid: 1,
+			address: 1,
+			mobile: 1,
+			company_discount: 1,
+			form_uuid: 1,
+			// average_lines_company: 1,
+			// average_lines_category: 1,
+			item_special_price: 1,
+			item_special_discount: 1,
+			counter_group_uuid: 1,
+			payment_modes: 1,
+			credit_rating: 1,
+			transaction_tags: 1,
+			opening_balance: 1,
+			closing_balance: 1,
+			dms_beat_name: 1,
+			dms_buyer_id: 1,
+			dms_buyer_address: 1,
+			dms_buyer_name: 1,
+			estimatedLedgerName: 1
+		})
 		data = JSON.parse(JSON.stringify(data))
 		let routesData = await Routes.find({}, { route_uuid: 1, route_title: 1 })
 		let result = []
 		for (let i of data) {
 			let route = routesData.find(a => a.route_uuid === i.route_uuid)
-                        result.push({
-                                ...i,
-                                odoo_counter_id: i?.odoo_counter_id || "",
-                                route_title: route?.route_title || ""
-                        })
+			result.push({
+				...i,
+				odoo_counter_id: i?.odoo_counter_id || "",
+				route_title: route?.route_title || ""
+			})
 		}
 
 		if (data.length) res.json({ success: true, result })

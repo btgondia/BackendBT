@@ -1,6 +1,7 @@
 const Counters = require("../Models/Counters")
 const Orders = require("../Models/Orders")
-const Users = require("../Models/Users")
+const Users = require("../Models/Users");
+const chunkifyDBCall = require("../utils/chunkifyDBCall");
 
 const getRunningOrders = async ({ user_uuid, condition = {}, getCounters }) => {
 	try {
@@ -14,17 +15,17 @@ const getRunningOrders = async ({ user_uuid, condition = {}, getCounters }) => {
 			const counterQuery = userData.routes.includes("none") ? {} : { route_uuid: { $in: userData.routes } };
 
 			counterData = await Counters.find(counterQuery, { counter_title: 1, counter_uuid: 1, route_uuid: 1 });
-			data =await Orders.find({
+			
+			// console.time("Chunkified orders call took: ")
+			data = await chunkifyDBCall(Orders, 20, {
 				order_uuid: { $exists: true, $ne: "" },
 				counter_uuid: { $in: counterData.filter(i => i.counter_uuid).map(i => i.counter_uuid) },
 				hold: { $ne: "Y" },
 				item_details: { $exists: true, $ne: [] },
 				status: { $exists: true, $ne: [] },
-
 				...condition
 			});
-			
-
+			// console.timeEnd("Chunkified orders call took: ")
 		} else {
 			data = await Orders.find({order_uuid: { $exists: true, $ne: "" },
 				hold: { $ne: "Y" },
