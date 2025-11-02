@@ -8,8 +8,8 @@ let getTime = () => {
 	return `${date.toDateString()}, ${date.toLocaleTimeString()}`
 }
 
-const originalLog = console.log.bind(console)
-console.log = (...data) => originalLog("[" + getTime() + "] ", ...data)
+// const originalLog = console.log.bind(console)
+// console.log = (...data) => originalLog("[" + getTime() + "] ", ...data)
 
 const colors = {
 	red: "\x1b[31m",

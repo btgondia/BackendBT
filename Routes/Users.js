@@ -16,6 +16,7 @@ const OrderCompleted = require("../Models/OrderCompleted");
 const CancelOrders = require("../Models/CancelOrders");
 const Orders = require("../Models/Orders");
 const Users = require("../Models/Users");
+const chunkifyDBCall = require("../utils/chunkifyDBCall");
 
 router.post("/postUser", async (req, res) => {
   try {
@@ -133,16 +134,9 @@ router.post("/login", async (req, res) => {
 
 router.get("/getDetails", async (req, res) => {
   try {
-    let user = await Users.findOne({});
-    let autobill = await AutoBill.find({});
-    autobill = autobill.filter((a) => a.auto_uuid);
-    let companies = await Companies.find({ status: 1 });
-    companies = companies.filter((a) => a.company_uuid);
-    let counter_groups = await CounterGroup.find({});
-    counter_groups = counter_groups.filter((a) => a.counter_group_uuid);
-    let counter = await Counters.find(
-      {},
-      {
+    const autobillPromise = chunkifyDBCall(AutoBill, 100, { auto_uuid: { $exists: true, $ne: null } })
+
+    const counterPromise = chunkifyDBCall(Counters, 20, { counter_uuid: { $exists: true, $ne: null } }, {
         counter_title: 1,
         counter_code: 1,
         sort_order: 1,
@@ -163,13 +157,12 @@ router.get("/getDetails", async (req, res) => {
         counter_group_uuid: 1,
         payment_modes: 1,
         location_coords: 1,
-      }
-    );
-    counter = counter.filter((a) => a.counter_uuid);
-    let item_category = await ItemCategories.find({});
-    item_category = item_category.filter((a) => a.category_uuid);
-    let items = await Item.find(
-      {},
+    })
+
+    const itemPromise = chunkifyDBCall(Item, 150, {
+        item_uuid: { $exists: true, $ne: null },
+        company_uuid: { $exists: true, $ne: null },
+      },
       {
         item_title: 1,
         item_discount: 1,
@@ -192,38 +185,48 @@ router.get("/getDetails", async (req, res) => {
         item_group_uuid: 1,
         stock: 1,
         created_at: 1,
-        item_price_a:1,
-        item_price_b:1,
-        item_price_c:1,
-        billing_type:1
+        item_price_a: 1,
+        item_price_b: 1,
+        item_price_c: 1,
+        billing_type: 1,
       }
-    );
-    items = items.filter(
-      (a) =>
-        a.item_uuid &&
-        companies?.find((i) => i?.company_uuid === a?.company_uuid)
-    );
-    let routes = await Routes.find({});
-    routes = routes.filter((a) => a.route_uuid);
-    let payment_modes = await PaymentModes.find({});
-    payment_modes = payment_modes.filter((a) => a.mode_uuid);
-    let warehouse = await Warehouse.find({});
-    warehouse = warehouse.filter((a) => a.warehouse_uuid);
-    let result = {
+    )
+
+    const [
       autobill,
+      counter,
+      items,
       companies,
       counter_groups,
-      counter,
       item_category,
-      items,
       routes,
       payment_modes,
-      warehouse,
+      warehouse
+    ] = await Promise.all([
+      autobillPromise,
+      counterPromise,
+      itemPromise,
+      Companies.find({ status: 1, company_uuid: { $exists: true, $ne: null } }),
+      CounterGroup.find({ counter_group_uuid: { $exists: true, $ne: null } }),
+      ItemCategories.find({ category_uuid: { $exists: true, $ne: null } }),
+      Routes.find({ route_uuid: { $exists: true, $ne: null } }),
+      PaymentModes.find({ mode_uuid: { $exists: true, $ne: null } }),
+      Warehouse.find({ warehouse_uuid: { $exists: true, $ne: null } }),
+    ])
+
+    const result = {
+      autobill,
+      counter,
+      items,
+      companies,
+      counter_groups,
+      item_category,
+      routes,
+      payment_modes,
+      warehouse
     };
-    res.json({
-      success: true,
-      result,
-    });
+
+    res.json({ success: true, result });
   } catch (err) {
     res.status(500).json({ success: false, message: err?.message });
   }

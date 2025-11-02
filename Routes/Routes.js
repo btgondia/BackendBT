@@ -77,21 +77,15 @@ router.post("/GetRouteList", async (req, res) => {
 });
 router.get("/GetOrderRouteList", async (req, res) => {
   try {
-    // console.time("routes");
     let data = await Routes.find({},{route_uuid:1,route_title:1});
     data = JSON.parse(JSON.stringify(data));
-    // console.timeEnd("routes");
-    // console.time("counter");
+    
     let counter = await Counters.find({}, { route_uuid: 1, counter_uuid: 1 });
     counter = JSON.parse(JSON.stringify(counter));
-    // console.timeEnd("counter");
 
-    // console.time("ordersData");
     let ordersData = await Orders.find({});
     ordersData = JSON.parse(JSON.stringify(ordersData));
-    // console.timeEnd("ordersData");
 
-    // console.time("process");
     if (ordersData.length) {
       let result = data
         .map((a) => {
@@ -149,7 +143,6 @@ router.get("/GetOrderRouteList", async (req, res) => {
         })
         .filter((a) => a.orderLength);
 
-      // console.timeEnd("process");
       res.json({ success: true, result });
     } else res.json({ success: false, message: "Routes Not found" });
   } catch (err) {

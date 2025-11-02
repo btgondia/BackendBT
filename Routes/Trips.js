@@ -559,14 +559,57 @@ router.post("/GetCompletedTripList", async (req, res) => {
 
 router.post("/GetProcessingTripList", async (req, res) => {
   try {
-    let orderData = await Orders.find({ status: { $elemMatch: { stage: 1 } } });
-    orderData = orderData.filter((a) => getOrderStage(a.status) === 1);
-    let nonTripOrders = await Orders.find({ trip_uuid: { $exists: 0 } });
-    nonTripOrders = nonTripOrders.filter((a) => getOrderStage(a.status) === 1);
-    let trips = await Trips.find({
-      status: 1,
-      trip_uuid: { $in: orderData.map((a) => a.trip_uuid) },
-    });
+    let orderData = await Orders.aggregate(
+      [
+        {
+          $match: {
+            "status.stage": "1",
+            $expr: {
+              $eq: [
+                {
+                  $max: {
+                    $map: {
+                      input: "$status.stage",
+                      as: "s",
+                      in: { $toDouble: "$$s" }
+                    }
+                  }
+                },
+                {
+                  $toDouble: 1
+                }
+              ]
+            }
+          },
+        },
+        {
+          $lookup: {
+            from: 'trips',
+            foreignField: 'trip_uuid',
+            localField: 'trip_uuid',
+            as: 'trip'
+          }
+        },
+        {
+          $project: {
+            trip_uuid: 1,
+            priority: 1,
+            trip: {
+              $first: '$trip'
+            }
+          }
+        }
+      ]
+    );
+    
+    let nonTripOrders = orderData.filter(i => !i.trip_uuid);
+    let { data: trips } = orderData.reduce((obj, i) =>
+      (i.trip && !obj.ids.includes(i.trip_uuid)) ? {
+        ids: [...obj.ids, i.trip_uuid],
+        data: [...obj.data, i.trip],
+      } : obj
+    , { ids: [], data: [] })
+
     trips = JSON.parse(JSON.stringify(trips));
     trips = trips.map((a) => ({
       ...a,
@@ -595,6 +638,7 @@ router.post("/GetProcessingTripList", async (req, res) => {
       result: unknownTrip.concat(trips),
     });
   } catch (err) {
+    console.error(err)
     res.status(500).json({ success: false, message: err.message });
   }
 });

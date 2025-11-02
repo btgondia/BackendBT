@@ -16,7 +16,6 @@ const getRunningOrders = async ({ user_uuid, condition = {}, getCounters }) => {
 
 			counterData = await Counters.find(counterQuery, { counter_title: 1, counter_uuid: 1, route_uuid: 1 });
 			
-			// console.time("Chunkified orders call took: ")
 			data = await chunkifyDBCall(Orders, 20, {
 				order_uuid: { $exists: true, $ne: "" },
 				counter_uuid: { $in: counterData.filter(i => i.counter_uuid).map(i => i.counter_uuid) },
@@ -25,7 +24,6 @@ const getRunningOrders = async ({ user_uuid, condition = {}, getCounters }) => {
 				status: { $exists: true, $ne: [] },
 				...condition
 			});
-			// console.timeEnd("Chunkified orders call took: ")
 		} else {
 			data = await Orders.find({order_uuid: { $exists: true, $ne: "" },
 				hold: { $ne: "Y" },
