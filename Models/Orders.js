@@ -1,13 +1,13 @@
 const mongoose = require("mongoose")
-const {OrderDMSDetailsSchema,DMSItemSchema} = require("./OrderDMSDetails")
+const { OrderDMSDetailsSchema, DMSItemSchema } = require("./OrderDMSDetails")
 
 const OrdersSchema = new mongoose.Schema({
 	status: [
 		{
 			stage: { type: String },
 			time: { type: Number },
-			user_uuid: { type: String },
-		},
+			user_uuid: { type: String }
+		}
 	],
 	replacement: { type: Number },
 	replacement_mrp: { type: Number },
@@ -44,81 +44,88 @@ const OrdersSchema = new mongoose.Schema({
 			charges_discount: [
 				{
 					title: { type: String },
-					value: { type: Number },
-				},
+					value: { type: Number }
+				}
 			],
-		},
+			assembly_logs: [
+				{
+					status: Number,
+					timestamp: Date,
+					user_uuid: String
+				}
+			]
+		}
 	],
 	auto_added: [
 		{
 			item_uuid: { type: String },
 			b: { type: Number },
-			p: { type: Number },
-		},
+			p: { type: Number }
+		}
 	],
 	processing_canceled: [
 		{
 			item_uuid: { type: String },
 			b: { type: Number },
-			p: { type: Number },
-		},
+			p: { type: Number }
+		}
 	],
 	fulfillment: [
 		{
 			item_uuid: { type: String },
 			b: { type: Number },
-			p: { type: Number },
-		},
+			p: { type: Number }
+		}
 	],
 	delivery_return: [
 		{
 			item_uuid: { type: String },
 			b: { type: Number },
-			p: { type: Number },
-		},
+			p: { type: Number }
+		}
 	],
 	order_uuid: {
-		type: String,
+		type: String
 	},
 	last_invoice_number: {
 		type: String
 	},
 	invoice_number: {
-		type: String,
+		type: String
 	},
 	warehouse_uuid: {
-		type: String,
+		type: String
 	},
 	order_status: {
-		type: String,
+		type: String
 	},
 	counter_uuid: {
-		type: String,
+		type: String
 	},
 	hold: {
-		type: String,
+		type: String
 	},
 	trip_uuid: {
-		type: String,
+		type: String
 	},
 	order_grandtotal: {
-		type: Number,
+		type: Number
 	},
 	dms_details: OrderDMSDetailsSchema,
 	dms_invoice_number: { type: String },
 	comments: [
 		{
 			uuid: {
-				type: String,
+				type: String
 			},
 			note: {
-				type: String,
+				type: String
 			},
 			created_at: {
-				type: String,
-			},
-		},
-	],
+				type: String
+			}
+		}
+	]
 })
 
 module.exports = mongoose.model("orders", OrdersSchema)
