@@ -279,7 +279,8 @@ router.get("/GetCounterData", async (req, res) => {
 			dms_buyer_id: 1,
 			dms_buyer_address: 1,
 			dms_buyer_name: 1,
-			estimatedLedgerName: 1
+			estimatedLedgerName: 1,
+			apply_dms_discount: 1
 		})
 		data = JSON.parse(JSON.stringify(data))
 		let routesData = await Routes.find({}, { route_uuid: 1, route_title: 1 })

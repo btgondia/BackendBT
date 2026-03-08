@@ -199,6 +199,9 @@ const CounterSchema = new mongoose.Schema({
 	},
 	dms_buyer_name: {
 		type: String
+	},
+	apply_dms_discount: {
+		type: Number
 	}
 })
 
