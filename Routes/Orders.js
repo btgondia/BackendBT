@@ -1669,7 +1669,6 @@ router.patch("/item-assembly-log", async (req, res) => {
 								timestamp: new Date(timestamp)
 							}
 						],
-						$slice: -20
 					}
 				}
 			},
