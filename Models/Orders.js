@@ -111,6 +111,9 @@ const OrdersSchema = new mongoose.Schema({
 	order_grandtotal: {
 		type: Number
 	},
+	crateSerialNumber: {
+		type: Number
+	},
 	dms_details: OrderDMSDetailsSchema,
 	dms_invoice_number: { type: String },
 	comments: [
